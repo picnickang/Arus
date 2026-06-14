@@ -23,6 +23,8 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Mock signatures mirror the production projector module so `mock.calls`
 // destructures yield typed (orgId, projection) tuples in the assertions.
@@ -135,6 +137,21 @@ beforeEach(() => {
 });
 
 describe("Task #81 — live graph projector wiring", () => {
+  it("keeps inventory index as a facade over projection and work-order helpers", () => {
+    const inventoryDir = join(process.cwd(), "server", "db", "inventory");
+    const index = readFileSync(join(inventoryDir, "index.ts"), "utf-8");
+    const projections = readFileSync(join(inventoryDir, "inventory-projections.ts"), "utf-8");
+    const reservations = readFileSync(join(inventoryDir, "reservation-ledger.ts"), "utf-8");
+    const workOrders = readFileSync(join(inventoryDir, "work-order-parts.ts"), "utf-8");
+
+    expect(index).toContain('from "./inventory-projections.js"');
+    expect(index).toContain('from "./work-order-parts.js"');
+    expect(index).not.toContain("async function fireProjectionsAfterCommit");
+    expect(projections).toContain("export async function fireInventoryMovementProjections");
+    expect(reservations).toContain("export async function allocateReservation");
+    expect(workOrders).toContain("export async function reservePartsForWorkOrder");
+  });
+
   it("createEquipment fires projectEquipment with the inserted row", async () => {
     const { DatabaseEquipmentStorage } = await import("../../server/db/equipment/db-equipment");
     const newRow = {

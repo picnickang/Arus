@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -13,14 +12,10 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { exportToCSV } from "@/lib/exportUtils";
 import {
   type CrewListItem,
-  type VesselListItem,
   type SortField,
   type SortDirection,
   type CrewFormData,
   type SkillFormData,
-  type CrewAccessReadiness,
-  type CrewAccessReadinessStatus,
-  type FormerCrewAccessRisk,
   type FormerCrewAccessRiskFilter,
   type CrewProfileTab,
   crewFormSchema,
@@ -28,25 +23,23 @@ import {
   createDefaultCrewFormValues,
   createDefaultSkillFormValues,
   calculateCrewStats,
-  filterCrew,
-  sortCrew,
-  countActiveFilters,
   prepareCrewExportData,
   getVesselNameById,
   buildRoleLookup,
   MARITIME_RANKS,
-  type CrewManagementRole,
 } from "../lib/crewManagementUtils";
+import {
+  useCrewAccessIndexes,
+  useCrewAccessQueries,
+  useCrewReferenceData,
+  useCrewRosterFilters,
+  uploadCrewPhoto,
+} from "./useUnifiedCrewDataParts";
+
+export type { PermissionRoleOption } from "./useUnifiedCrewDataParts";
 
 interface UseUnifiedCrewDataOptions {
   accessReadinessEnabled?: boolean;
-}
-
-/** Minimal shape of an RBAC permission role for the app-access pickers. */
-export interface PermissionRoleOption {
-  id: string;
-  name: string;
-  displayName?: string | null;
 }
 
 export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
@@ -77,51 +70,23 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const [skillAssignmentCrewId, setSkillAssignmentCrewId] = useState<string>("");
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 
-  // One aggregate request replaces the four parallel crew/vessels/crew-roles/
-  // permission-roles queries (server: GET /api/crew/unified). The key keeps
-  // "/api/crew" as its first segment so every existing invalidateQueries on
-  // ["/api/crew"] (mutations here and elsewhere) refreshes the aggregate too.
-  // A failed section arrives as [] — same degraded behavior as the individual
-  // queries had. permissionRoles feed the per-crew-role "suggested app access"
-  // picker; kept separate from the crew-role catalog (the systems aren't merged).
-  const { data: unifiedCrewData, isLoading: unifiedLoading } = useQuery<{
-    crew: CrewListItem[];
-    vessels: VesselListItem[];
-    crewRoles: CrewManagementRole[];
-    permissionRoles: PermissionRoleOption[];
-    sectionErrors?: Record<string, string>;
-  }>({
-    queryKey: ["/api/crew", "unified"],
-    queryFn: async () => {
-      const { apiRequest } = await import("@/lib/queryClient");
-      return apiRequest("GET", "/api/crew/unified");
-    },
-  });
-  const crew = unifiedCrewData?.crew ?? [];
-  const vessels = unifiedCrewData?.vessels ?? [];
-  const crewRoles = unifiedCrewData?.crewRoles ?? [];
-  const permissionRoles = unifiedCrewData?.permissionRoles ?? [];
-  const crewLoading = unifiedLoading;
-  const vesselsLoading = unifiedLoading;
-  const crewRolesLoading = unifiedLoading;
   const {
-    data: accessReadiness = [],
-    isLoading: accessReadinessLoading,
-    isError: accessReadinessError,
-  } = useQuery<CrewAccessReadiness[]>({
-    queryKey: ["/api/admin/crew/access-readiness"],
-    enabled: accessReadinessEnabled,
-    retry: false,
-  });
+    crew,
+    vessels,
+    crewRoles,
+    permissionRoles,
+    crewLoading,
+    vesselsLoading,
+    crewRolesLoading,
+  } = useCrewReferenceData();
   const {
-    data: formerAccessRisks = [],
-    isLoading: formerAccessRisksLoading,
-    isError: formerAccessRisksError,
-  } = useQuery<FormerCrewAccessRisk[]>({
-    queryKey: ["/api/admin/crew/former-access-risks"],
-    enabled: accessReadinessEnabled,
-    retry: false,
-  });
+    accessReadiness,
+    accessReadinessLoading,
+    accessReadinessError,
+    formerAccessRisks,
+    formerAccessRisksLoading,
+    formerAccessRisksError,
+  } = useCrewAccessQueries(accessReadinessEnabled);
 
   const crewForm = useForm<CrewFormData, unknown, CrewFormData>({
     resolver: zodResolver(crewFormSchema),
@@ -132,31 +97,12 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     defaultValues: createDefaultSkillFormValues(),
   });
 
-  // Optional intake photo: the photo endpoint needs a crew id, which only
-  // exists after the create succeeds, so we upload it as a follow-up step.
-  const uploadCrewPhoto = async (crewId: string, photo: File) => {
-    const { createHeaders, resolveUrl, queryClient } = await import("@/lib/queryClient");
-    try {
-      const formData = new FormData();
-      formData.append("photo", photo);
-      const res = await fetch(resolveUrl(`/api/crew/${crewId}/photo`), {
-        method: "POST",
-        headers: createHeaders(false),
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) {
-        throw new Error(`Photo upload failed (${res.status})`);
-      }
-      void queryClient.invalidateQueries({ queryKey: ["/api/crew"] });
-    } catch (err) {
-      toast({
-        title: "Photo not saved",
-        description:
-          err instanceof Error ? err.message : "The crew member was created without a photo.",
-        variant: "destructive",
-      });
-    }
+  const notifyPhotoUploadFailure = (description: string) => {
+    toast({
+      title: "Photo not saved",
+      description,
+      variant: "destructive",
+    });
   };
 
   const createCrewMutation = useCreateMutation<CrewFormData, CrewListItem>("/api/crew", {
@@ -167,7 +113,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       crewForm.reset();
       setIsAddCrewDialogOpen(false);
       if (pendingPhotoFile && created?.id) {
-        void uploadCrewPhoto(created.id, pendingPhotoFile);
+        void uploadCrewPhoto(created.id, pendingPhotoFile, notifyPhotoUploadFailure);
       }
       setPendingPhotoFile(null);
     },
@@ -359,142 +305,31 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     () => (crewRoles.length > 0 ? crewRoles.map((r) => r.name) : [...MARITIME_RANKS]),
     [crewRoles]
   );
-  const accessReadinessByCrewId = useMemo(() => {
-    const map = new Map<string, CrewAccessReadiness>();
-    for (const item of accessReadiness) {
-      map.set(item.crewId, item);
-    }
-    return map;
-  }, [accessReadiness]);
-  const formerAccessRiskByCrewId = useMemo(() => {
-    const map = new Map<string, FormerCrewAccessRisk>();
-    for (const item of formerAccessRisks) {
-      map.set(item.crewId, item);
-    }
-    return map;
-  }, [formerAccessRisks]);
-  const formerAccessRiskCounts = useMemo(
-    () => ({
-      linked_login: formerAccessRisks.filter((risk) => risk.hasLinkedLogin).length,
-      login_enabled: formerAccessRisks.filter((risk) => risk.loginEnabled).length,
-      vessel_access: formerAccessRisks.filter((risk) => risk.vesselAccessCount > 0).length,
-      hub_access: formerAccessRisks.filter((risk) => risk.hubAdmin).length,
-    }),
-    [formerAccessRisks]
-  );
-  const accessStatusCounts = useMemo(() => {
-    const counts: Record<CrewAccessReadinessStatus, number> = {
-      ready: 0,
-      no_login: 0,
-      login_disabled: 0,
-      no_password_set: 0,
-      temporary_password_issued: 0,
-      password_change_required: 0,
-      password_required: 0,
-      no_vessel_scope: 0,
-      no_dashboard: 0,
-      fleet_scope_review: 0,
-    };
-    for (const item of accessReadiness) {
-      counts[item.status] += 1;
-    }
-    return counts;
-  }, [accessReadiness]);
-  const filteredAndSortedCrew = useMemo(() => {
-    let filtered = filterCrew(crew, {
-      searchTerm: debouncedSearchTerm,
-      selectedVessel,
-      selectedRank,
-      selectedStatus,
-      selectedSkill,
-    });
-    if (accessReadinessEnabled && selectedAccessStatus !== "all") {
-      filtered = filtered.filter(
-        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus
-      );
-    }
-    return sortCrew(filtered, sortField, sortDirection, getVesselName, roleLookup.sortIndex);
-  }, [
-    crew,
-    debouncedSearchTerm,
-    selectedVessel,
-    selectedRank,
-    selectedStatus,
-    selectedSkill,
-    selectedAccessStatus,
-    accessReadinessEnabled,
+  const {
     accessReadinessByCrewId,
-    sortField,
-    sortDirection,
-    vessels,
-    roleLookup,
-  ]);
-  const getFilteredSortedCrew = (
-    baseCrew: CrewListItem[],
-    options: {
-      includeStatusFilter?: boolean;
-      includeAccessFilter?: boolean;
-      includeFormerAccessRiskFilter?: boolean;
-    } = {}
-  ) => {
-    const includeStatusFilter = options.includeStatusFilter ?? true;
-    const includeAccessFilter = options.includeAccessFilter ?? accessReadinessEnabled;
-    const includeFormerAccessRiskFilter = options.includeFormerAccessRiskFilter ?? false;
-    let filtered = filterCrew(baseCrew, {
-      searchTerm: debouncedSearchTerm,
-      selectedVessel,
-      selectedRank,
-      selectedStatus: includeStatusFilter ? selectedStatus : "all",
-      selectedSkill,
-      getVesselName,
-    });
-    if (includeAccessFilter && selectedAccessStatus !== "all") {
-      filtered = filtered.filter(
-        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus
-      );
-    }
-    if (includeFormerAccessRiskFilter && selectedFormerAccessRisk !== "all") {
-      filtered = filtered.filter((member) => {
-        const risk = formerAccessRiskByCrewId.get(member.id);
-        if (!risk) {
-          return false;
-        }
-        switch (selectedFormerAccessRisk) {
-          case "linked_login":
-            return risk.hasLinkedLogin;
-          case "login_enabled":
-            return risk.loginEnabled;
-          case "vessel_access":
-            return risk.vesselAccessCount > 0;
-          case "hub_access":
-            return risk.hubAdmin;
-          default:
-            return true;
-        }
-      });
-    }
-    return sortCrew(filtered, sortField, sortDirection, getVesselName, roleLookup.sortIndex);
-  };
-  const activeFilterCount = useMemo(
-    () =>
-      countActiveFilters({
-        searchTerm,
-        selectedVessel,
-        selectedRank,
-        selectedStatus,
-        selectedSkill,
-        selectedAccessStatus: accessReadinessEnabled ? selectedAccessStatus : "all",
-      }),
-    [
+    formerAccessRiskByCrewId,
+    formerAccessRiskCounts,
+    accessStatusCounts,
+  } = useCrewAccessIndexes(accessReadiness, formerAccessRisks);
+  const { filteredAndSortedCrew, getFilteredSortedCrew, activeFilterCount } =
+    useCrewRosterFilters({
+      crew,
+      debouncedSearchTerm,
       searchTerm,
       selectedVessel,
       selectedRank,
       selectedStatus,
       selectedSkill,
       selectedAccessStatus,
+      selectedFormerAccessRisk,
       accessReadinessEnabled,
-    ]
-  );
+      accessReadinessByCrewId,
+      formerAccessRiskByCrewId,
+      sortField,
+      sortDirection,
+      getVesselName,
+      roleLookupSortIndex: roleLookup.sortIndex,
+    });
 
   const clearFilters = () => {
     setSearchTerm("");

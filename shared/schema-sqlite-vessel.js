@@ -2125,12 +2125,13 @@ const systemPerformanceMetricsSqlite = sqliteTable(
 );
 const systemSettingsSqlite = sqliteTable("system_settings", {
   id: text("id").primaryKey().default("system"),
-  hmacRequired: integer("hmac_required", { mode: "boolean" }).default(0),
+  hmacRequired: integer("hmac_required", { mode: "boolean" }).default(false),
   maxPayloadBytes: integer("max_payload_bytes").default(2097152),
-  strictUnits: integer("strict_units", { mode: "boolean" }).default(0),
-  llmEnabled: integer("llm_enabled", { mode: "boolean" }).default(1),
+  strictUnits: integer("strict_units", { mode: "boolean" }).default(false),
+  llmEnabled: integer("llm_enabled", { mode: "boolean" }).default(true),
   llmModel: text("llm_model").default("gpt-4o-mini"),
   openaiApiKey: text("openai_api_key"),
+  openaiApiKeyEncrypted: text("openai_api_key_encrypted"),
   aiInsightsThrottleMinutes: integer("ai_insights_throttle_minutes").default(2),
   timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5),
 });

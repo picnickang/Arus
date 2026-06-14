@@ -21,7 +21,7 @@ Comprehensive testing suite for ARUS Marine Predictive Maintenance Platform.
 
 3. **Dependencies**
    ```bash
-   npm install  # Installs undici, fs-extra, and other deps
+   npm install  # Installs undici and other test-harness deps
    ```
 
 ## Running Tests

@@ -1,7 +1,21 @@
+import type { invoke as tauriCoreInvoke } from "@tauri-apps/api/core";
+
 export interface UpdateInfo {
   version: string;
   date?: string | undefined;
   body?: string | undefined;
+}
+
+export interface BackendDiagnostics {
+  running: boolean;
+  mode: string;
+  url: string;
+  app_data_dir: string;
+  database_path: string;
+  log_dir: string;
+  queue_depth: number;
+  cloud_status: string;
+  last_sync_at?: string | null;
 }
 
 export interface DesktopAPI {
@@ -12,6 +26,7 @@ export interface DesktopAPI {
   getAppDataDir: () => Promise<string>;
   getRuntimeMode: () => Promise<"packaged" | "dev">;
   getBackendUrl: () => Promise<string>;
+  getBackendDiagnostics: () => Promise<BackendDiagnostics | null>;
 }
 
 declare global {
@@ -34,20 +49,25 @@ const TAURI_UPDATER = "@tauri-apps/plugin-updater";
 const TAURI_PROCESS = "@tauri-apps/plugin-process";
 
 type TauriModule = Record<string, unknown>;
+type TauriInvoke = typeof tauriCoreInvoke;
+interface TauriCoreModule extends TauriModule {
+  invoke: TauriInvoke;
+}
 
 function dynamicImport(mod: string): Promise<TauriModule | null> {
   return (new Function("m", "return import(m)")(mod) as Promise<TauriModule>).catch(() => null);
 }
 
+function isTauriCoreModule(module: TauriModule | null): module is TauriCoreModule {
+  return typeof module?.["invoke"] === "function";
+}
+
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const core = await dynamicImport(TAURI_CORE);
-  if (!core) {
+  if (!isTauriCoreModule(core)) {
     throw new Error("Tauri core not available");
   }
-  return (core["invoke"] as (c: string, a?: Record<string, unknown>) => unknown)(
-    cmd,
-    args
-  ) as Promise<T>;
+  return core.invoke<T>(cmd, args);
 }
 
 interface TauriUpdate {
@@ -165,6 +185,15 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       } catch (err) {
         console.warn("[Desktop] getBackendUrl:", err);
         return "";
+      }
+    },
+
+    async getBackendDiagnostics(): Promise<BackendDiagnostics | null> {
+      try {
+        return await tauriInvoke<BackendDiagnostics>("get_backend_diagnostics");
+      } catch (err) {
+        console.warn("[Desktop] getBackendDiagnostics:", err);
+        return null;
       }
     },
   };

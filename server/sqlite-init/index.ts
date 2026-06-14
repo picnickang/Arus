@@ -26,12 +26,20 @@ import {
   ensureDeclaredTablesAndIndexes,
   getTableColumns,
   runAdminSettingsCompatibilityMigration,
-  runEquipmentCompatibilityMigration,
-  runPermissionCompatibilityMigration,
+  runAdminSessionsCompatibilityMigration,
+  runCrewCompatibilityMigration,
+  runErrorLogsCompatibilityMigration,
   runSystemSettingsCompatibilityMigration,
+  runUsersAuthCompatibilityMigration,
   safeAddColumn,
   safeRenameColumn,
 } from "./compatibility-migrations.js";
+import {
+  runEquipmentCompatibilityMigration,
+  runImmutableAuditTrailCompatibilityMigration,
+  runImportManifestCompatibilityMigration,
+  runPermissionCompatibilityMigration,
+} from "./compatibility-migrations-extra.js";
 const logger = createLogger("SqliteInit:Index");
 
 let _initialized = false;
@@ -65,8 +73,14 @@ export async function initializeSqliteDatabase(): Promise<void> {
 
   await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runUsersAuthCompatibilityMigration(libsqlClient);
+  await runCrewCompatibilityMigration(libsqlClient);
+  await runAdminSessionsCompatibilityMigration(libsqlClient);
+  await runErrorLogsCompatibilityMigration(libsqlClient);
+  await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
+  await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 
@@ -82,8 +96,14 @@ export async function applyInventoryMigrations(): Promise<void> {
   await ensureDeclaredTablesAndIndexes();
   await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runUsersAuthCompatibilityMigration(libsqlClient);
+  await runCrewCompatibilityMigration(libsqlClient);
+  await runAdminSessionsCompatibilityMigration(libsqlClient);
+  await runErrorLogsCompatibilityMigration(libsqlClient);
+  await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
+  await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 }

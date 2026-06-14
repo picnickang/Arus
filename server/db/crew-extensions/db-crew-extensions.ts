@@ -9,11 +9,7 @@ import {
   crew,
   crewCertification,
   crewDocuments,
-  crewNotificationSettings,
-  crewAlerts,
   crewRoles,
-  portCall,
-  drydockWindow,
   type SelectCrewCertification,
   type InsertCrewCertification,
   type SelectCrewDocument,
@@ -29,6 +25,25 @@ import {
   type InsertDrydockWindow,
 } from "@shared/schema";
 import type { AlertScanResult, NotificationSettingsData } from "./types.js";
+import {
+  acknowledgeCrewAlert as acknowledgeCrewAlertRecord,
+  createCrewAlert as createCrewAlertRecord,
+  deleteCrewAlert as deleteCrewAlertRecord,
+  getAllCrewNotificationSettings as getAllCrewNotificationSettingsRecord,
+  getCrewAlerts as getCrewAlertRecords,
+  getCrewNotificationSettings as getCrewNotificationSettingsRecord,
+  upsertCrewNotificationSettings as upsertCrewNotificationSettingsRecord,
+} from "./db-crew-extension-notifications.js";
+import {
+  createDrydockWindow as createDrydockWindowRecord,
+  createPortCall as createPortCallRecord,
+  deleteDrydockWindow as deleteDrydockWindowRecord,
+  deletePortCall as deletePortCallRecord,
+  getDrydockWindows as getDrydockWindowRecords,
+  getPortCalls as getPortCallRecords,
+  updateDrydockWindow as updateDrydockWindowRecord,
+  updatePortCall as updatePortCallRecord,
+} from "./db-crew-extension-scheduling.js";
 
 /**
  * Default crew roles seeded (idempotently) for an org on first read. Mirrors the
@@ -304,69 +319,25 @@ export class DbCrewExtensionsStorage {
     crewId: string,
     orgId: string
   ): Promise<CrewNotificationSettings | undefined> {
-    const [s] = await db
-      .select()
-      .from(crewNotificationSettings)
-      .where(
-        and(eq(crewNotificationSettings.crewId, crewId), eq(crewNotificationSettings.orgId, orgId))
-      );
-    return s;
+    return getCrewNotificationSettingsRecord(crewId, orgId);
   }
   async upsertCrewNotificationSettings(
     crewId: string,
     orgId: string,
     data: NotificationSettingsData
   ): Promise<CrewNotificationSettings> {
-    const existing = await this.getCrewNotificationSettings(crewId, orgId);
-    if (existing) {
-      const [u] = await db
-        .update(crewNotificationSettings)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(crewNotificationSettings.id, existing.id))
-        .returning();
-      if (!u) {
-        throw new Error("upsertCrewNotificationSettings: update returned no row");
-      }
-      return u;
-    }
-    const [c] = await db
-      .insert(crewNotificationSettings)
-      .values({
-        crewId,
-        orgId,
-        emailAlertsEnabled: data.emailAlertsEnabled ?? true,
-        certExpiryEmailEnabled: data.certExpiryEmailEnabled ?? true,
-        documentExpiryEmailEnabled: data.documentExpiryEmailEnabled ?? true,
-        complianceEmailEnabled: data.complianceEmailEnabled ?? true,
-        overrideEmail: data.overrideEmail,
-      })
-      .returning();
-    if (!c) {
-      throw new Error("upsertCrewNotificationSettings: insert returned no row");
-    }
-    return c;
+    return upsertCrewNotificationSettingsRecord(crewId, orgId, data);
   }
   async getAllCrewNotificationSettings(orgId: string): Promise<CrewNotificationSettings[]> {
-    return db
-      .select()
-      .from(crewNotificationSettings)
-      .where(eq(crewNotificationSettings.orgId, orgId));
+    return getAllCrewNotificationSettingsRecord(orgId);
   }
 
   // Manager-raised custom crew alerts
   async getCrewAlerts(crewId: string, orgId: string): Promise<SelectCrewAlert[]> {
-    return db
-      .select()
-      .from(crewAlerts)
-      .where(and(eq(crewAlerts.crewId, crewId), eq(crewAlerts.orgId, orgId)))
-      .orderBy(asc(crewAlerts.acknowledged), asc(crewAlerts.createdAt));
+    return getCrewAlertRecords(crewId, orgId);
   }
   async createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert> {
-    const [n] = await db.insert(crewAlerts).values(data).returning();
-    if (!n) {
-      throw new Error("createCrewAlert: insert returned no row");
-    }
-    return n;
+    return createCrewAlertRecord(data);
   }
   async acknowledgeCrewAlert(
     alertId: string,
@@ -374,29 +345,10 @@ export class DbCrewExtensionsStorage {
     userId?: string,
     notes?: string
   ): Promise<SelectCrewAlert> {
-    const [u] = await db
-      .update(crewAlerts)
-      .set({
-        acknowledged: true,
-        acknowledgedAt: new Date(),
-        acknowledgedBy: userId || null,
-        acknowledgedNotes: notes || null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(crewAlerts.id, alertId), eq(crewAlerts.orgId, orgId)))
-      .returning();
-    if (!u) {
-      throw new Error(`Crew alert ${alertId} not found`);
-    }
-    return u;
+    return acknowledgeCrewAlertRecord(alertId, orgId, userId, notes);
   }
   async deleteCrewAlert(alertId: string, orgId: string): Promise<void> {
-    const r = await db
-      .delete(crewAlerts)
-      .where(and(eq(crewAlerts.id, alertId), eq(crewAlerts.orgId, orgId)));
-    if (r.rowCount === 0) {
-      throw new Error(`Crew alert ${alertId} not found`);
-    }
+    return deleteCrewAlertRecord(alertId, orgId);
   }
 
   // ---- Crew Roles (manageable positions backing crew.rank) ------------------
@@ -513,68 +465,34 @@ export class DbCrewExtensionsStorage {
   }
 
   async getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {
-    let q = db.select().from(portCall).$dynamic();
-    if (vesselId) {
-      q = q.where(eq(portCall.vesselId, vesselId));
-    }
-    return q.orderBy(portCall.start);
+    return getPortCallRecords(vesselId);
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
-    const [n] = await db.insert(portCall).values(portCallData).returning();
-    if (!n) {
-      throw new Error("createPortCall: insert returned no row");
-    }
-    return n;
+    return createPortCallRecord(portCallData);
   }
   async updatePortCall(
     id: string,
     portCallData: WidenPartial<InsertPortCall>
   ): Promise<SelectPortCall> {
-    const [u] = await db.update(portCall).set(portCallData).where(eq(portCall.id, id)).returning();
-    if (!u) {
-      throw new Error(`Port call ${id} not found`);
-    }
-    return u;
+    return updatePortCallRecord(id, portCallData);
   }
   async deletePortCall(id: string): Promise<void> {
-    const r = await db.delete(portCall).where(eq(portCall.id, id));
-    if (r.rowCount === 0) {
-      throw new Error(`Port call ${id} not found`);
-    }
+    return deletePortCallRecord(id);
   }
 
   async getDrydockWindows(vesselId?: string): Promise<SelectDrydockWindow[]> {
-    let q = db.select().from(drydockWindow).$dynamic();
-    if (vesselId) {
-      q = q.where(eq(drydockWindow.vesselId, vesselId));
-    }
-    return q.orderBy(drydockWindow.start);
+    return getDrydockWindowRecords(vesselId);
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {
-    const [n] = await db.insert(drydockWindow).values(drydockData).returning();
-    if (!n) {
-      throw new Error("createDrydockWindow: insert returned no row");
-    }
-    return n;
+    return createDrydockWindowRecord(drydockData);
   }
   async updateDrydockWindow(
     id: string,
     drydockData: WidenPartial<InsertDrydockWindow>
   ): Promise<SelectDrydockWindow> {
-    const [u] = await db
-      .update(drydockWindow)
-      .set(drydockData)
-      .where(eq(drydockWindow.id, id))
-      .returning();
-    if (!u) {
-      throw new Error(`Drydock window ${id} not found`);
-    }
-    return u;
+    return updateDrydockWindowRecord(id, drydockData);
   }
   async deleteDrydockWindow(id: string): Promise<void> {
-    const r = await db.delete(drydockWindow).where(eq(drydockWindow.id, id));
-    if (r.rowCount === 0) {
-      throw new Error(`Drydock window ${id} not found`);
-    }
+    return deleteDrydockWindowRecord(id);
   }
 }

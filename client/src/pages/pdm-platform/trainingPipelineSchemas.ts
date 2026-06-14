@@ -20,7 +20,7 @@ export const createDatasetSchema = z.object({
       .optional()
   ),
 });
-export type CreateDatasetFormData = z.infer<typeof createDatasetSchema>;
+type CreateDatasetFormData = z.infer<typeof createDatasetSchema>;
 
 export const startRunSchema = z.object({
   datasetId: z.string().min(1, "Dataset is required"),
@@ -37,11 +37,11 @@ export const startRunSchema = z.object({
     .int("Must be a whole number")
     .positive("Must be a positive number"),
 });
-export type StartRunFormData = z.infer<typeof startRunSchema>;
+type StartRunFormData = z.infer<typeof startRunSchema>;
 
 export const promoteSchema = z.object({
   modelId: z.string().min(1, "Target model is required"),
   version: z.string().min(1, "Version is required"),
   changelog: z.string().optional(),
 });
-export type PromoteFormData = z.infer<typeof promoteSchema>;
+type PromoteFormData = z.infer<typeof promoteSchema>;

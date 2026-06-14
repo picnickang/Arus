@@ -67,8 +67,16 @@ describe("Schema-runtime file structural checks", () => {
   ];
 
   test.each(criticalTables)("schema-runtime exports critical table '%s'", (tableName) => {
-    const exportPattern = new RegExp(`export\\s+const\\s+${tableName}\\s*=`);
-    expect(exportPattern.test(runtimeContent)).toBe(true);
+    // schema-runtime exports tables either directly (`export const vessels =`)
+    // or via the dual-DB destructuring switcher
+    // (`export const { …, vessels, … } = runtimeTables`). Accept both forms.
+    const directPattern = new RegExp(`export\\s+const\\s+${tableName}\\s*=`);
+    const destructuredPattern = new RegExp(
+      `export\\s+const\\s*\\{[^}]*\\b${tableName}\\b[^}]*\\}\\s*=`
+    );
+    expect(directPattern.test(runtimeContent) || destructuredPattern.test(runtimeContent)).toBe(
+      true
+    );
   });
 });
 
@@ -212,10 +220,24 @@ describe("SQLite schema structural parity", () => {
   );
 
   test("schema-runtime has sufficient dual-mode guards (>=40)", () => {
-    const runtimeContent = readFileSync(
-      join(process.cwd(), "shared", "schema-runtime.ts"),
-      "utf-8"
-    );
+    // The pickSchema()/cloudOnly()/ternary mode guards live in the
+    // schema-runtime tables modules that schema-runtime.ts re-exports (the
+    // table exports were split out of the switcher). Count across all of them.
+    const runtimeContent = [
+      "schema-runtime.ts",
+      "schema-runtime-tables.ts",
+      "schema-runtime-tables-core.ts",
+      "schema-runtime-tables-operations.ts",
+      "schema-runtime-tables-cloud.ts",
+    ]
+      .map((f) => {
+        try {
+          return readFileSync(join(process.cwd(), "shared", f), "utf-8");
+        } catch {
+          return "";
+        }
+      })
+      .join("\n");
     // Counts both the legacy ternary form (`IS_POSTGRES ?`) and the helper
     // forms introduced when collapsing the cast pattern: `pickSchema(` and
     // `cloudOnly(`. All three serve the same role: gating an export on the

@@ -4,6 +4,15 @@ import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
 import { deriveHubHealthFields } from "../domain/hub-health.js";
 import type { EquipmentIntelligenceRepository } from "../domain/ports.js";
+import {
+  computeRisk,
+  computeTrend,
+  mapWorkOrderSummaryRow,
+  parseSignalEntry,
+  recommendedActionText,
+  statusFromRisk,
+  timeAgo,
+} from "./postgres-repository-helpers.js";
 import type {
   FleetSummary,
   FleetSummaryVessel,
@@ -12,67 +21,6 @@ import type {
   WorkOrderSummary,
   SystemDetails,
 } from "../domain/types.js";
-
-function computeRisk(health: number): "critical" | "warning" | "low" {
-  if (health < 40) {
-    return "critical";
-  }
-  if (health < 70) {
-    return "warning";
-  }
-  return "low";
-}
-
-function computeTrend(telemetry: number[]): "declining" | "stable" | "improving" {
-  if (telemetry.length < 2) {
-    return "stable";
-  }
-  const first = telemetry.slice(0, Math.ceil(telemetry.length / 2));
-  const second = telemetry.slice(Math.ceil(telemetry.length / 2));
-  const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
-  const avgSecond = second.reduce((a, b) => a + b, 0) / second.length;
-  const diff = avgSecond - avgFirst;
-  if (diff < -3) {
-    return "declining";
-  }
-  if (diff > 3) {
-    return "improving";
-  }
-  return "stable";
-}
-
-function statusFromRisk(risk: "critical" | "warning" | "low"): string {
-  if (risk === "critical") {
-    return "critical";
-  }
-  if (risk === "warning") {
-    return "warning";
-  }
-  return "operational";
-}
-
-interface SignalObject {
-  description?: string;
-}
-
-function isSignalObject(value: unknown): value is SignalObject {
-  return typeof value === "object" && value !== null && "description" in value;
-}
-
-function parseSignalEntry(entry: unknown): string {
-  if (typeof entry === "string") {
-    return entry;
-  }
-  if (isSignalObject(entry) && typeof entry.description === "string") {
-    return entry.description;
-  }
-  return String(entry);
-}
-
-interface MlModelRow {
-  status: string | null;
-  createdAt: Date | string | null;
-}
 
 export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelligenceRepository {
   async getFleetSummary(orgId: string): Promise<FleetSummary> {
@@ -258,7 +206,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
         status: statusFromRisk(risk),
         type: row.eq.type || "General",
         prediction: pred?.failureMode
-          ? `${pred.failureMode} — ${this.recommendedActionText(risk, rul ?? 365)}`
+          ? `${pred.failureMode} — ${recommendedActionText(risk, rul ?? 365)}`
           : health == null
             ? "No PdM score recorded yet"
             : dataAvailability === "unavailable"
@@ -342,7 +290,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       risk,
       confidence,
       prediction: pred?.failureMode
-        ? `${pred.failureMode} — ${this.recommendedActionText(risk, rul ?? 365)}`
+        ? `${pred.failureMode} — ${recommendedActionText(risk, rul ?? 365)}`
         : healthScore == null
           ? "No PdM score recorded yet"
           : dataAvailability === "unavailable"
@@ -389,26 +337,12 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       .orderBy(desc(workOrders.createdAt))
       .limit(20);
 
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.description || "Work Order",
-      status: r.status,
-      createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
-      completedAt: r.completedAt
-        ? (new Date(r.completedAt).toISOString().split("T")[0] ?? null)
-        : null,
-      assignedCrewId: r.assignedCrewId ?? null,
-      assignmentStatus: r.assignmentStatus ?? null,
-      assignmentResponseReason: r.assignmentResponseReason ?? null,
-      assignmentRespondedAt: r.assignmentRespondedAt
-        ? new Date(r.assignmentRespondedAt).toISOString()
-        : null,
-    }));
+    return rows.map(mapWorkOrderSummaryRow);
   }
 
   async getSystemDetails(orgId: string): Promise<SystemDetails> {
     const { mlModels } = await import("@shared/schema-runtime");
-    const models: MlModelRow[] = await db
+    const models = await db
       .select({
         status: mlModels.status,
         createdAt: mlModels.createdAt,
@@ -467,7 +401,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
             ? "No models configured"
             : `${healthyCount}/${totalCount} active`,
       lastTraining: models[0]?.createdAt
-        ? this.timeAgo(new Date(models[0].createdAt))
+        ? timeAgo(new Date(models[0].createdAt))
         : "No training data",
       inferenceLatency: models.length > 0 ? `${models.length} active` : "No models deployed",
       dataQuality,
@@ -560,25 +494,4 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     return result;
   }
 
-  private recommendedActionText(risk: string, rul: number): string {
-    if (risk === "critical") {
-      return `replace within ${rul} days`;
-    }
-    if (risk === "warning") {
-      return "monitor closely";
-    }
-    return "continue normal operations";
-  }
-
-  private timeAgo(date: Date): string {
-    const diff = Date.now() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days === 0) {
-      return "today";
-    }
-    if (days === 1) {
-      return "1 day ago";
-    }
-    return `${days} days ago`;
-  }
 }

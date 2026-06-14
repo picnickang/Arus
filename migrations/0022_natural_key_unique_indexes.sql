@@ -17,10 +17,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_parts_inventory_org_part_number
   WHERE part_number IS NOT NULL;
 
 -- inventory_parts: (org_id, part_number)
--- Guarded: inventory_parts was consolidated out of the canonical schema (now
--- `parts` + `stock`) and is dropped by 0044_drop_dead_tables, so a fresh
--- db:push baseline no longer creates it. Index it only on legacy databases
--- that still carry the table; a missing table must not break the chain.
+-- Guarded: inventory_parts is a legacy table dropped in 0044, so it is absent
+-- from a current-schema (drizzle-push) baseline. to_regclass() returns NULL
+-- when the table doesn't exist, so the index is created only where it applies.
 DO $$
 BEGIN
   IF to_regclass('public.inventory_parts') IS NOT NULL THEN

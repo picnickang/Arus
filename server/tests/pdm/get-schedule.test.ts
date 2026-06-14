@@ -6,8 +6,8 @@ import {
   computeSchedulingWindow,
   determineBlockStatus,
 } from "../../pdm/application/get-schedule.use-case";
-import type { PdmScheduledTask } from "../../pdm/domain/types";
 import type { RiskQueueItem } from "../../pdm/domain/types";
+import { createMockAlert, createMockTask } from "./get-schedule-test-helpers";
 
 describe("PdM Schedule Use Cases", () => {
   let mockRepository: jest.Mocked<PdmRepositoryPort>;
@@ -17,28 +17,6 @@ describe("PdM Schedule Use Cases", () => {
     { id: "vessel-1", name: "MV Atlantic Voyager" },
     { id: "vessel-2", name: "MV Pacific Star" },
   ];
-
-  const createMockAlert = (overrides: Partial<RiskQueueItem> = {}): RiskQueueItem => ({
-    id: "1",
-    vesselId: "vessel-1",
-    vesselName: "MV Atlantic Voyager",
-    equipmentId: "eq-1",
-    equipmentName: "Main Engine",
-    equipmentType: "Engine",
-    failureMode: "Bearing Wear",
-    severity: "high",
-    rulEstimateDays: 10,
-    rulConfidenceInterval: { lowDays: 7, highDays: 14 },
-    confidence: 85,
-    recommendedAction: "Schedule inspection",
-    status: "active",
-    detectedAt: new Date(),
-    acknowledgedAt: null,
-    acknowledgedBy: null,
-    resolvedAt: null,
-    workOrderId: null,
-    ...overrides,
-  });
 
   beforeEach(() => {
     mockRepository = {
@@ -327,34 +305,6 @@ describe("PdM Schedule Use Cases", () => {
   });
 
   describe("determineBlockStatus unit tests", () => {
-    const createMockTask = (overrides: Partial<PdmScheduledTask> = {}): PdmScheduledTask => ({
-      id: "task-1",
-      alertId: "1",
-      vesselId: "vessel-1",
-      vesselName: "MV Atlantic Voyager",
-      equipmentId: "eq-1",
-      equipmentName: "Main Engine",
-      equipmentType: "Engine",
-      failureMode: "Bearing Wear",
-      severity: "high",
-      rulP10Days: 7,
-      rulP50Days: 10,
-      rulP90Days: 14,
-      confidence: 85,
-      schedulingWindow: {
-        earliestStart: new Date(),
-        preferredDate: new Date(),
-        latestFinish: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      },
-      estimatedDowntimeHours: 4,
-      estimatedCost: 1300,
-      status: "draft",
-      recommendedActions: ["Inspect bearings"],
-      scheduledDate: new Date(),
-      createdAt: new Date(),
-      ...overrides,
-    });
-
     it("should block task when telemetry is offline", () => {
       const task = createMockTask();
       const result = determineBlockStatus(task, new Map(), 8, "offline");

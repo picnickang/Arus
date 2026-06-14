@@ -14,15 +14,15 @@
  *  - sortTasks ranks overdue → priority → soonest due → title (pure, no mutate).
  *  - filterTasks honours the All / Mine / Overdue / By-vessel chips + search.
  *  - status / priority / due human labels.
- *  - Source-scan: the spec's UI wiring (landing tile, attention task rows,
- *    Tasks view, profile Tasks tab) is actually present in the components.
+ *  - Source-scan: the live mobile work queue and crew readiness route still
+ *    expose task queue, blocked/awaiting-crew, and crew blocker handoff signals.
  *
  * What this does NOT verify (covered by backend API tests + CI Playwright):
  *  live rendering, real API wiring, permissions, websocket refresh.
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   isDone,
@@ -192,33 +192,40 @@ describe("labels", () => {
   });
 });
 
-describe("source-scan: Crew Task Tracker UI wiring", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+describe("source-scan: mobile task queue and crew blocker wiring", () => {
+  const read = (rel: string) => {
+    if (rel.includes("features/mobile-readiness/")) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f: string) => /\.(ts|tsx)$/.test(f))
+        .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
-  it("landing renders the Open tasks tile and a task-aware attention row", () => {
-    const landing = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    expect(landing).toContain('data-testid="card-open-tasks"');
-    expect(landing).toContain('kind: "cert" | "doc" | "task"');
-    expect(landing).toContain("onOpenTasks");
+  it("work-orders delegates to the mobile work queue", () => {
+    const page = read("client/src/pages/work-orders.tsx");
+    expect(page).toContain("MobileWorkOrdersPage");
+    expect(page).not.toContain("CrewTaskTracker");
   });
 
-  it("index wires the Tasks view, counts and task attention feed", () => {
-    const index = read("client/src/components/UnifiedCrewManagement/index.tsx");
-    expect(index).toContain("CrewTaskTracker");
-    expect(index).toContain("useCrewTasks");
-    expect(index).toContain('view === "tasks"');
-    expect(index).toContain("taskAttention");
+  it("mobile work queue renders sorted queue items and stage chips", () => {
+    const screens = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    expect(screens).toContain("export function MobileWorkOrdersPage");
+    expect(screens).toContain("work.queue.map");
+    expect(screens).toContain("work.stageChips.map");
+    expect(screens).toContain("Work Queue");
+    expect(screens).toContain("offlineDraftAction");
+    expect(screens).toContain("primaryAction");
   });
 
-  it("profile dialog exposes a Tasks tab backed by the crew-task hook", () => {
-    const profile = read("client/src/components/unified-crew-components.tsx");
-    expect(profile).toContain('data-testid="tab-crew-tasks"');
-    expect(profile).toContain("CrewProfileTasksTab");
-    expect(profile).toContain("useCrewTasks({ assignedCrewId: crewId })");
-  });
-
-  it("the tracker view component exists and subscribes to crew_task websocket channels", () => {
-    const tracker = read("client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx");
-    expect(tracker).toContain("crew_task");
+  it("model keeps awaiting-crew and crew-blocker handoffs in the live queue", () => {
+    const model = read("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    expect(model).toContain("Awaiting Crew");
+    expect(model).toContain("Crew needed 1 rigger");
+    expect(model).toContain('href: "/work-orders"');
+    expect(model).toContain("Crew Blocker");
+    expect(model).toContain('href: "/crew-management"');
   });
 });

@@ -411,13 +411,11 @@ Record times in `docs/operations/dr-drill-log.md`. If any drill misses its targe
 
 ## Cross-references
 
-| If you need...                   | See                                                       |
-| -------------------------------- | --------------------------------------------------------- |
-| Background job state             | `server/background-jobs.ts` (Wave 0.1)                    |
-| Feature flag overrides           | `server/infrastructure/feature-flags.ts` (Wave 0.6)       |
-| Idempotency keys for replay      | `server/middleware/idempotency.ts` (Wave 2.5)             |
-| Tenant table allowlist           | `server/domains/gdpr/tenant-delete-service.ts` (Wave 6.6) |
-| KMS rewrap during key rotation   | `server/lib/kms-envelope.ts` `rewrapEnvelope` (Wave 1.3)  |
-| Trace stitching across the queue | `server/lib/pg-boss-trace.ts` (Wave 2.1)                  |
-| Telemetry edge buffering         | `compliance/telemetry-resilience` (Operational layer)     |
-| Smoke/steady/spike load tests    | `tests/load/` (Wave 2.6)                                  |
+| If you need...                | See                                                       |
+| ----------------------------- | --------------------------------------------------------- |
+| Background job state          | `server/background-jobs.ts` (Wave 0.1)                    |
+| Feature flag overrides        | `server/infrastructure/feature-flags.ts` (Wave 0.6)       |
+| Idempotency keys for replay   | `server/middleware/idempotency.ts` (Wave 2.5)             |
+| Tenant table allowlist        | `server/domains/gdpr/tenant-delete-service.ts` (Wave 6.6) |
+| Telemetry edge buffering      | `compliance/telemetry-resilience` (Operational layer)     |
+| Smoke/steady/spike load tests | `tests/load/` (Wave 2.6)                                  |

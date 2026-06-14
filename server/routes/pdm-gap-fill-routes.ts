@@ -13,7 +13,10 @@ import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repos
 import { PredictionCalibrator } from "../services/ml/prediction-calibration";
 import { PredictionOutcomeTracker } from "../services/ml/prediction-outcome-tracker";
 import { AnomalyCorrelator } from "../services/anomaly-correlation/anomaly-correlator";
-import { TelemetryAggregator } from "../services/telemetry-aggregation/telemetry-aggregator";
+import {
+  canEnsureAggregationTable,
+  TelemetryAggregator,
+} from "../services/telemetry-aggregation/telemetry-aggregator";
 import {
   getRecentRuns as getWarehouseRecentRuns,
   loadManifest as loadWarehouseManifest,
@@ -368,6 +371,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
   (async () => {
     try {
+      if (!canEnsureAggregationTable(db)) {
+        logger.info(
+          LOG_CTX,
+          "Telemetry aggregation table setup skipped; database handle does not support execute"
+        );
+        return;
+      }
       const aggregator = new TelemetryAggregator(db);
       await aggregator.ensureTable();
     } catch (err) {

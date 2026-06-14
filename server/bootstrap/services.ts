@@ -1,7 +1,14 @@
 import { createLogger } from "../lib/structured-logger";
+import type { InStatement, ResultSet } from "@libsql/client";
 import { runBootMigrations } from "../scripts/migrate";
 import { dbSystemAdminStorage } from "../db/system-admin/index.js";
+import { withServiceTimeout } from "./services-runtime.js";
 const logger = createLogger("Bootstrap:Services");
+
+export function canRunPostgresBootstrapMigration(dbHandle: unknown): boolean {
+  return Boolean(dbHandle && typeof (dbHandle as { execute?: unknown }).execute === "function");
+}
+
 /**
  * Service Initialization
  * Database, job queue, ML services, telemetry
@@ -108,30 +115,40 @@ export async function initializeDatabase(): Promise<void> {
 
       logger.info("✓ Database initialized successfully");
 
-      try {
-        const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
-        await migrateWorkOrderServiceOrderBridge(db);
-        logger.info("✓ WO ↔ SO bridge migration applied");
-      } catch (err) {
-        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", {
-          details: err instanceof Error ? err.message : String(err),
-        });
+      if (canRunPostgresBootstrapMigration(db)) {
+        try {
+          const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
+          await migrateWorkOrderServiceOrderBridge(db);
+          logger.info("✓ WO ↔ SO bridge migration applied");
+        } catch (err) {
+          logger.warn("[WO-SO Bridge] Migration skipped or already applied:", {
+            details: err instanceof Error ? err.message : String(err),
+          });
+        }
+      } else {
+        logger.info("[WO-SO Bridge] Migration skipped in local SQLite mode");
       }
 
       // Wave 0.6 — Feature flag overrides table + cache priming.
-      try {
-        const { migrateFeatureFlagOverrides } = await import(
-          "../migrations/011-feature-flag-overrides"
-        );
-        await migrateFeatureFlagOverrides(db);
-        const { featureFlags } = await import("../infrastructure/feature-flags");
-        await featureFlags.refresh(db);
-        featureFlags.startAutoRefresh(db, 60_000);
-        logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
-      } catch (err) {
-        logger.warn("[FeatureFlags] Override table setup skipped:", {
-          details: err instanceof Error ? err.message : String(err),
-        });
+      if (canRunPostgresBootstrapMigration(db)) {
+        try {
+          const { migrateFeatureFlagOverrides } = await import(
+            "../migrations/011-feature-flag-overrides"
+          );
+          await migrateFeatureFlagOverrides(db);
+          const { featureFlags } = await import("../infrastructure/feature-flags");
+          await featureFlags.refresh(db);
+          featureFlags.startAutoRefresh(db, 60_000);
+          logger.info(
+            "✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)"
+          );
+        } catch (err) {
+          logger.warn("[FeatureFlags] Override table setup skipped:", {
+            details: err instanceof Error ? err.message : String(err),
+          });
+        }
+      } else {
+        logger.info("[FeatureFlags] Override table setup skipped in local SQLite mode");
       }
 
       // 0043 — one-shot move of any legacy plaintext OpenAI key into the
@@ -177,14 +194,95 @@ export async function initializeDatabase(): Promise<void> {
   }
 }
 
+type SeedEnvironment = Record<string, string | undefined>;
+
+export const DEFAULT_DEVELOPMENT_ADMIN_ROLE = "system_admin";
+
+export function isDevelopmentUserSeedEnabled(env: SeedEnvironment = process.env): boolean {
+  return env["NODE_ENV"] === "development" || env["ARUS_DEV_LOGIN"] === "1";
+}
+
+type LocalCrewRosterClient = {
+  execute: (statement: InStatement) => Promise<ResultSet>;
+};
+
+type DevelopmentCrewLinkInput = {
+  crewId: string;
+  email: string;
+  name: string;
+  now?: Date;
+  orgId: string;
+  rank: string;
+  userId: string;
+};
+
+export type DevelopmentCrewLinkResult = "already-linked" | "created" | "relinked";
+
+function splitCrewName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? "Development",
+    lastName: parts.length > 1 ? parts.slice(1).join(" ") : "Admin",
+  };
+}
+
+export async function linkDevelopmentUserToLocalCrewRoster(
+  client: LocalCrewRosterClient,
+  input: DevelopmentCrewLinkInput
+): Promise<DevelopmentCrewLinkResult> {
+  const linked = await client.execute({
+    sql: "SELECT id FROM crew WHERE user_id = ? LIMIT 1",
+    args: [input.userId],
+  });
+  if ((linked.rows ?? []).length > 0) {
+    return "already-linked";
+  }
+
+  const existing = await client.execute({
+    sql: "SELECT id FROM crew WHERE id = ? LIMIT 1",
+    args: [input.crewId],
+  });
+  const nowMs = (input.now ?? new Date()).getTime();
+
+  if ((existing.rows ?? []).length === 0) {
+    const { firstName, lastName } = splitCrewName(input.name);
+    await client.execute({
+      sql:
+        "INSERT INTO crew " +
+        "(id, org_id, first_name, last_name, name, email, rank, user_id, is_active, created_at, updated_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [
+        input.crewId,
+        input.orgId,
+        firstName,
+        lastName,
+        input.name,
+        input.email,
+        input.rank,
+        input.userId,
+        1,
+        nowMs,
+        nowMs,
+      ],
+    });
+    return "created";
+  }
+
+  await client.execute({
+    sql: "UPDATE crew SET user_id = ?, updated_at = ? WHERE id = ?",
+    args: [input.userId, nowMs, input.crewId],
+  });
+  return "relinked";
+}
+
 export async function seedDevelopmentUser(): Promise<void> {
-  if (process.env["NODE_ENV"] !== "development") {
+  if (!isDevelopmentUserSeedEnabled()) {
     return;
   }
 
   logger.info("→ Seeding development user...");
-  const { db } = await import("../db");
-  const { users } = await import("@shared/schema");
+  const { db, isLocalMode, libsqlClient } = await import("../db");
+  const { users } = await import("@shared/schema-runtime");
   const { eq } = await import("drizzle-orm");
 
   const devUserId = "dev-admin-user";
@@ -207,7 +305,7 @@ export async function seedDevelopmentUser(): Promise<void> {
         email: "admin@example.com",
         name: "Development Admin",
         username: DEFAULT_ADMIN_USERNAME,
-        role: "admin",
+        role: DEFAULT_DEVELOPMENT_ADMIN_ROLE,
         isActive: true,
         loginEnabled: true,
         mustChangePassword: true,
@@ -227,7 +325,7 @@ export async function seedDevelopmentUser(): Promise<void> {
           .update(users)
           .set({
             username: DEFAULT_ADMIN_USERNAME,
-            role: "admin",
+            role: DEFAULT_DEVELOPMENT_ADMIN_ROLE,
             loginEnabled: true,
             mustChangePassword: true,
             passwordHash,
@@ -242,7 +340,26 @@ export async function seedDevelopmentUser(): Promise<void> {
     // Link the default admin to a crew record so it appears in the crew roster
     // "Access & Login" tab (UserAccessEditor). Idempotent: skip once any crew
     // row already references this user.
-    const { crew } = await import("@shared/schema");
+    if (isLocalMode) {
+      if (!libsqlClient) {
+        logger.warn(
+          "⚠️  Could not link development admin to local crew roster: SQLite client missing"
+        );
+        return;
+      }
+      const result = await linkDevelopmentUserToLocalCrewRoster(libsqlClient, {
+        crewId: "dev-admin-crew",
+        email: "admin@example.com",
+        name: "Development Admin",
+        orgId: devOrgId,
+        rank: "Administrator",
+        userId: devUserId,
+      });
+      logger.info(`✓ Development admin crew roster link ${result}`);
+      return;
+    }
+
+    const { crew } = await import("@shared/schema-runtime");
     const linked = await db.select().from(crew).where(eq(crew.userId, devUserId)).limit(1);
     if (linked.length === 0) {
       const devCrewId = "dev-admin-crew";
@@ -266,209 +383,5 @@ export async function seedDevelopmentUser(): Promise<void> {
     logger.warn("⚠️  Could not seed development user:", {
       details: error instanceof Error ? error.message : String(error),
     });
-  }
-}
-
-async function withServiceTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  service: string
-): Promise<T> {
-  let timeoutId: NodeJS.Timeout;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(
-      () => reject(new Error(`${service} timed out after ${timeoutMs}ms`)),
-      timeoutMs
-    );
-  });
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    clearTimeout(timeoutId!);
-    return result;
-  } catch (error) {
-    clearTimeout(timeoutId!);
-    throw error;
-  }
-}
-
-export async function initializeJobQueue(): Promise<void> {
-  logger.info("→ Initializing job queue...");
-  const { jobQueueService } = await import("../job-queue-service");
-  const { startIngestionWorker } = await import("../ingestion-worker");
-  const fsPromises = await import("fs/promises");
-
-  try {
-    await fsPromises.mkdir("/tmp/kb-uploads", { recursive: true });
-    logger.info("  ✓ Created /tmp/kb-uploads directory");
-  } catch {
-    logger.info("  ℹ /tmp/kb-uploads directory already exists");
-  }
-
-  if (process.env["DATABASE_URL"]) {
-    try {
-      await withServiceTimeout(
-        jobQueueService.initialize(process.env["DATABASE_URL"]),
-        15000,
-        "Job queue"
-      );
-      await withServiceTimeout(startIngestionWorker(), 10000, "Ingestion worker");
-      logger.info("✓ Job queue initialized with 5 workers");
-    } catch (error: unknown) {
-      logger.warn("⚠️ Job queue initialization failed (non-fatal):", {
-        details: error instanceof Error ? error.message : String(error),
-      });
-    }
-  } else {
-    logger.info("⚠ Skipping job queue initialization (no DATABASE_URL)");
-  }
-}
-
-export async function initializeMLServices(): Promise<void> {
-  const { dbTelemetryStorage } = await import("../repositories");
-
-  logger.info("→ Initializing vessel telemetry simulator...");
-  const { initVesselSimulator } = await import("../vessel-simulator");
-  initVesselSimulator(dbTelemetryStorage as object as Parameters<typeof initVesselSimulator>[0]);
-  logger.info("✓ Vessel telemetry simulator initialized");
-}
-
-export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise<void> {
-  if (isLocalMode || !process.env["DATABASE_URL"]) {
-    return;
-  }
-
-  try {
-    const { runTimescaleBootstrap } = await import("../timescaledb-bootstrap");
-    await runTimescaleBootstrap();
-  } catch (error) {
-    logger.warn("⚠️  TimescaleDB bootstrap failed (non-critical):", { details: error });
-  }
-}
-
-/**
- * Push A2 — Knowledge graph bootstrap. Decoupled from the Timescale
- * gate (reviewer's sixth-pass non-blocking comment): graph runs on
- * local PG too as long as `DATABASE_URL` is set and `GRAPH_ENABLED`
- * opt-in is on. Falls back to no-op when the Apache AGE extension
- * is unavailable so the app keeps booting on managed-Postgres
- * deployments without it.
- */
-export async function applyGraphBootstrap(): Promise<void> {
-  if (!process.env["DATABASE_URL"]) {
-    return;
-  }
-  try {
-    const { runGraphBootstrap } = await import("../graph-bootstrap");
-    await runGraphBootstrap();
-  } catch (error) {
-    logger.warn("⚠️  Knowledge graph bootstrap failed (non-critical):", { details: error });
-  }
-}
-
-export async function startSyncServices(isLocalMode: boolean): Promise<void> {
-  if (process.env["ENABLE_SYNC_SERVICES"] === "false") {
-    logger.info("ℹ️  Sync services disabled by ENABLE_SYNC_SERVICES=false");
-    return;
-  }
-
-  if (!isLocalMode) {
-    return;
-  }
-
-  logger.info("→ Starting sync services...");
-  const { syncManager } = await import("../sync-manager");
-  const { telemetryPruningService } = await import("../telemetry-pruning-service");
-  const { mqttReliableSync } = await import("../mqtt-reliable-sync");
-
-  await syncManager.start();
-
-  await telemetryPruningService.start();
-  logger.info("✓ Telemetry pruning service started");
-
-  mqttReliableSync.start().catch((error: Error) => {
-    logger.warn("[MQTT Reliable Sync] Background start failed:", {
-      details: error instanceof Error ? error.message : String(error),
-    });
-  });
-  logger.info("✓ MQTT reliable sync starting in background");
-}
-
-export async function initializeTelemetryBatchWriter(): Promise<void> {
-  logger.info("→ Starting telemetry batch writer + ingestion...");
-  // startIngestion() starts the batch writer AND the SQLite-bridge
-  // ingress (Hardware → C# Agent → SQLite → bridge → Postgres). The
-  // bridge half was defined in server/ingestion/startIngestion.ts but
-  // nothing in the boot path ever called it, leaving the only production
-  // ingestion path dormant. It self-gates: without ARUS_SQLITE_PATH it
-  // logs "SQLite bridge disabled" and runs the writer only, so cloud
-  // deployments are an explicit no-op for the bridge half.
-  const { startIngestion } = await import("../ingestion/startIngestion");
-  startIngestion();
-  logger.info("✓ Telemetry batch writer started (bridge per ARUS_SQLITE_PATH)");
-}
-
-export async function initializeAutoReplanPolicy(): Promise<void> {
-  if (process.env["ENABLE_AUTO_REPLAN"] === "false") {
-    logger.info("ℹ️  Auto-replan policy disabled");
-    return;
-  }
-
-  logger.info("→ Initializing auto-replan policy...");
-  const { initializeAutoReplanPolicy: initPolicy } = await import(
-    "../scheduler/auto-replan-policy"
-  );
-  initPolicy();
-  logger.info("✓ Auto-replan policy initialized");
-}
-
-export async function initializeFmccPolling(): Promise<void> {
-  if (process.env["FMCC_ENABLED"] !== "true") {
-    logger.info("ℹ️  FMCC polling disabled (FMCC_ENABLED != true)");
-    return;
-  }
-
-  logger.info("→ Initializing FMCC polling service...");
-  const { initializeFmccPolling: initFmcc } = await import("../integrations/fmcc-polling-service");
-  initFmcc();
-  logger.info("✓ FMCC polling service started");
-}
-
-export async function initializePatchingSystem(isEmbedded: boolean): Promise<void> {
-  if (process.env["ENABLE_UPDATE_SYSTEM"] === "false") {
-    logger.info("ℹ️  Update system disabled");
-    return;
-  }
-
-  logger.info("→ Initializing patching system...");
-  const { configManager } = await import("../services/config-manager.js");
-  const { setupUpdateScheduler } = await import("../services/update-scheduler.js");
-
-  try {
-    configManager.watchForChanges({
-      orgId: "default-org-id",
-      changedByName: "System (Auto-reload)",
-    });
-    logger.info("✓ Config file watcher started");
-
-    setupUpdateScheduler();
-    logger.info("✓ Update scheduler configured");
-  } catch (error: unknown) {
-    logger.warn("⚠️  Update system initialization failed (non-critical):", {
-      details: error instanceof Error ? error.message : String(error),
-    });
-    if (isEmbedded) {
-      logger.info("ℹ️  Continuing without update system in embedded mode");
-    } else {
-      throw error;
-    }
-  }
-}
-
-export async function startEventLoopMonitoring(): Promise<void> {
-  try {
-    const { startEventLoopMonitoring: startMonitoring } = await import("../observability");
-    startMonitoring(1000);
-  } catch (error) {
-    logger.warn("⚠️  Event loop monitoring not available:", { details: error });
   }
 }

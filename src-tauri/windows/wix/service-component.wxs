@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ARUS Backend Windows Service — WiX fragment
-  Merged into the Tauri-generated installer via tauri.conf.json wix.fragmentPaths.
+  Advanced service-mode fragment. Do not merge this into the default
+  tauri.conf.json desktop installer; use a separate service installer config.
 
   PATHS: $(var.SourceDir) in Tauri's WiX context resolves to the generated
   WiX working directory inside target/release/bundle/wix/, NOT the project

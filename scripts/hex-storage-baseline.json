@@ -111,7 +111,6 @@
     "server/routes/route-dependencies.ts",
     "server/routes/sensorBundles.ts",
     "server/routes/sensorTemplates.ts",
-    "server/routes/service-request-routes.ts",
     "server/routes/wo-so-bridge-routes.ts",
     "server/scripts/test/seedPdMCases.ts",
     "server/service-orders/repository.ts",

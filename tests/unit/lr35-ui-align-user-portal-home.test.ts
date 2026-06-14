@@ -37,58 +37,68 @@ async function readSrc(p: string): Promise<string> {
   return readFile(resolve(process.cwd(), p), "utf8");
 }
 
-describe("UI Align Phase 4 — user-portal page contract", () => {
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
+describe("UI Align Phase 4 — user-portal route replacement contract", () => {
   let homeSrc = "";
-  let userBranch = "";
+  let screenSrc = "";
+  let modelSrc = "";
 
   beforeAll(async () => {
-    homeSrc = await readSrc("client/src/pages/home.tsx");
-    // Isolate the UserPortalHome component body — the only place the
-    // user-portal cards may legitimately render.
-    const match = homeSrc.match(/function UserPortalHome\([\s\S]*?\n\}\n/);
-    expect(match).not.toBeNull();
-    userBranch = match![0];
+    [homeSrc, screenSrc, modelSrc] = await Promise.all([
+      readSrc("client/src/pages/home.tsx"),
+      readMobileScreenSrc(),
+      readMobileModelSrc(),
+    ]);
   });
 
-  it("renders the Figma dashboard sections inside the user-portal branch", () => {
-    expect(userBranch).toMatch(/data-testid="card-todays-overview"/);
-    expect(userBranch).toMatch(/data-testid="card-assigned-tasks"/);
-    expect(userBranch).toMatch(/data-testid="card-user-feedback-cta"/);
-    expect(userBranch).toMatch(/data-testid="card-alerts-notices"/);
+  it("removes the legacy user-portal branch from /home", () => {
+    expect(homeSrc).toContain("MobileCommandCenterPage");
+    expect(homeSrc).not.toMatch(
+      /function UserPortalHome|card-todays-overview|card-user-feedback-cta/
+    );
   });
 
-  it("preserves the stable empty-state ids in their respective branches", () => {
-    // empty-attention + empty-my-tasks live in the user-portal branch.
-    expect(userBranch).toMatch(/data-testid="empty-attention"/);
-    expect(userBranch).toMatch(/data-testid="empty-my-tasks"/);
-    // empty-feedback-history is owned by the feedback page (the third
-    // user-portal surface). Pin it there.
-    return readSrc("client/src/pages/feedback.tsx").then((feedback) => {
-      expect(feedback).toMatch(/data-testid="empty-feedback-history"/);
-    });
+  it("maps crew-heavy users to the Figma My Tasks / Logs / Safety nav", () => {
+    expect(modelSrc).toContain('crew_member: "crew"');
+    expect(modelSrc).toContain('technician: "crew"');
+    expect(modelSrc).toContain('"My Tasks"');
+    expect(modelSrc).toContain('"Logs"');
+    expect(modelSrc).toContain('"Safety"');
   });
 
-  it("does NOT leak admin modules into the user portal", () => {
-    // WorkflowCommandCenter is the admin command center — it must
-    // only render in the admin branch.
-    expect(userBranch).not.toMatch(/<WorkflowCommandCenter\b/);
-    // The 8-category NavigationCard grid is admin-only too.
-    expect(userBranch).not.toMatch(/<NavigationCard\b/);
-    // QuickWorkOrderSheet is the admin floating action.
-    expect(userBranch).not.toMatch(/<QuickWorkOrderSheet\b/);
+  it("keeps feedback history owned by the feedback page", async () => {
+    const feedback = await readSrc("client/src/pages/feedback.tsx");
+    expect(feedback).toMatch(/data-testid="empty-feedback-history"/);
   });
 
-  it("keeps SwitchPortalButton visible in the user portal", () => {
-    expect(userBranch).toMatch(/<SwitchPortalButton\b/);
-  });
-
-  it("does not call useQuery directly in the user-portal branch", () => {
-    // All data access for the user portal must go through the
-    // user-dashboard view-model. The branch may call view-model
-    // hooks and the shared useAttentionItems helper, but not
-    // useQuery directly.
-    expect(userBranch).not.toMatch(/\buseQuery\s*\(/);
-    expect(userBranch).toMatch(/useUserDashboardViewModel\s*\(/);
+  it("does not leak the removed admin command center into the mobile replacement", () => {
+    expect(screenSrc).not.toMatch(/WorkflowCommandCenter|NavigationCard|QuickWorkOrderSheet/);
+    expect(screenSrc).toContain("MobileCommandCenterPage");
+    expect(screenSrc).toContain("QueueCard");
   });
 });
 

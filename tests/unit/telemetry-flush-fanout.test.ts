@@ -28,7 +28,7 @@ beforeAll(async () => {
     dbTelemetryStorage: { createTelemetryReadingsBulk: jest.fn() },
     // telemetry-ingest-config's static imports (formerly lazy) pull the
     // sensors storage through the barrel at module-link time.
-    dbSensorsStorage: { getSensorConfigurations: jest.fn().mockResolvedValue([]) },
+    dbSensorsStorage: { getSensorConfigurations: async () => [] },
   }));
   jest.unstable_mockModule("../../server/tenancy/quota-service", () => ({
     __esModule: true,

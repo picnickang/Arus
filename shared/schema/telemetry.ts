@@ -14,7 +14,6 @@ import {
   timestamp,
   boolean,
   jsonb,
-  serial,
   index,
   createInsertSchema,
   z,
@@ -51,7 +50,7 @@ export const equipmentTelemetry = pgTable(
     // dropped — canonical Postgres stores one row per (equipment_id,
     // sensor_type, value) measurement, not a jsonb blob.
   },
-  (table) => ({
+  (_table) => ({
     pk: sql`PRIMARY KEY (org_id, ts, id)`,
     equipmentTsIdx: sql`CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_equipment_ts ON equipment_telemetry (equipment_id, ts DESC)`,
     sensorTsIdx: sql`CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_sensor_ts ON equipment_telemetry (sensor_type, ts DESC)`,

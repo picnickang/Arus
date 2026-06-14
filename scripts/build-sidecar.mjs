@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
-import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { platform, arch } from "node:process";
@@ -41,6 +41,18 @@ function stage1_bundle() {
     "sharp",
     "cpu-features",
     "ssh2",
+    "../vite",
+    "vite",
+    "../vite.config",
+    "@vitejs/plugin-react",
+    "@replit/vite-plugin-runtime-error-modal",
+    "@replit/vite-plugin-cartographer",
+    "@replit/vite-plugin-dev-banner",
+    "lightningcss",
+    "fsevents",
+    "mock-aws-s3",
+    "aws-sdk",
+    "nock",
   ]
     .map((p) => `--external:${p}`)
     .join(" ");
@@ -48,6 +60,7 @@ function stage1_bundle() {
   execSync(
     `npx esbuild server/index.ts ` +
       `--platform=node --target=node20 --bundle --format=cjs ` +
+      `--loader:.html=text ` +
       `--outfile=${bundleOut} --allow-overwrite ` +
       externals,
     { stdio: "inherit", cwd: root }
@@ -77,18 +90,18 @@ function relToBundle(absPath) {
 function stage2_assetManifest() {
   console.log("\n📎 Stage 2 — Building asset manifest…");
 
-  const assets = {};
+  const assets = new Set();
 
   const libsqlDir = join(nmDir, "@libsql");
   const nodeFiles = findFiles(libsqlDir, (name) => extname(name) === ".node");
   for (const f of nodeFiles) {
-    assets[relToBundle(f)] = { isAsset: true };
+    assets.add(relToBundle(f));
     console.log(`  + ${relative(root, f)}`);
   }
 
   const wasmFiles = findFiles(libsqlDir, (name) => extname(name) === ".wasm");
   for (const f of wasmFiles) {
-    assets[relToBundle(f)] = { isAsset: true };
+    assets.add(relToBundle(f));
     console.log(`  + ${relative(root, f)} (wasm)`);
   }
 
@@ -97,14 +110,14 @@ function stage2_assetManifest() {
     const pkgDir = join(nmDir, pkg);
     const pkgNodes = findFiles(pkgDir, (name) => extname(name) === ".node");
     for (const f of pkgNodes) {
-      assets[relToBundle(f)] = { isAsset: true };
+      assets.add(relToBundle(f));
       console.log(`  + ${relative(root, f)}`);
     }
   }
 
-  const manifest = { assets, pkg: { assets } };
+  const manifest = { pkg: { assets: Array.from(assets) } };
   writeFileSync(assetsJson, JSON.stringify(manifest, null, 2));
-  console.log(`  ✅ Manifest: ${Object.keys(assets).length} asset(s)`);
+  console.log(`  ✅ Manifest: ${assets.size} asset(s)`);
 }
 
 function stage3_compile(triple) {
@@ -119,7 +132,7 @@ function stage3_compile(triple) {
   mkdirSync(binDir, { recursive: true });
 
   execSync(
-    `npx pkg ${bundleOut} ` +
+    `npx @yao-pkg/pkg ${bundleOut} ` +
       `--target ${t.pkg} ` +
       `--config ${assetsJson} ` +
       `--output ${outFile} ` +
@@ -144,6 +157,10 @@ function stage4_smokeTest(binPath) {
       env: {
         ...process.env,
         DATABASE_PATH: join(distDir, "smoke-test.db"),
+        DEPLOYMENT_MODE: "VESSEL",
+        EMBEDDED_MODE: "true",
+        LOCAL_MODE: "true",
+        NODE_ENV: "production",
         PORT: "0",
       },
     });

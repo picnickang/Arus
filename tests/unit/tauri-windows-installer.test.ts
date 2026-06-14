@@ -7,15 +7,12 @@ const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf-8");
 const json = (rel: string) => JSON.parse(read(rel));
 const exists = (rel: string) => existsSync(resolve(ROOT, rel));
 
-const CONF_PATHS = [
-  "src-tauri/tauri.conf.json",
-  "src-tauri/tauri.cloud.conf.json",
-  "src-tauri/tauri.vessel.conf.json",
-] as const;
+const PRIMARY_CONF_PATH = "src-tauri/tauri.conf.json" as const;
 
 type TauriConf = {
   $schema: string;
   productName: string;
+  mainBinaryName?: string;
   version: string;
   identifier: string;
   build: {
@@ -37,165 +34,209 @@ type TauriConf = {
   };
   bundle: {
     active: boolean;
-    targets: string;
+    targets: string | string[];
     icon: string[];
     externalBin: string[];
     windows: {
-      nsis: { installMode: string; installerIcon: string; installWebview2Mode: string };
-      wix: { language: string; fragmentPaths: string[]; componentRefs: string[] };
+      webviewInstallMode?: { type: string; silent?: boolean };
+      nsis: { installMode: string; installerIcon: string; installWebview2Mode?: string };
+      wix?: { language: string; fragmentPaths?: string[]; componentRefs?: string[] };
     };
   };
   plugins: Record<string, unknown>;
 };
 
+function bundleTargets(conf: TauriConf): string[] {
+  return Array.isArray(conf.bundle.targets) ? conf.bundle.targets : [conf.bundle.targets];
+}
+
 // ============================================================================
 // Configuration Tests
 // ============================================================================
 
-describe("Tauri Windows Installer — Configuration", () => {
-  const configs: Record<string, TauriConf> = {};
+describe("Tauri Windows Installer — Primary Desktop Configuration", () => {
+  let conf: TauriConf;
 
   beforeAll(() => {
-    for (const p of CONF_PATHS) {
-      configs[p] = json(p) as TauriConf;
+    conf = json(PRIMARY_CONF_PATH) as TauriConf;
+  });
+
+  it("is the one default offline-first desktop product", () => {
+    expect(conf.$schema).toMatch(/tauri\.app/);
+    expect(conf.productName).toBe("ARUS Desktop");
+    expect(conf.mainBinaryName).toBe("ARUS Desktop");
+    expect(conf.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(conf.identifier).toBe("com.arus.marine");
+  });
+
+  it("build section has valid devUrl and frontendDist", () => {
+    expect(conf.build.devUrl).toMatch(/^https?:\/\/localhost:\d+/);
+    expect(conf.build.frontendDist).toBe("../dist/public");
+    expect(conf.build.beforeBuildCommand).toBe("npm run build:renderer");
+  });
+
+  it("window definition has a main window with sane dimensions", () => {
+    const win = conf.app.windows[0];
+    expect(win.label).toBe("main");
+    expect(win.width).toBeGreaterThanOrEqual(1024);
+    expect(win.height).toBeGreaterThanOrEqual(680);
+    expect(win.minWidth).toBeGreaterThanOrEqual(800);
+    expect(win.minHeight).toBeGreaterThanOrEqual(600);
+  });
+
+  it("CSP allows self, localhost, and arus.io connections", () => {
+    const csp = conf.app.security.csp;
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("http://localhost:5000");
+    expect(csp).toContain("https://*.arus.io");
+    expect(csp).toContain("img-src 'self' data: blob:");
+  });
+
+  it("CSP does NOT contain http: or https: wildcards", () => {
+    const csp = conf.app.security.csp;
+    // Ensure no bare protocol wildcards that defeat CSP
+    expect(csp).not.toMatch(/connect-src[^;]* https?: /);
+  });
+
+  it("builds the NSIS setup executable as the default Windows installer", () => {
+    expect(conf.bundle.active).toBe(true);
+    expect(bundleTargets(conf)).toEqual(["nsis"]);
+  });
+
+  it("declares Tauri v2 WebView2 offline installer mode in the correct location", () => {
+    expect(conf.bundle.windows.webviewInstallMode).toEqual({ type: "offlineInstaller" });
+    expect(conf.bundle.windows.nsis.installWebview2Mode).toBeUndefined();
+  });
+
+  it("declares at least 3 icon sizes and all referenced icons exist", () => {
+    expect(conf.bundle.icon.length).toBeGreaterThanOrEqual(3);
+    expect(conf.bundle.icon).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/32x32/),
+        expect.stringMatching(/128x128/),
+        expect.stringMatching(/icon\.png/),
+      ])
+    );
+    for (const icon of conf.bundle.icon) {
+      expect(exists(`src-tauri/${icon}`)).toBe(true);
     }
   });
 
-  describe.each(CONF_PATHS)("%s", (path) => {
-    let conf: TauriConf;
-    beforeAll(() => {
-      conf = configs[path];
-    });
-
-    it("is valid JSON with required top-level keys", () => {
-      expect(conf.$schema).toMatch(/tauri\.app/);
-      expect(conf.productName).toBeTruthy();
-      expect(conf.version).toMatch(/^\d+\.\d+\.\d+/);
-      expect(conf.identifier).toBe("com.arus.marine");
-    });
-
-    it("build section has valid devUrl and frontendDist", () => {
-      expect(conf.build.devUrl).toMatch(/^https?:\/\/localhost:\d+/);
-      expect(conf.build.frontendDist).toBe("../dist/public");
-      expect(conf.build.beforeBuildCommand).toBe("npm run build:renderer");
-    });
-
-    it("window definition has a main window with sane dimensions", () => {
-      const win = conf.app.windows[0];
-      expect(win.label).toBe("main");
-      expect(win.width).toBeGreaterThanOrEqual(1024);
-      expect(win.height).toBeGreaterThanOrEqual(680);
-      expect(win.minWidth).toBeGreaterThanOrEqual(800);
-      expect(win.minHeight).toBeGreaterThanOrEqual(600);
-    });
-
-    it("CSP allows self, localhost, and arus.io connections", () => {
-      const csp = conf.app.security.csp;
-      expect(csp).toContain("default-src 'self'");
-      expect(csp).toContain("http://localhost:5000");
-      expect(csp).toContain("https://*.arus.io");
-      expect(csp).toContain("img-src 'self' data: blob:");
-    });
-
-    it("CSP does NOT contain http: or https: wildcards", () => {
-      const csp = conf.app.security.csp;
-      // Ensure no bare protocol wildcards that defeat CSP
-      expect(csp).not.toMatch(/connect-src[^;]* https?: /);
-    });
-
-    it('bundle is active and targets "all"', () => {
-      expect(conf.bundle.active).toBe(true);
-      expect(conf.bundle.targets).toBe("all");
-    });
-
-    it("declares at least 3 icon sizes", () => {
-      expect(conf.bundle.icon.length).toBeGreaterThanOrEqual(3);
-      expect(conf.bundle.icon).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/32x32/),
-          expect.stringMatching(/128x128/),
-          expect.stringMatching(/icon\.png/),
-        ])
-      );
-    });
-
-    it("all referenced icon files exist on disk", () => {
-      for (const icon of conf.bundle.icon) {
-        expect(exists(`src-tauri/${icon}`)).toBe(true);
-      }
-    });
-
-    it("icon.ico exists for NSIS installer", () => {
-      const nsis = conf.bundle.windows.nsis;
-      expect(exists(`src-tauri/${nsis.installerIcon}`)).toBe(true);
-    });
-
-    it("externalBin references arus-server sidecar", () => {
-      expect(conf.bundle.externalBin).toContain("binaries/arus-server");
-    });
-
-    it("NSIS config is set for perMachine install", () => {
-      const nsis = conf.bundle.windows.nsis;
-      expect(nsis.installMode).toBe("perMachine");
-      expect(nsis.installerIcon).toMatch(/\.ico$/);
-    });
-
-    it("WiX config references the service fragment and component refs", () => {
-      const wix = conf.bundle.windows.wix;
-      expect(wix.language).toBe("en-US");
-      expect(wix.fragmentPaths).toContain("windows/wix/service-component.wxs");
-      expect(wix.componentRefs).toEqual(
-        expect.arrayContaining(["ARUSBackendBinaries", "ARUSBackendService"])
-      );
-    });
-
-    it("does NOT contain an updater plugin with placeholder keys", () => {
-      const plugins = conf.plugins ?? {};
-      if ("updater" in plugins) {
-        const updater = plugins["updater"] as Record<string, unknown>;
-        const pubkey = (updater["pubkey"] as string) ?? "";
-        expect(pubkey).not.toMatch(/REPLACE_WITH/i);
-        expect(pubkey).not.toBe("");
-      }
-    });
+  it("references valid NSIS installer assets and sidecar binary prefix", () => {
+    const nsis = conf.bundle.windows.nsis;
+    expect(nsis.installMode).toBe("perMachine");
+    expect(nsis.installerIcon).toMatch(/\.ico$/);
+    expect(exists(`src-tauri/${nsis.installerIcon}`)).toBe(true);
+    expect(conf.bundle.externalBin).toContain("binaries/arus-server");
   });
 
-  it("all configs share the same identifier", () => {
-    const ids = Object.values(configs).map((c) => c.identifier);
-    expect(new Set(ids).size).toBe(1);
-  });
-
-  it("all configs share the same version", () => {
-    const versions = Object.values(configs).map((c) => c.version);
-    expect(new Set(versions).size).toBe(1);
-  });
-
-  it("all configs share the same window dimensions", () => {
-    const dims = Object.values(configs).map((c) => {
-      const w = c.app.windows[0];
-      return `${w.width}x${w.height}`;
-    });
-    expect(new Set(dims).size).toBe(1);
-  });
-
-  it("vessel uses offlineInstaller while cloud uses downloadBootstrapper", () => {
-    expect(
-      configs["src-tauri/tauri.vessel.conf.json"].bundle.windows.nsis.installWebview2Mode
-    ).toBe("offlineInstaller");
-    expect(configs["src-tauri/tauri.cloud.conf.json"].bundle.windows.nsis.installWebview2Mode).toBe(
-      "downloadBootstrapper"
+  it("does not wire WiX service components into the default desktop installer", () => {
+    const wix = conf.bundle.windows.wix;
+    expect(wix?.fragmentPaths ?? []).not.toContain("windows/wix/service-component.wxs");
+    expect(wix?.componentRefs ?? []).not.toEqual(
+      expect.arrayContaining(["ARUSBackendBinaries", "ARUSBackendService"])
     );
   });
 
-  it("default config uses offlineInstaller (air-gap safe)", () => {
-    expect(configs["src-tauri/tauri.conf.json"].bundle.windows.nsis.installWebview2Mode).toBe(
-      "offlineInstaller"
+  it("keeps the updater plugin disabled until signed endpoints are configured", () => {
+    const plugins = conf.plugins ?? {};
+    expect(plugins).not.toHaveProperty("updater");
+  });
+});
+
+describe("Tauri Windows Installer — Sidecar Compiler Pinning", () => {
+  const pkg = json("package.json") as {
+    scripts: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  const buildSidecar = read("scripts/build-sidecar.mjs");
+
+  it("pins the maintained @yao-pkg/pkg compiler as a dev dependency", () => {
+    expect(pkg.devDependencies?.["@yao-pkg/pkg"]).toMatch(/^\^?\d+\.\d+\.\d+/);
+    expect(pkg.devDependencies?.["pkg"]).toBeUndefined();
+  });
+
+  it("invokes the pinned compiler explicitly instead of the deprecated pkg package name", () => {
+    expect(buildSidecar).toContain("npx @yao-pkg/pkg");
+    expect(buildSidecar).not.toContain("npx pkg ");
+  });
+
+  it("default Tauri build script uses the primary desktop config explicitly", () => {
+    expect(pkg.scripts["tauri:build"]).toContain("build:sidecar");
+    expect(pkg.scripts["tauri:build"]).toContain("--config src-tauri/tauri.conf.json");
+  });
+});
+
+describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
+  const workflow = read(".github/workflows/tauri-build.yml");
+  const windowsWorkflow = workflow.match(/ {2}build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
+
+  it("runs the Windows desktop job on a real Windows runner", () => {
+    expect(windowsWorkflow).toContain("build-windows-desktop:");
+    expect(windowsWorkflow).toContain("runs-on: windows-latest");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
+    expect(windowsWorkflow).toContain("--target x86_64-pc-windows-msvc");
+    expect(windowsWorkflow).toContain("--config src-tauri/tauri.conf.json");
+  });
+
+  it("uploads the produced NSIS setup executable as an artifact", () => {
+    expect(windowsWorkflow).toContain("Confirm NSIS setup exe exists");
+    expect(windowsWorkflow).toContain("ARUS Desktop Setup.exe was not produced");
+    expect(windowsWorkflow).toContain("actions/upload-artifact@v4");
+    expect(windowsWorkflow).toContain("arus-desktop-windows-setup");
+    expect(windowsWorkflow).toContain("bundle\\nsis");
+  });
+
+  it("avoids Windows npm lifecycle-script failures while rebuilding required sidecar natives", () => {
+    expect(windowsWorkflow).toContain("Install dependencies for Windows desktop build");
+    expect(windowsWorkflow).toContain("npm ci --ignore-scripts");
+    expect(windowsWorkflow).toContain("npm rebuild better-sqlite3");
+    expect(windowsWorkflow).not.toContain("- run: npm ci\n\n      - name: Generate icons");
+  });
+
+  it("uses release publishing only for tag builds and plain Tauri build for workflow smoke", () => {
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("if: ${{ startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
+    expect(windowsWorkflow).toContain("if: ${{ !startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain(
+      "npx tauri build --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json"
     );
   });
 
-  it("vessel config does NOT have unsafe-eval in CSP", () => {
-    const csp = configs["src-tauri/tauri.vessel.conf.json"].app.security.csp;
-    expect(csp).not.toContain("unsafe-eval");
+  it("silently installs the setup exe into a temporary Windows smoke directory", () => {
+    expect(windowsWorkflow).toContain("Smoke install ARUS Desktop setup");
+    expect(windowsWorkflow).toContain('Start-Process -FilePath $setup.FullName');
+    expect(windowsWorkflow).toContain('"/S"');
+    expect(windowsWorkflow).toContain('"/D=$installDir"');
+    expect(windowsWorkflow).toContain("$env:RUNNER_TEMP");
+  });
+
+  it("asserts installed app and sidecar executables, then runs sidecar health check offline", () => {
+    expect(windowsWorkflow).toContain("$defaultInstallDirs");
+    expect(windowsWorkflow).toContain('Get-ChildItem $root -Recurse -Filter "ARUS Desktop.exe"');
+    expect(windowsWorkflow).toContain("Get-ItemProperty $root");
+    expect(windowsWorkflow).toContain("ARUS_APP_EXE");
+    expect(windowsWorkflow).toContain("ARUS Desktop.exe");
+    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installedRoot -Recurse");
+    expect(windowsWorkflow).toContain("arus-server");
+    expect(windowsWorkflow).toContain("--health-check");
+    expect(windowsWorkflow).toContain("LOCAL_MODE");
+    expect(windowsWorkflow).toContain("DATABASE_PATH");
+  });
+
+  it("launches and terminates the installed desktop app during the smoke", () => {
+    expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
+    expect(windowsWorkflow).toContain("$appExe = $env:ARUS_APP_EXE");
+    expect(windowsWorkflow).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(windowsWorkflow).toContain("ARUS Desktop panic log");
+    expect(windowsWorkflow).toContain("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
+    expect(windowsWorkflow).toContain("--disable-gpu");
+    expect(windowsWorkflow).toContain("Get-WinEvent");
+    expect(windowsWorkflow).toContain("Start-Process -FilePath $appExe");
+    expect(windowsWorkflow).toContain("HasExited");
+    expect(windowsWorkflow).toContain("Stop-Process");
   });
 });
 
@@ -551,11 +592,11 @@ describe("Tauri Windows Installer — Capabilities", () => {
     expect(flat).toContain("fs:allow-app-write");
   });
 
-  it("includes process:allow-relaunch and process:allow-exit", () => {
+  it("includes process:allow-restart and process:allow-exit", () => {
     const flat = caps.permissions.map((p) =>
       typeof p === "string" ? p : (p as Record<string, unknown>)["identifier"]
     );
-    expect(flat).toContain("process:allow-relaunch");
+    expect(flat).toContain("process:allow-restart");
     expect(flat).toContain("process:allow-exit");
   });
 });
@@ -582,11 +623,21 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
       "get_app_data_dir",
       "get_backend_config",
       "get_backend_status",
+      "get_backend_diagnostics",
       "start_backend_sidecar",
     ];
     for (const cmd of expectedCommands) {
       expect(libRs).toContain(cmd);
     }
+  });
+
+  it("reports backend diagnostics for local data, logs, queue, and cloud sync", () => {
+    expect(libRs).toContain("pub struct BackendDiagnostics");
+    expect(libRs).toContain("database_path");
+    expect(libRs).toContain("log_dir");
+    expect(libRs).toContain("queue_depth");
+    expect(libRs).toContain("cloud_status");
+    expect(libRs).toContain("last_sync_at");
   });
 
   it("checks Windows service before sidecar on get_backend_status", () => {
@@ -601,10 +652,10 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   });
 
   it("sidecar sets correct environment variables", () => {
-    expect(libRs).toContain('.env("NODE_ENV"');
-    expect(libRs).toContain('.env("PORT",');
+    expect(libRs).toMatch(/\.env\(\s*"NODE_ENV"/);
+    expect(libRs).toContain('.env("PORT", "5000")');
     expect(libRs).toContain('.env("DEPLOYMENT_MODE", "VESSEL")');
-    expect(libRs).toContain('.env("LOCAL_MODE",      "true")');
+    expect(libRs).toContain('.env("LOCAL_MODE", "true")');
     expect(libRs).toContain('.env("DATABASE_PATH"');
   });
 
@@ -637,6 +688,17 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   it("hides console window in release builds on Windows", () => {
     const mainRs = read("src-tauri/src/main.rs");
     expect(mainRs).toContain('#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]');
+  });
+
+  it("installs a file-backed panic hook for Windows launch diagnostics", () => {
+    expect(libRs).toContain("fn install_panic_logger()");
+    expect(libRs).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(libRs).toContain("std::panic::set_hook");
+    expect(libRs).toContain("install_panic_logger();");
+  });
+
+  it("does not initialize the updater plugin without updater config", () => {
+    expect(libRs).not.toContain("tauri_plugin_updater::Builder::new().build()");
   });
 });
 

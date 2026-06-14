@@ -192,119 +192,159 @@ export async function runSystemSettingsCompatibilityMigration(client: LibsqlClie
   logger.info("✓ System settings compatibility migration completed");
 }
 
-export async function runEquipmentCompatibilityMigration(client: LibsqlClient): Promise<void> {
-  const cols = await getTableColumns(client, "equipment");
+export async function runUsersAuthCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "users");
   if (!cols.length) {
     return;
   }
 
   const expectedColumns: Array<[string, string]> = [
-    ["plain_language_name", "TEXT"],
-    ["system_type", "TEXT"],
-    ["component_type", "TEXT"],
-    ["criticality_level", "TEXT DEFAULT 'medium'"],
-    ["emergency_labor_multiplier", "REAL"],
-    ["emergency_parts_multiplier", "REAL"],
-    ["emergency_downtime_multiplier", "REAL"],
-    ["downtime_cost_per_hour", "REAL"],
-    ["default_service_provider_id", "TEXT"],
-    ["purchase_value", "REAL"],
-    ["purchase_date", "INTEGER"],
-    ["purchase_currency", "TEXT DEFAULT 'USD'"],
-    ["service_life_hours", "REAL"],
-    ["service_life_years", "REAL"],
-    ["depreciation_method", "TEXT DEFAULT 'straight_line'"],
-    ["depreciation_rate", "REAL"],
-    ["salvage_value", "REAL"],
-    ["decommissioned_at", "INTEGER"],
-    ["decommissioned_by", "TEXT"],
-    ["decommission_status", "TEXT DEFAULT 'active'"],
-    ["decommission_event_id", "TEXT"],
-    ["reinstated_at", "INTEGER"],
-    ["reinstated_by", "TEXT"],
-    ["parent_equipment_id", "TEXT"],
-    ["hierarchy_level", "INTEGER DEFAULT 0"],
-    ["hierarchy_path", "TEXT DEFAULT ''"],
+    ["username", "TEXT"],
+    ["password_hash", "TEXT"],
+    ["password_updated_at", "INTEGER"],
+    ["job_title", "TEXT"],
+    ["phone", "TEXT"],
+    ["timezone", "TEXT DEFAULT 'UTC'"],
+    ["login_enabled", "INTEGER DEFAULT 1"],
+    ["must_change_password", "INTEGER DEFAULT 0"],
+    ["supervisor_user_id", "TEXT"],
+    ["hub_admin", "INTEGER DEFAULT 0"],
+    ["hub_access", "TEXT"],
   ];
 
   for (const [col, definition] of expectedColumns) {
     if (!cols.includes(col)) {
-      await safeAddColumn(client, "equipment", col, definition);
+      await safeAddColumn(client, "users", col, definition);
     }
   }
 
-  logger.info("✓ Equipment compatibility migration completed");
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_users_org_username ON users(org_id, username)`
+  );
+  logger.info("✓ Users auth compatibility migration completed");
 }
 
-export async function runPermissionCompatibilityMigration(client: LibsqlClient): Promise<void> {
-  const roleCols = await getTableColumns(client, "roles");
-  if (roleCols.length) {
-    const expectedRoleColumns: Array<[string, string]> = [
-      ["org_id", "TEXT NOT NULL DEFAULT 'default-org-id'"],
-      ["name", "TEXT NOT NULL DEFAULT ''"],
-      ["display_name", "TEXT NOT NULL DEFAULT ''"],
-      ["description", "TEXT"],
-      ["department", "TEXT"],
-      ["hierarchy_level", "INTEGER NOT NULL DEFAULT 50"],
-      ["parent_role_id", "TEXT"],
-      ["template_id", "TEXT"],
-      ["permissions", "TEXT"],
-      ["is_system_role", "INTEGER DEFAULT 0"],
-      ["is_active", "INTEGER DEFAULT 1"],
-      ["hub_admin", "INTEGER NOT NULL DEFAULT 0"],
-      ["hub_access", "TEXT"],
-      ["created_at", "INTEGER"],
-      ["updated_at", "INTEGER"],
-    ];
-    for (const [col, definition] of expectedRoleColumns) {
-      if (!roleCols.includes(col)) {
-        await safeAddColumn(client, "roles", col, definition);
-      }
+export async function runCrewCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "crew");
+  if (!cols.length) {
+    return;
+  }
+
+  const expectedColumns: Array<[string, string]> = [
+    ["employee_id", "TEXT"],
+    ["first_name", "TEXT NOT NULL DEFAULT ''"],
+    ["last_name", "TEXT NOT NULL DEFAULT ''"],
+    ["user_id", "TEXT"],
+    ["watch_keeping", "TEXT"],
+    ["join_date", "INTEGER"],
+    ["photo_path", "TEXT"],
+    ["crew_code", "TEXT"],
+    ["status", "TEXT DEFAULT 'active'"],
+    ["employment_type", "TEXT"],
+    ["reports_to_id", "TEXT"],
+    ["rotation_on_days", "INTEGER"],
+    ["rotation_off_days", "INTEGER"],
+  ];
+
+  for (const [col, definition] of expectedColumns) {
+    if (!cols.includes(col)) {
+      await safeAddColumn(client, "crew", col, definition);
     }
   }
 
-  const grantCols = await getTableColumns(client, "permission_grants");
-  if (grantCols.length) {
-    const expectedGrantColumns: Array<[string, string]> = [
-      ["role_id", "TEXT NOT NULL DEFAULT ''"],
-      ["resource_code", "TEXT NOT NULL DEFAULT ''"],
-      ["action_code", "TEXT NOT NULL DEFAULT ''"],
-      ["is_granted", "INTEGER DEFAULT 1"],
-      ["condition", "TEXT"],
-      ["created_at", "INTEGER"],
-      ["created_by", "TEXT"],
-    ];
-    for (const [col, definition] of expectedGrantColumns) {
-      if (!grantCols.includes(col)) {
-        await safeAddColumn(client, "permission_grants", col, definition);
-      }
-    }
+  const refreshedCols = await getTableColumns(client, "crew");
+  if (refreshedCols.includes("name") && refreshedCols.includes("first_name")) {
+    await client.execute(
+      "UPDATE crew SET first_name = name WHERE (first_name IS NULL OR first_name = '') AND name IS NOT NULL"
+    );
+  }
+  if (refreshedCols.includes("status")) {
+    await client.execute(
+      "UPDATE crew SET status = 'active' WHERE (status IS NULL OR status = '') AND is_active = 1"
+    );
   }
 
-  const assignmentCols = await getTableColumns(client, "user_role_assignments");
-  if (assignmentCols.length) {
-    const expectedAssignmentColumns: Array<[string, string]> = [
-      ["org_id", "TEXT"],
-      ["user_id", "TEXT NOT NULL DEFAULT ''"],
-      ["role_id", "TEXT NOT NULL DEFAULT ''"],
-      ["assigned_by", "TEXT"],
-      ["is_active", "INTEGER DEFAULT 1"],
-    ];
-    for (const [col, definition] of expectedAssignmentColumns) {
-      if (!assignmentCols.includes(col)) {
-        await safeAddColumn(client, "user_role_assignments", col, definition);
-      }
-    }
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_crew_user ON crew(user_id)");
+  logger.info("✓ Crew compatibility migration completed");
+}
+
+export async function runAdminSessionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "admin_sessions");
+  if (!cols.length) {
+    return;
+  }
+
+  if (!cols.includes("admin_email")) {
+    await safeAddColumn(client, "admin_sessions", "admin_email", "TEXT");
+  }
+  if (!cols.includes("last_activity_at")) {
+    await safeAddColumn(client, "admin_sessions", "last_activity_at", "INTEGER");
   }
 
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_roles_org_name ON roles(org_id, name)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at)`
   );
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_permission_grants ON permission_grants(role_id, resource_code, action_code)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_org ON admin_sessions(org_id)`
+  );
+  logger.info("✓ Admin sessions compatibility migration completed");
+}
+
+export async function runErrorLogsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "error_logs");
+  if (!cols.length) {
+    return;
+  }
+
+  const expectedColumns: Array<[string, string]> = [
+    ["timestamp", "INTEGER"],
+    ["category", "TEXT NOT NULL DEFAULT 'application'"],
+    ["error_type", "TEXT NOT NULL DEFAULT 'application'"],
+    ["error_message", "TEXT"],
+    ["error_code", "TEXT"],
+    ["message", "TEXT NOT NULL DEFAULT ''"],
+    ["user_id", "TEXT"],
+    ["request_id", "TEXT"],
+    ["endpoint", "TEXT"],
+    ["severity", "TEXT NOT NULL DEFAULT 'error'"],
+    ["resolved", "INTEGER DEFAULT 0"],
+    ["resolved_at", "INTEGER"],
+    ["resolved_by", "TEXT"],
+    ["created_at", "INTEGER"],
+  ];
+
+  for (const [col, definition] of expectedColumns) {
+    if (!cols.includes(col)) {
+      await safeAddColumn(client, "error_logs", col, definition);
+    }
+  }
+
+  const refreshedCols = await getTableColumns(client, "error_logs");
+  if (refreshedCols.includes("message") && refreshedCols.includes("error_message")) {
+    await client.execute(
+      `UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL`
+    );
+    await client.execute(
+      `UPDATE error_logs SET error_message = message WHERE (error_message IS NULL OR error_message = '') AND message IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("timestamp") && refreshedCols.includes("created_at")) {
+    await client.execute(
+      `UPDATE error_logs SET timestamp = created_at WHERE timestamp IS NULL AND created_at IS NOT NULL`
+    );
+  }
+
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp ON error_logs(timestamp)`
   );
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_user_role ON user_role_assignments(org_id, user_id, role_id)`
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_category ON error_logs(category)`
   );
-  logger.info("✓ Permission compatibility migration completed");
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON error_logs(severity)`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON error_logs(resolved)`
+  );
+  logger.info("✓ Error logs compatibility migration completed");
 }

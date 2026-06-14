@@ -52,15 +52,7 @@ The budget column is `1 - SLO` expressed in minutes per 28 days.
 - Alert: `TelemetryErrorRate` (rules.yaml) trips at > 0.5 % ratio
   over 10 min.
 
-### 3.3 Telemetry freshness
-
-- Probe: `arus_dq_channel_freshness_seconds` (max across channels)
-  exported by `server/observability/data-quality.ts`.
-- Excludes: maintenance windows declared via `MAINTENANCE_MODE=1`.
-- Alert: `TelemetryFreshnessStale` in `ops/prometheus/rules.yaml`
-  (threshold 300 s).
-
-### 3.4 WebSocket fan-out
+### 3.3 WebSocket fan-out
 
 - The nightly k6 scenario (`tests/load/ws_fanout.js`) enforces
   `ws_events_missed == 0`, `ws_gaps_detected == 0`,

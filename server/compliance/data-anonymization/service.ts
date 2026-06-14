@@ -5,7 +5,20 @@
 
 import * as crypto from "node:crypto";
 import type { AnonymizationConfig, AnonymizationResult, AnonymizationReport } from "./types.js";
-import { PII_FIELDS, COMMON_PII_PATTERNS, PARTIAL_ANONYMIZE_FIELDS } from "./pii-fields.js";
+import {
+  isAddressField,
+  isEmailField,
+  isIdentifierField,
+  isLikelyPiiString,
+  isNameField,
+  isNestedPiiKey,
+  isPhoneField,
+  isPotentialPiiField,
+  isSensitiveFieldName,
+  isTechnicalField,
+  isTimestampField,
+} from "./field-classification.js";
+import { PII_FIELDS, PARTIAL_ANONYMIZE_FIELDS } from "./pii-fields.js";
 
 export class DataAnonymizationService {
   private readonly salt: string;
@@ -122,7 +135,7 @@ export class DataAnonymizationService {
         skippedCount++;
         continue;
       }
-      if (this.isPotentialPiiField(field)) {
+      if (isPotentialPiiField(field)) {
         (anonymized as Record<string, unknown>)[field] = this.anonymizeField(
           field,
           value,
@@ -160,77 +173,16 @@ export class DataAnonymizationService {
     if (config.preserveIds && (field.endsWith("Id") || field === "id")) {
       return true;
     }
-    if (this.isSensitiveFieldName(field)) {
+    if (isSensitiveFieldName(field)) {
       return false;
     }
-    if (config.preserveTimestamps && this.isTimestampField(field)) {
+    if (config.preserveTimestamps && isTimestampField(field)) {
       return true;
     }
-    if (config.preserveTechnicalData && this.isTechnicalField(field)) {
+    if (config.preserveTechnicalData && isTechnicalField(field)) {
       return true;
     }
     return false;
-  }
-
-  private isTimestampField(field: string): boolean {
-    const patterns = [
-      "createdAt",
-      "updatedAt",
-      "deletedAt",
-      "timestamp",
-      "ts",
-      "startDate",
-      "endDate",
-      "date",
-      "lastModified",
-      "expiryDate",
-      "issuedDate",
-      "validFrom",
-      "validTo",
-      "scheduledDate",
-    ];
-    return patterns.some((p) => field.toLowerCase().includes(p.toLowerCase()));
-  }
-  private isTechnicalField(field: string): boolean {
-    const patterns = [
-      "type",
-      "status",
-      "priority",
-      "category",
-      "level",
-      "role",
-      "port",
-      "protocol",
-      "version",
-      "mode",
-      "config",
-      "setting",
-      "threshold",
-      "limit",
-      "count",
-      "quantity",
-      "value",
-      "score",
-      "rating",
-      "temperature",
-      "pressure",
-      "speed",
-      "rpm",
-      "voltage",
-    ];
-    return patterns.some((p) => field.toLowerCase().includes(p.toLowerCase()));
-  }
-  private isPotentialPiiField(field: string): boolean {
-    if (this.isSensitiveFieldName(field)) {
-      return true;
-    }
-    if (this.isTechnicalField(field) || this.isTimestampField(field)) {
-      return false;
-    }
-    if (field.endsWith("Id") || field === "id" || field.endsWith("_id")) {
-      return false;
-    }
-    return this.isNestedPiiKey(field) || COMMON_PII_PATTERNS.some((p) => p.test(field));
   }
 
   private anonymizeField(
@@ -263,21 +215,10 @@ export class DataAnonymizationService {
     entityName: string,
     deepScan: boolean
   ): string {
-    if (deepScan || this.isSensitiveFieldName(field) || this.isLikelyPiiString(value)) {
+    if (deepScan || isSensitiveFieldName(field) || isLikelyPiiString(value)) {
       return this.anonymizeString(field, value, entityName);
     }
     return value;
-  }
-
-  private isSensitiveFieldName(field: string): boolean {
-    return (
-      this.isEmailField(field) ||
-      this.isPhoneField(field) ||
-      this.isNameField(field) ||
-      this.isAddressField(field) ||
-      this.isIdentifierField(field) ||
-      COMMON_PII_PATTERNS.some((p) => p.test(field))
-    );
   }
 
   private processArrayValue(
@@ -324,9 +265,9 @@ export class DataAnonymizationService {
       const piiFields = PII_FIELDS[entityName];
       const shouldAnonymize =
         deepScan ||
-        this.isPotentialPiiField(key) ||
+        isPotentialPiiField(key) ||
         (piiFields !== undefined && piiFields.includes(key)) ||
-        this.isNestedPiiKey(key);
+        isNestedPiiKey(key);
       anonymizedObj[key] = this.processNestedValue(key, val, entityName, deepScan, shouldAnonymize);
     }
     return anonymizedObj;
@@ -354,91 +295,6 @@ export class DataAnonymizationService {
     return val;
   }
 
-  private isNestedPiiKey(key: string): boolean {
-    const piiKeywords = [
-      "operator",
-      "technician",
-      "crew",
-      "person",
-      "user",
-      "uploaded",
-      "created",
-      "modified",
-      "assigned",
-      "approved",
-      "comment",
-      "annotation",
-      "note",
-      "remark",
-      "message",
-    ];
-    const piiSuffixes = ["info", "data", "details", "metadata"];
-    const lowerKey = key.toLowerCase();
-    return (
-      piiKeywords.some((kw) => lowerKey.includes(kw)) ||
-      piiSuffixes.some((s) => lowerKey.endsWith(s))
-    );
-  }
-  private isLikelyPiiString(value: string): boolean {
-    if (value.length < 3 || value.length > 500) {
-      return false;
-    }
-    if (this.looksLikeEmail(value)) {
-      return true;
-    }
-    if (this.looksLikePhone(value)) {
-      return true;
-    }
-    const namePattern = /^[A-Z][a-z]{1,20} [A-Z][a-z]{1,20}$/;
-    return namePattern.test(value);
-  }
-
-  private looksLikeEmail(value: string): boolean {
-    const atPositions = this.findAllAtPositions(value);
-    return atPositions.some((atIdx) => this.isValidEmailAtPosition(value, atIdx));
-  }
-
-  private findAllAtPositions(value: string): number[] {
-    const positions: number[] = [];
-    let i = value.indexOf("@");
-    while (i !== -1) {
-      positions.push(i);
-      i = value.indexOf("@", i + 1);
-    }
-    return positions;
-  }
-
-  private isValidEmailAtPosition(value: string, atIdx: number): boolean {
-    const localStart = this.findLocalStart(value, atIdx);
-    const domainEnd = this.findDomainEnd(value, atIdx);
-    if (localStart >= atIdx || domainEnd <= atIdx + 1) {
-      return false;
-    }
-    const local = value.slice(localStart, atIdx);
-    const domain = value.slice(atIdx + 1, domainEnd);
-    return local.length >= 1 && local.length <= 64 && domain.includes(".") && domain.length >= 3;
-  }
-
-  private findLocalStart(s: string, atIdx: number): number {
-    let i = atIdx - 1;
-    while (i >= 0 && /[a-zA-Z0-9._%+-]/.test(s[i] ?? "")) {
-      i--;
-    }
-    return i + 1;
-  }
-
-  private findDomainEnd(s: string, atIdx: number): number {
-    let i = atIdx + 1;
-    while (i < s.length && /[a-zA-Z0-9.-]/.test(s[i] ?? "")) {
-      i++;
-    }
-    return i;
-  }
-  private looksLikePhone(value: string): boolean {
-    const digits = value.replaceAll(/\D/g, "");
-    return digits.length >= 7 && digits.length <= 15;
-  }
-
   private anonymizeString(field: string, value: string, entityName: string): string {
     const cacheKey = `${entityName}:${field}:${value}`;
     if (this.pseudonymCache.has(cacheKey)) {
@@ -451,46 +307,22 @@ export class DataAnonymizationService {
   }
 
   private selectAnonymizationStrategy(field: string, value: string): string {
-    if (this.isEmailField(field)) {
+    if (isEmailField(field)) {
       return this.generatePseudoEmail(value);
     }
-    if (this.isPhoneField(field)) {
+    if (isPhoneField(field)) {
       return this.generatePseudoPhone(value);
     }
-    if (this.isNameField(field)) {
+    if (isNameField(field)) {
       return this.generatePseudoName(value, field);
     }
-    if (this.isAddressField(field)) {
+    if (isAddressField(field)) {
       return this.generatePseudoAddress(value, field);
     }
-    if (this.isIdentifierField(field)) {
+    if (isIdentifierField(field)) {
       return this.generatePseudoIdentifier(value);
     }
     return this.generatePseudoText(value);
-  }
-
-  private isEmailField(field: string): boolean {
-    return field.toLowerCase().includes("email");
-  }
-  private isPhoneField(field: string): boolean {
-    return ["phone", "mobile", "tel", "fax", "contact"].some((p) =>
-      field.toLowerCase().includes(p)
-    );
-  }
-  private isNameField(field: string): boolean {
-    return ["name", "first", "last", "author", "reviewer", "technician", "assignee"].some((p) =>
-      field.toLowerCase().includes(p)
-    );
-  }
-  private isAddressField(field: string): boolean {
-    return ["address", "street", "city", "state", "country", "postal", "zip"].some((p) =>
-      field.toLowerCase().includes(p)
-    );
-  }
-  private isIdentifierField(field: string): boolean {
-    return ["passport", "license", "certificate", "registration", "seaman", "ssn", "tax"].some(
-      (p) => field.toLowerCase().includes(p)
-    );
   }
 
   private generatePseudoEmail(original: string): string {

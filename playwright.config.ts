@@ -1,13 +1,31 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const INCLUDE_QUARANTINED = process.env.PLAYWRIGHT_INCLUDE_QUARANTINE === "1";
+const INCLUDE_PRODUCTION_WRITE_AUDIT = process.env.ARUS_PROD_E2E_ALLOW_WRITES === "1";
 
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
+  "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
   "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
+  ...(INCLUDE_PRODUCTION_WRITE_AUDIT
+    ? ["**/journeys/production-full-write-audit.spec.ts"]
+    : []),
+];
+
+// Mobile spec subset run by the visual-regression projects below
+// (argos-visual-ci / playwright-visual-ci / mobile-qa-visual-argos).
+const MOBILE_VISUAL_TESTS = [
+  "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
+  "**/static-mobile-boot.spec.ts",
 ];
 
 /**
@@ -44,6 +62,19 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    // Mobile viewport projects for the visual-regression workflows. They run
+    // the mobile spec subset under a Pixel 5 (chromium engine) viewport, so the
+    // chromium browser install in CI is sufficient.
+    {
+      name: "mobile-chromium",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"] },
+    },
+    {
+      name: "mobile-visual",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"] },
     },
   ],
 
@@ -85,6 +116,6 @@ export default defineConfig({
         },
         url: "http://127.0.0.1:5000/api/healthz",
         reuseExistingServer: false,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 });

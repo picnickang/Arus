@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
-import { db } from "../db.js";
+import { db, isLocalMode } from "../db.js";
 import { organizations } from "@shared/schema.js";
 import { withTenantContext } from "../middleware/db-context.js";
 import { TelemetryAggregator } from "../services/telemetry-aggregation/telemetry-aggregator";
@@ -41,12 +41,29 @@ export interface TelemetryRollupJobSummary {
   hourDeleted: number;
   durationMs: number;
   failures: Array<{ orgId: string; error: string }>;
+  skipped?: "local-mode";
 }
 
 export async function processTelemetryRollup(
   data: TelemetryRollupJobData = {}
 ): Promise<TelemetryRollupJobSummary> {
   const startedAt = Date.now();
+
+  if (isLocalMode) {
+    logger.info("Telemetry rollup skipped in local SQLite mode; rollup SQL is PostgreSQL-specific");
+    return {
+      orgsTotal: 0,
+      orgsSucceeded: 0,
+      orgsFailed: 0,
+      bucketsCreated: 0,
+      minuteDeleted: 0,
+      hourDeleted: 0,
+      durationMs: Date.now() - startedAt,
+      failures: [],
+      skipped: "local-mode",
+    };
+  }
+
   const aggregator = new TelemetryAggregator(db);
 
   // Idempotent — telemetry_aggregated is runtime-created today (the

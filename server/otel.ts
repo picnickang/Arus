@@ -16,6 +16,9 @@
  * duplicate registration internally.
  */
 import { createRequire } from "node:module";
+import type { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
+import type { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import type { NodeSDK } from "@opentelemetry/sdk-node";
 
 const endpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
 const enabled = Boolean(endpoint);
@@ -31,42 +34,48 @@ let started = false;
 
 // `createRequire` keeps the lazy-load behaviour (the SDK is not pulled in
 // when the env var is absent) while avoiding `require` in this ESM module.
-const requireFromHere = createRequire(import.meta.url);
+const requireFromHere = createRequire(
+  typeof import.meta.url === "string" ? import.meta.url : __filename
+);
 
 interface NodeSDKLike {
   start(): void;
   shutdown(): Promise<void>;
 }
 interface NodeSDKModule {
-  NodeSDK: new (config: Record<string, unknown>) => NodeSDKLike;
+  NodeSDK: new (...args: ConstructorParameters<typeof NodeSDK>) => NodeSDKLike;
 }
 interface AutoInstrumentationsModule {
-  getNodeAutoInstrumentations: (config?: Record<string, unknown>) => unknown[];
+  getNodeAutoInstrumentations: typeof getNodeAutoInstrumentations;
 }
 interface OTLPExporterModule {
-  OTLPTraceExporter: new (config: Record<string, unknown>) => unknown;
+  OTLPTraceExporter: new (
+    ...args: ConstructorParameters<typeof OTLPTraceExporter>
+  ) => OTLPTraceExporter;
 }
+type OTLPTraceExporterConfig = ConstructorParameters<typeof OTLPTraceExporter>[0];
 
 if (enabled && endpoint) {
   try {
-    const { NodeSDK } = requireFromHere("@opentelemetry/sdk-node") as NodeSDKModule;
-    const { getNodeAutoInstrumentations } = requireFromHere(
+    const { NodeSDK: NodeSDKCtor } = requireFromHere("@opentelemetry/sdk-node") as NodeSDKModule;
+    const { getNodeAutoInstrumentations: getNodeAutoInstrumentationsForNode } = requireFromHere(
       "@opentelemetry/auto-instrumentations-node"
     ) as AutoInstrumentationsModule;
-    const { OTLPTraceExporter } = requireFromHere(
+    const { OTLPTraceExporter: OTLPTraceExporterCtor } = requireFromHere(
       "@opentelemetry/exporter-trace-otlp-http"
     ) as OTLPExporterModule;
+    const traceExporterConfig: OTLPTraceExporterConfig = {
+      url: `${endpoint.replace(/\/$/, "")}/v1/traces`,
+    };
+    if (process.env["OTEL_EXPORTER_OTLP_HEADERS"]) {
+      traceExporterConfig.headers = parseHeaderEnv(process.env["OTEL_EXPORTER_OTLP_HEADERS"]);
+    }
 
-    const sdk = new NodeSDK({
+    const sdk = new NodeSDKCtor({
       serviceName: process.env["OTEL_SERVICE_NAME"] || "arus-server",
-      traceExporter: new OTLPTraceExporter({
-        url: `${endpoint.replace(/\/$/, "")}/v1/traces`,
-        headers: process.env["OTEL_EXPORTER_OTLP_HEADERS"]
-          ? parseHeaderEnv(process.env["OTEL_EXPORTER_OTLP_HEADERS"])
-          : undefined,
-      }),
+      traceExporter: new OTLPTraceExporterCtor(traceExporterConfig),
       instrumentations: [
-        getNodeAutoInstrumentations({
+        getNodeAutoInstrumentationsForNode({
           // fs instrumentation is extremely noisy and rarely useful
           "@opentelemetry/instrumentation-fs": { enabled: false },
         }),

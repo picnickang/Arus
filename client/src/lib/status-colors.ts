@@ -12,7 +12,7 @@
  */
 
 /** Subset of shadcn Badge variants produced by the helpers below. */
-export type StatusBadgeVariant = "default" | "secondary" | "destructive";
+type StatusBadgeVariant = "default" | "secondary" | "destructive";
 
 /**
  * Shared shape of the two badge-variant maps: "critical" always renders

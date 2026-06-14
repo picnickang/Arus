@@ -40,8 +40,6 @@ declare global {
 const API_HISTORY_LIMIT = 20;
 const ROUTE_HISTORY_LIMIT = 10;
 
-const WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
-
 const apiLatenciesRef: { current: ApiLatency[] } = { current: [] };
 let apiLatencyListeners: ((latencies: ApiLatency[]) => void)[] = [];
 
@@ -321,7 +319,7 @@ export function DevPerformanceOverlay() {
 
   if (!isVisible) {
     return (
-      <div className="fixed bottom-20 md:bottom-4 right-4 z-50">
+      <div className="fixed bottom-36 md:bottom-4 right-4 z-50">
         <Button
           size="sm"
           variant="outline"
@@ -337,7 +335,7 @@ export function DevPerformanceOverlay() {
   }
 
   return (
-    <div className="fixed bottom-20 md:bottom-4 right-4 z-50 w-80 max-h-[80vh] overflow-hidden">
+    <div className="fixed bottom-36 md:bottom-4 right-4 z-50 w-80 max-h-[80vh] overflow-hidden">
       <Card className="bg-background/95 backdrop-blur border shadow-lg">
         <div className="p-2 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

@@ -10,7 +10,7 @@ const textIdDefault = sql.raw(
 
 export function getImportTablesSql(): SQL[] {
   return [
-    sql`CREATE TABLE IF NOT EXISTS import_manifest (id TEXT PRIMARY KEY DEFAULT (${textIdDefault}), org_id TEXT NOT NULL, source_system TEXT NOT NULL, module TEXT NOT NULL, filename TEXT, vessel_id TEXT, vessel_name_requested TEXT, status TEXT NOT NULL DEFAULT 'running', started_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000), completed_at INTEGER, rows_total INTEGER DEFAULT 0, rows_imported INTEGER DEFAULT 0, rows_updated INTEGER DEFAULT 0, rows_skipped INTEGER DEFAULT 0, error_message TEXT, first_errors TEXT, initiated_by TEXT)`,
+    sql`CREATE TABLE IF NOT EXISTS import_manifest (id TEXT PRIMARY KEY DEFAULT (${textIdDefault}), org_id TEXT NOT NULL, source_system TEXT NOT NULL, module TEXT NOT NULL, filename TEXT, vessel_id TEXT, vessel_name_requested TEXT, status TEXT NOT NULL DEFAULT 'running', started_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000), completed_at INTEGER, rows_total INTEGER DEFAULT 0, rows_imported INTEGER DEFAULT 0, rows_updated INTEGER DEFAULT 0, rows_skipped INTEGER DEFAULT 0, error_message TEXT, first_errors TEXT, initiated_by TEXT, created_at INTEGER, updated_at INTEGER)`,
   ];
 }
 

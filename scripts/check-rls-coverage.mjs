@@ -78,12 +78,30 @@ function sliceExport(src, name) {
 }
 
 // ---------------------------------------------------------------- schema
+// shared/schema is a tree: top-level files plus per-domain subdirectories
+// (equipment/, crew/, alerts/, …) whose barrels re-export the real pgTable
+// definitions. Walk it recursively — a flat readdir silently misses every
+// table defined in a subdirectory and falsely reports it as a phantom.
+function collectSchemaFiles(dir, rel = "") {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )) {
+    const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files.push(...collectSchemaFiles(join(dir, entry.name), relPath));
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      files.push({ abs: join(dir, entry.name), rel: relPath });
+    }
+  }
+  return files;
+}
+
 const schemaTables = new Map(); // physical name -> { file, columns body }
-for (const fileName of readdirSync(schemaDir).sort()) {
-  if (!fileName.endsWith(".ts") || fileName.endsWith(".d.ts")) continue;
-  const src = readFileSync(join(schemaDir, fileName), "utf8");
+for (const { abs, rel } of collectSchemaFiles(schemaDir)) {
+  const src = readFileSync(abs, "utf8");
   for (const t of extractTables(src)) {
-    schemaTables.set(t.physical, { file: fileName, body: t.body });
+    schemaTables.set(t.physical, { file: rel, body: t.body });
   }
 }
 

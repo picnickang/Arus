@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
+import { getTableColumns } from "drizzle-orm";
 import { failurePredictions } from "@shared/schema/ml-analytics-core";
 
-type ColumnLike = { columnType: string };
-const columnsByName = failurePredictions as unknown as Record<string, ColumnLike | undefined>;
+const columnsByName = getTableColumns(failurePredictions);
 
 describe("Prediction Lineage Schema", () => {
   it("failure_predictions has lineage columns (model_version_id, feature_set_version, feature_snapshot_id)", () => {

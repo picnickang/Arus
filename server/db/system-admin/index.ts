@@ -17,7 +17,9 @@
  * System Admin Repository - Modular Aggregator
  */
 
+import { randomUUID } from "node:crypto";
 import { createLogger } from "../../lib/structured-logger";
+import { isLocalMode } from "../../db-config";
 const logger = createLogger("Db:SystemAdmin:Index");
 import { DbAuditStorage } from "./db-audit.js";
 import { DbSettingsStorage } from "./db-settings.js";
@@ -184,9 +186,40 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     }
     const { errorLogs } = await import("@shared/schema-runtime");
     const { db: database } = await import("../../db-config");
+    const now = new Date();
+    const message =
+      typeof log["message"] === "string" && log["message"]
+        ? log["message"]
+        : String(log["errorMessage"] ?? "Unknown error");
+    const category =
+      typeof log["category"] === "string" && log["category"]
+        ? log["category"]
+        : typeof log["errorType"] === "string" && log["errorType"]
+          ? log["errorType"]
+          : "application";
+    const errorType =
+      typeof log["errorType"] === "string" && log["errorType"]
+        ? log["errorType"]
+        : category;
+    const context =
+      isLocalMode && typeof log["context"] === "object" && log["context"] !== null
+        ? JSON.stringify(log["context"])
+        : log["context"];
+    const values = {
+      ...log,
+      ...(isLocalMode && { id: typeof log["id"] === "string" ? log["id"] : randomUUID() }),
+      category,
+      context,
+      createdAt: log["createdAt"] instanceof Date ? log["createdAt"] : now,
+      errorMessage:
+        typeof log["errorMessage"] === "string" && log["errorMessage"] ? log["errorMessage"] : message,
+      errorType,
+      message,
+      timestamp: log["timestamp"] instanceof Date ? log["timestamp"] : now,
+    };
     const [newLog] = await database
       .insert(errorLogs)
-      .values({ ...log, timestamp: new Date() } as never)
+      .values(values as never)
       .returning();
     if (!newLog) {
       throw new Error("Failed to create error log");

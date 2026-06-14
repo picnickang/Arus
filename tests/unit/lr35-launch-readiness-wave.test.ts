@@ -39,6 +39,7 @@ async function loadSource(relativePath: string): Promise<string> {
 
 describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () => {
   const ROUTES_PATH = "server/ml-routes/model-routes.ts";
+  const PROMOTION_ROUTES_PATH = "server/ml-routes/model-promotion-routes.ts";
 
   it("/ml/train carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
@@ -69,13 +70,14 @@ describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () 
     // request that arrives without an Idempotency-Key, not silently
     // proceed.
     const src = await loadSource(ROUTES_PATH);
+    const promotionSrc = await loadSource(PROMOTION_ROUTES_PATH);
     expect(src).toMatch(
       /"\/ml\/models\/:id\/deploy"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
-    expect(src).toMatch(
+    expect(promotionSrc).toMatch(
       /"\/ml\/models\/:id\/promote"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
-    expect(src).toMatch(
+    expect(promotionSrc).toMatch(
       /"\/ml\/models\/:id\/rollback"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
   });
@@ -89,6 +91,7 @@ describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMidd
   // legacy callers without a key still pass through (matches the WO
   // complete-with-feedback / cancel mount style).
   const PO_ROUTES_PATH = "server/purchasing/po-routes.ts";
+  const PO_FULFILLMENT_ROUTES_PATH = "server/purchasing/po-fulfillment-routes.ts";
 
   it("POST /:id/receive carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
@@ -112,7 +115,7 @@ describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMidd
   });
 
   it("POST /:id/fulfill-pr carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
-    const src = await loadSource(PO_ROUTES_PATH);
+    const src = await loadSource(PO_FULFILLMENT_ROUTES_PATH);
     expect(src).toMatch(
       /router\.post\(\s*"\/:id\/fulfill-pr",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );
