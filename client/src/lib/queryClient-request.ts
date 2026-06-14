@@ -188,6 +188,17 @@ function unwrapEnvelope<T>(result: unknown, url: string): T {
   return result as T;
 }
 
+// 204/401 responses carry no body; callers type their result as a nullable T.
+function nullResult<T>(): T {
+  return null as T;
+}
+
+// Offline/queued mutations surface a QueuedApiResponse through the caller's T;
+// funnel the unavoidable cast here so the apiRequest overloads keep one site.
+function asQueued<T>(response: QueuedApiResponse): T {
+  return response as T;
+}
+
 async function queueOfflineApiRequest(
   method: string,
   url: string,
@@ -244,7 +255,7 @@ export async function apiRequest<T = unknown>(
     : undefined;
 
   if (shouldQueueOffline && !isOnline()) {
-    return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
+    return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
   }
 
   // Fail fast when the breaker is open: the backend is presumed unreachable, so
@@ -252,7 +263,7 @@ export async function apiRequest<T = unknown>(
   // offline outbox immediately rather than surfacing an error to the operator.
   if (!backendCircuit.canRequest()) {
     if (shouldQueueOffline) {
-      return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
+      return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
     }
     throw new Error("Backend unavailable (circuit open)");
   }
@@ -284,7 +295,7 @@ export async function apiRequest<T = unknown>(
       backendCircuit.recordFailure();
     }
     if (shouldQueueOffline && isNetworkFailure(error)) {
-      return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
+      return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
     }
     throw error;
   }
@@ -296,7 +307,7 @@ export async function apiRequest<T = unknown>(
   await throwIfResNotOk(res);
 
   if (res.status === 204) {
-    return null as T;
+    return nullResult<T>();
   }
 
   const text = await res.text();
@@ -326,7 +337,7 @@ export async function apiFormDataRequest<T = unknown>(
   await throwIfResNotOk(res);
 
   if (res.status === 204) {
-    return null as T;
+    return nullResult<T>();
   }
 
   const text = await res.text();
@@ -379,7 +390,7 @@ export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFu
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       // Callers opting into returnNull type their useQuery data as nullable.
-      return null as T;
+      return nullResult<T>();
     }
 
     inspectQuotaWarning(res);
