@@ -135,7 +135,10 @@ export async function getCalibrationCurve(
   if (!table) {
     return undefined;
   }
-  const r = await db.select().from(table).where(and(eq(table.id, id), eq(table.orgId, orgId)));
+  const r = await db
+    .select()
+    .from(table)
+    .where(and(eq(table.id, id), eq(table.orgId, orgId)));
   return r[0];
 }
 
@@ -284,10 +287,7 @@ export async function getRulModels(orgId?: string): Promise<RulModel[]> {
   return db.select().from(table).orderBy(desc(table.createdAt));
 }
 
-export async function getRulModel(
-  modelId: string,
-  orgId?: string
-): Promise<RulModel | undefined> {
+export async function getRulModel(modelId: string, orgId?: string): Promise<RulModel | undefined> {
   const table = getCloudTableOrUndefined(rulModels);
   if (!table) {
     return undefined;

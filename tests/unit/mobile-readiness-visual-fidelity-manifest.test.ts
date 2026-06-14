@@ -14,14 +14,16 @@ import {
 
 describe("mobile readiness visual fidelity contract", () => {
   test("covers every replacement screen marker with a private comparison output root", () => {
+    // pdm-asset-case and pdm-telemetry are intentionally absent: those screens
+    // are now the live PdmEquipmentDetail page, not static reference boards, so
+    // they are no longer part of the visual-fidelity capture set. The pdm-queue
+    // board remains static and pinned.
     const requiredMarkers = [
       "command",
       "fleet",
       "vessel-detail",
       "vessel-diagram",
       "pdm-queue",
-      "pdm-asset-case",
-      "pdm-telemetry",
       "work-queue",
       "work-execution",
       "logs",
@@ -30,9 +32,7 @@ describe("mobile readiness visual fidelity contract", () => {
       "settings",
     ];
 
-    expect(MOBILE_READINESS_VISUAL_COMPARISON_ROOT).toBe(
-      "/private/tmp/arus-visual-comparison"
-    );
+    expect(MOBILE_READINESS_VISUAL_COMPARISON_ROOT).toBe("/private/tmp/arus-visual-comparison");
     expect(MOBILE_READINESS_VISUAL_VIEWPORT).toEqual({ width: 390, height: 844 });
     expect(MOBILE_READINESS_VISUAL_VIEWPORTS).toEqual([
       { width: 360, height: 800 },
@@ -51,7 +51,7 @@ describe("mobile readiness visual fidelity contract", () => {
     const expectedCaptureCount =
       mobileReadinessVisualFidelityCases.length * MOBILE_READINESS_VISUAL_VIEWPORTS.length;
 
-    expect(expectedCaptureCount).toBe(78);
+    expect(expectedCaptureCount).toBe(66);
     expect(new Set(MOBILE_READINESS_VISUAL_VIEWPORTS.map((viewport) => viewport.width))).toEqual(
       new Set([360, 375, 390, 414, 430, 768])
     );
@@ -60,13 +60,9 @@ describe("mobile readiness visual fidelity contract", () => {
   test("maps each visual case to an existing Figma/reference-board artifact", () => {
     for (const visualCase of mobileReadinessVisualFidelityCases) {
       expect(isMobileReadinessReplacementPath(visualCase.route)).toBe(true);
-      expect(getMobileReadinessExpectedScreen(visualCase.route)).toBe(
-        visualCase.screenMarker
-      );
+      expect(getMobileReadinessExpectedScreen(visualCase.route)).toBe(visualCase.screenMarker);
       expect(path.isAbsolute(visualCase.referenceArtifact)).toBe(false);
-      expect(fs.existsSync(path.resolve(process.cwd(), visualCase.referenceArtifact))).toBe(
-        true
-      );
+      expect(fs.existsSync(path.resolve(process.cwd(), visualCase.referenceArtifact))).toBe(true);
     }
   });
 });

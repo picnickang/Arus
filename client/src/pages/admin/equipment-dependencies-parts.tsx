@@ -136,7 +136,10 @@ export function DependencyGraphTab({
               : "No equipment on this vessel — add equipment before drawing dependencies."}
           </p>
         ) : (
-          <div className="h-[600px] w-full border rounded-md bg-background" data-testid="graph-canvas">
+          <div
+            className="h-[600px] w-full border rounded-md bg-background"
+            data-testid="graph-canvas"
+          >
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -221,7 +224,11 @@ export function DependencyBulkTab({
               data-testid="input-notes"
             />
           </div>
-          <Button onClick={onAddDependency} disabled={!canSubmit} data-testid="button-add-dependency">
+          <Button
+            onClick={onAddDependency}
+            disabled={!canSubmit}
+            data-testid="button-add-dependency"
+          >
             <Plus className="h-4 w-4 mr-2" />
             {isCreating ? "Adding…" : "Add dependency"}
           </Button>
@@ -233,7 +240,8 @@ export function DependencyBulkTab({
           <CardTitle>CSV bulk import</CardTitle>
           <CardDescription>
             Paste rows as <code>upstreamEquipmentId,downstreamEquipmentId,notes</code>. Header row
-            optional. Duplicate edges are skipped silently; equipment ids must belong to this vessel.
+            optional. Duplicate edges are skipped silently; equipment ids must belong to this
+            vessel.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -242,7 +250,9 @@ export function DependencyBulkTab({
             onChange={(e) => setCsvText(e.target.value)}
             rows={8}
             className="font-mono text-xs"
-            placeholder={"upstreamEquipmentId,downstreamEquipmentId,notes\nuuid-a,uuid-b,powers downstream"}
+            placeholder={
+              "upstreamEquipmentId,downstreamEquipmentId,notes\nuuid-a,uuid-b,powers downstream"
+            }
             data-testid="textarea-csv-import"
           />
           <Button
@@ -277,9 +287,15 @@ function DependencySelects({
   setDownstreamId,
 }: Pick<
   DependencyBulkTabProps,
-  "equipmentList" | "equipmentStatus" | "upstreamId" | "downstreamId" | "setUpstreamId" | "setDownstreamId"
+  | "equipmentList"
+  | "equipmentStatus"
+  | "upstreamId"
+  | "downstreamId"
+  | "setUpstreamId"
+  | "setDownstreamId"
 >) {
-  const disabled = equipmentStatus.isLoading || equipmentStatus.isError || equipmentList.length === 0;
+  const disabled =
+    equipmentStatus.isLoading || equipmentStatus.isError || equipmentList.length === 0;
   const placeholder = equipmentStatus.isLoading
     ? "Loading equipment…"
     : equipmentStatus.isError
@@ -373,7 +389,9 @@ function ExistingDependenciesCard({
                   <TableCell>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
-                  <TableCell className="text-sm">{equipmentLabel(d.downstreamEquipmentId)}</TableCell>
+                  <TableCell className="text-sm">
+                    {equipmentLabel(d.downstreamEquipmentId)}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{d.notes ?? "—"}</TableCell>
                   <TableCell>
                     <Button
@@ -445,7 +463,11 @@ export function EdgeNotesDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setNotesDialog(null)} data-testid="button-edge-notes-cancel">
+          <Button
+            variant="ghost"
+            onClick={() => setNotesDialog(null)}
+            data-testid="button-edge-notes-cancel"
+          >
             Cancel
           </Button>
           {notesDialog?.mode === "create" && (

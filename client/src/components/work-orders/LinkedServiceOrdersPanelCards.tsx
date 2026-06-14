@@ -13,9 +13,7 @@ import {
   TrendingUp,
   XCircle,
 } from "lucide-react";
-import {
-  type LinkedServiceOrder,
-} from "@/features/work-orders/hooks/useWoSoBridge";
+import { type LinkedServiceOrder } from "@/features/work-orders/hooks/useWoSoBridge";
 import { SRPriorityBadge } from "@/features/serviceRequests/components/SRPriorityBadge";
 import { SRStatusBadge } from "@/features/serviceRequests/components/SRStatusBadge";
 import type { ServiceRequest } from "@/features/serviceRequests/types";

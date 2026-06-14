@@ -113,7 +113,9 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
  */
 export async function seedAccessForAllOrgs(): Promise<void> {
   if (isLocalMode) {
-    logger.info("Access seeding skipped in local SQLite mode; role tables are cloud runtime tables");
+    logger.info(
+      "Access seeding skipped in local SQLite mode; role tables are cloud runtime tables"
+    );
     return;
   }
 

@@ -3,13 +3,7 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "../../db-config";
 import { expenses, laborRates, parts, stock } from "@shared/schema-runtime";
-import type {
-  Expense,
-  InsertExpense,
-  InsertLaborRate,
-  LaborRate,
-  Part,
-} from "@shared/schema";
+import type { Expense, InsertExpense, InsertLaborRate, LaborRate, Part } from "@shared/schema";
 
 export async function updatePartCost(
   partId: string,

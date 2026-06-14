@@ -1,7 +1,7 @@
 import type { RoleTemplateConfig } from "./types";
 
 export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
-{
+  {
     name: "chief_engineer",
     displayName: "Chief Engineer",
     description: "Head of engine department with full maintenance authority",
@@ -74,7 +74,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "second_engineer",
     displayName: "Second Engineer",
     description: "Deputy engine department head with maintenance execution authority",
@@ -117,7 +117,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "third_engineer",
     displayName: "Third Engineer",
     description: "Junior engineer with limited maintenance authority",
@@ -142,7 +142,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "bosun",
     displayName: "Bosun",
     description: "Senior deck rating, supervises deck crew",
@@ -165,7 +165,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "able_seaman",
     displayName: "Able Seaman (AB)",
     description: "Qualified deck rating",
@@ -184,7 +184,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "oiler",
     displayName: "Oiler / Motorman",
     description: "Engine room rating",
@@ -204,7 +204,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "technician",
     displayName: "Technician",
     description:
@@ -224,7 +224,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "supervisor",
     displayName: "Supervisor",
     description:
@@ -248,7 +248,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "safety_officer",
     displayName: "Safety Officer",
     description: "Safety lead for alarms, acknowledgements, bulletins, and compliance follow-up",
@@ -271,7 +271,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "logistics_user",
     displayName: "Logistics User",
     description:
@@ -294,7 +294,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "crew_member",
     displayName: "Crew Member",
     description:
@@ -315,7 +315,7 @@ export const OPERATIONS_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "viewer",
     displayName: "Viewer",
     description: "Read-only access to non-sensitive data",

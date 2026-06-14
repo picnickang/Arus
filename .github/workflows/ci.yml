@@ -415,6 +415,78 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  e2e-pdm-visual:
+    name: E2E PdM Visual (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Standalone: the Playwright webServer builds the renderer itself, so this
+    # screenshot-artifact job does not depend on the `build` job (and is not
+    # blocked by unrelated pre-existing failures in lint-and-typecheck).
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      - name: Apply migrations
+        run: |
+          npm run db:push
+          npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      # Journey specs live outside the core release set, so opt them in.
+      - name: Run PdM visual journey (boots dev server via webServer)
+        run: PLAYWRIGHT_INCLUDE_QUARANTINE=1 npx playwright test tests/playwright/journeys/pdm-equipment-detail.spec.ts --project=chromium
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+          PLAYWRIGHT_BASE_URL: http://localhost:5000
+
+      # Always upload the screenshots — they are the deliverable, on pass or fail.
+      - name: Upload PdM visual screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdm-visual-screenshots
+          path: test-results/pdm-visual/
+          retention-days: 14
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdm-visual-report
+          path: playwright-report/
+          retention-days: 7
+
   dead-code:
     name: Dead Code Detection
     runs-on: ubuntu-latest

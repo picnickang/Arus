@@ -22,9 +22,7 @@ export const createMockAlert = (overrides: Partial<RiskQueueItem> = {}): RiskQue
   ...overrides,
 });
 
-export const createMockTask = (
-  overrides: Partial<PdmScheduledTask> = {}
-): PdmScheduledTask => ({
+export const createMockTask = (overrides: Partial<PdmScheduledTask> = {}): PdmScheduledTask => ({
   id: "task-1",
   alertId: "1",
   vesselId: "vessel-1",

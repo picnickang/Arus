@@ -142,6 +142,27 @@ export async function runEquipmentCompatibilityMigration(client: LibsqlClient): 
   logger.info("✓ Equipment compatibility migration completed");
 }
 
+export async function runVesselsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "vessels");
+  if (!cols.length) {
+    return;
+  }
+
+  // schematic_layout (JSON mirror of PG's jsonb schematic_layout) was added
+  // to the vessels schema but never to the hand-written bootstrap DDL, so
+  // embedded DBs created before this fix lack the column and every vessel
+  // insert fails ("no column named schematic_layout"). Add it to existing DBs.
+  const expectedColumns: Array<[string, string]> = [["schematic_layout", "TEXT"]];
+
+  for (const [col, definition] of expectedColumns) {
+    if (!cols.includes(col)) {
+      await safeAddColumn(client, "vessels", col, definition);
+    }
+  }
+
+  logger.info("✓ Vessels compatibility migration completed");
+}
+
 export async function runPermissionCompatibilityMigration(client: LibsqlClient): Promise<void> {
   const roleCols = await getTableColumns(client, "roles");
   if (roleCols.length) {

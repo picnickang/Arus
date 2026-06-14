@@ -1,7 +1,7 @@
 import type { RoleTemplateConfig } from "./types";
 
 export const BRIDGE_ROLE_TEMPLATES: RoleTemplateConfig[] = [
-{
+  {
     name: "captain",
     displayName: "Captain / Master",
     description: "Vessel master with command authority",
@@ -68,7 +68,7 @@ export const BRIDGE_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "vessel_master",
     displayName: "Vessel Master",
     description: "Command authority for vessel operations, crew readiness, and safety alarms",
@@ -104,7 +104,7 @@ export const BRIDGE_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "chief_officer",
     displayName: "Chief Officer / First Mate",
     description: "Second in command, deck operations",

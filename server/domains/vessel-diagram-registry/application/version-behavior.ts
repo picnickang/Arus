@@ -109,7 +109,9 @@ export async function uploadDiagramVersionWithBehavior(
       behavior.sourceMapId,
       { name: mapName, diagramId, diagramVersionId: version.id }
     );
-    warnings.push("Equipment assignments were not copied unless explicitly rematched on this vessel.");
+    warnings.push(
+      "Equipment assignments were not copied unless explicitly rematched on this vessel."
+    );
   }
 
   if (mode === "copy_template") {

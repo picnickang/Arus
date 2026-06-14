@@ -70,7 +70,9 @@ describe("mobile readiness replacement model", () => {
       "Documents",
       "Settings",
     ]);
-    expect(buildMobileReadinessNavigation("crew_member").find((item) => item.id === "documents")).toMatchObject({
+    expect(
+      buildMobileReadinessNavigation("crew_member").find((item) => item.id === "documents")
+    ).toMatchObject({
       href: "/profile",
     });
   });
@@ -93,9 +95,7 @@ describe("mobile readiness replacement model", () => {
       buildMobileReadinessNavigationForVariant("technician", "crew").map((item) => item.label)
     ).toEqual(["My Tasks", "Logs", "Safety", "Documents", "Settings"]);
     expect(
-      buildMobileReadinessNavigationForVariant("fleetOps", "deck_officer").map(
-        (item) => item.href
-      )
+      buildMobileReadinessNavigationForVariant("fleetOps", "deck_officer").map((item) => item.href)
     ).toEqual(["/", "/logs", "/crew-management", "/pdm-platform", "/profile"]);
     expect(
       buildMobileReadinessNavigationForVariant("machineryOps", "chief_engineer").map(

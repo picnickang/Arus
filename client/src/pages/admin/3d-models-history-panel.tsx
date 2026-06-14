@@ -109,7 +109,10 @@ export function HistoryPanel({ vesselId, currentModelId, onChanged }: HistoryPan
             </div>
           )}
           {historyQuery.isError && (
-            <div className="text-sm text-destructive" data-testid={`text-history-error-${vesselId}`}>
+            <div
+              className="text-sm text-destructive"
+              data-testid={`text-history-error-${vesselId}`}
+            >
               Failed to load history: {historyQuery.error.message}
             </div>
           )}

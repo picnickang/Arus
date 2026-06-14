@@ -187,10 +187,7 @@ async function doReplayQueuedApiRequests(): Promise<{
 
     // Previously-failed ops wait out a jittered backoff window before being
     // retried, so a flaky link doesn't get hammered by every replay pass.
-    if (
-      op.retryCount > 0 &&
-      now < (op.lastAttemptedAt ?? 0) + computeBackoffDelay(op.retryCount)
-    ) {
+    if (op.retryCount > 0 && now < (op.lastAttemptedAt ?? 0) + computeBackoffDelay(op.retryCount)) {
       continue;
     }
 

@@ -26,6 +26,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProcurementCosts, UseWorkOrderDetailDataReturn } from "@/features/work-orders";
 import { cn } from "@/lib/utils";
 import type { WorkOrder } from "@shared/schema";
+import {
+  DEFAULT_PRIORITY_CONFIG,
+  DEFAULT_STATUS_CONFIG,
+  PRIORITY_CONFIG,
+  STATUS_CONFIG,
+} from "./work-order-badge-config";
 
 export interface WorkOrderDetailEquipmentItem {
   id: string;
@@ -45,49 +51,13 @@ export interface WorkOrderDetailCrewItem {
   rank?: string;
 }
 
-const DEFAULT_STATUS_CONFIG = {
-  label: "Open",
-  className: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-};
-
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  open: DEFAULT_STATUS_CONFIG,
-  in_progress: {
-    label: "In Progress",
-    className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
-  },
-  completed: {
-    label: "Completed",
-    className: "bg-green-500/20 text-green-700 dark:text-green-300",
-  },
-  cancelled: { label: "Cancelled", className: "bg-gray-500/20 text-gray-700 dark:text-gray-300" },
-  awaiting_service: {
-    label: "Awaiting Service",
-    className: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-  },
-  deferred: {
-    label: "Deferred",
-    className: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
-  },
-};
-
-const DEFAULT_PRIORITY_CONFIG = {
-  label: "Medium Priority",
-  className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
-};
-
-const PRIORITY_CONFIG: Record<number, { label: string; className: string }> = {
-  1: { label: "Critical", className: "bg-red-500/20 text-red-700 dark:text-red-300" },
-  2: { label: "High Priority", className: "bg-orange-500/20 text-orange-700 dark:text-orange-300" },
-  3: DEFAULT_PRIORITY_CONFIG,
-  4: { label: "Low Priority", className: "bg-green-500/20 text-green-700 dark:text-green-300" },
-};
-
 export function getEquipmentName(
   equipment: WorkOrderDetailEquipmentItem[],
   equipmentId: string
 ): string {
-  return equipment.find((item) => item.id === equipmentId)?.name || equipmentId?.slice(0, 8) || "Unknown";
+  return (
+    equipment.find((item) => item.id === equipmentId)?.name || equipmentId?.slice(0, 8) || "Unknown"
+  );
 }
 
 export function getEquipmentType(
@@ -98,11 +68,15 @@ export function getEquipmentType(
 }
 
 function getVesselName(vessels: WorkOrderDetailVesselItem[], vesselId: string | null): string {
-  return !vesselId ? "Not assigned" : vessels.find((vessel) => vessel.id === vesselId)?.name || vesselId.slice(0, 8);
+  return !vesselId
+    ? "Not assigned"
+    : vessels.find((vessel) => vessel.id === vesselId)?.name || vesselId.slice(0, 8);
 }
 
 function getCrewName(crew: WorkOrderDetailCrewItem[], crewId: string | null): string {
-  return !crewId ? "Unassigned" : crew.find((member) => member.id === crewId)?.name || crewId.slice(0, 8);
+  return !crewId
+    ? "Unassigned"
+    : crew.find((member) => member.id === crewId)?.name || crewId.slice(0, 8);
 }
 
 function getCrewHourlyRate(crew: WorkOrderDetailCrewItem[], crewId: string | null): number | null {
@@ -182,7 +156,11 @@ export function WorkOrderDetailTabs({
     assignedCrewRate && workOrder.laborHours ? assignedCrewRate * workOrder.laborHours : null;
 
   return (
-    <Tabs value={activeTab} onValueChange={onActiveTabChange} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <Tabs
+      value={activeTab}
+      onValueChange={onActiveTabChange}
+      className="flex-1 flex flex-col min-h-0 overflow-hidden"
+    >
       <TabsList className="w-full justify-start rounded-none border-b px-2 sm:px-6 h-auto py-0 flex-shrink-0 overflow-x-auto">
         <TabsTrigger
           value="details"
@@ -229,7 +207,11 @@ export function WorkOrderDetailTabs({
       <div className="flex-1 overflow-y-auto min-h-0">
         <TabsContent value="details" className="mt-0 p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <InfoCard icon={Ship} label="Vessel" value={getVesselName(vessels, workOrder.vesselId)} />
+            <InfoCard
+              icon={Ship}
+              label="Vessel"
+              value={getVesselName(vessels, workOrder.vesselId)}
+            />
             <InfoCard
               icon={Wrench}
               label="Equipment"
@@ -255,14 +237,15 @@ export function WorkOrderDetailTabs({
                       assignedTo={workOrder.assignedCrewId}
                       testId={`badge-assignment-status-${workOrder.id}`}
                     />
-                    {workOrder.assignmentStatus === "declined" && workOrder.assignmentResponseReason && (
-                      <p
-                        className="mt-1 text-xs text-muted-foreground"
-                        data-testid={`text-assignment-decline-reason-${workOrder.id}`}
-                      >
-                        Reason: {workOrder.assignmentResponseReason}
-                      </p>
-                    )}
+                    {workOrder.assignmentStatus === "declined" &&
+                      workOrder.assignmentResponseReason && (
+                        <p
+                          className="mt-1 text-xs text-muted-foreground"
+                          data-testid={`text-assignment-decline-reason-${workOrder.id}`}
+                        >
+                          Reason: {workOrder.assignmentResponseReason}
+                        </p>
+                      )}
                     {workOrder.assignmentRespondedAt && (
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
                         {workOrder.assignmentStatus === "declined" ? "Declined " : "Responded "}
@@ -288,12 +271,16 @@ export function WorkOrderDetailTabs({
           <Separator />
           <div>
             <h4 className="font-medium mb-2">Reason</h4>
-            <p className="text-sm text-muted-foreground">{workOrder.reason || "No reason provided"}</p>
+            <p className="text-sm text-muted-foreground">
+              {workOrder.reason || "No reason provided"}
+            </p>
           </div>
           {workOrder.description && (
             <div>
               <h4 className="font-medium mb-2">Description</h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{workOrder.description}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {workOrder.description}
+              </p>
             </div>
           )}
           {workOrder.costJustification && (
@@ -427,7 +414,10 @@ function CostBreakdown({
                 <span>${procurementCosts.serviceOrderCosts.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between font-medium text-muted-foreground" data-testid="cost-procurement-subtotal">
+            <div
+              className="flex justify-between font-medium text-muted-foreground"
+              data-testid="cost-procurement-subtotal"
+            >
               <span>Procurement Subtotal</span>
               <span>${totalProcurementCost.toFixed(2)}</span>
             </div>
