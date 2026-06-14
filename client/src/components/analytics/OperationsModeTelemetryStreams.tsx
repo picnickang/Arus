@@ -13,12 +13,18 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { SensorSparklineChart, useTelemetryStreams } from "@/features/telemetry";
+import {
+  SensorSparklineChart,
+  TimeWindowPicker,
+  TIME_WINDOW_HOURS,
+  useTelemetryStreams,
+} from "@/features/telemetry";
 
 export function OperationsModeTelemetryStreams() {
   const [, navigate] = useLocation();
   const [selectedVessel, setSelectedVessel] = useState<string>("all");
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
+  const [timeWindow, setTimeWindow] = useState<string>("1h");
 
   const { data: vessels = [] } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["/api/vessels"],
@@ -43,7 +49,7 @@ export function OperationsModeTelemetryStreams() {
   } = useTelemetryStreams({
     vesselId: selectedVessel === "all" ? undefined : selectedVessel,
     equipmentId: selectedEquipment === "all" ? undefined : selectedEquipment,
-    hours: 1,
+    hours: TIME_WINDOW_HOURS[timeWindow] ?? 1,
     refreshInterval: 30000,
     enabled: isTelemetrySectionVisible,
   });
@@ -97,6 +103,11 @@ export function OperationsModeTelemetryStreams() {
                 ))}
               </SelectContent>
             </Select>
+            <TimeWindowPicker
+              value={timeWindow}
+              onChange={setTimeWindow}
+              data-testid="select-telemetry-window"
+            />
             <Button
               size="sm"
               variant="outline"
