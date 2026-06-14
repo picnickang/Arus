@@ -1,33 +1,21 @@
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
-  AlertTriangle,
   Bell,
-  Camera,
-  CheckCircle2,
   ChevronRight,
-  ClipboardList,
-  FileText,
-  List,
   MoreVertical,
-  Package,
   RefreshCw,
   SlidersHorizontal,
   Star,
-  Users,
-  Wrench,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getMobileReadinessAsset } from "./mobile-readiness-assets";
+import { PdmEquipmentDetail } from "@/features/analytics/components/PdmEquipmentDetail";
 import type { PdmRiskCard, PdmScreen } from "./mobile-readiness-model";
 import {
   Content,
   KpiStrip,
-  MiniState,
   MobilePageShell,
   NavyHeader,
-  SectionCard,
   StatusPill,
   toneClasses,
   useScreens,
@@ -43,21 +31,15 @@ export function MobilePdmPage() {
   const params = new URLSearchParams(locationSearch);
   const isTelemetryPath = currentPath.endsWith("/telemetry");
   const equipmentId = currentPath.startsWith("/pdm/equipment/")
-    ? currentPath.replace("/pdm/equipment/", "").split("/")[0]
+    ? (currentPath.replace("/pdm/equipment/", "").split("/")[0] ?? null)
     : null;
-  const selectedRisk =
-    pdm.riskQueue.find((risk) => risk.equipmentId === equipmentId) ?? pdm.riskQueue[0];
-
-  if (!selectedRisk) {
-    return <MobilePdmQueuePage pdm={pdm} />;
-  }
 
   if (equipmentId && (isTelemetryPath || params.get("view") === "telemetry")) {
-    return <MobilePdmTelemetryPage pdm={pdm} selectedRisk={selectedRisk} />;
+    return <MobilePdmTelemetryPage equipmentId={equipmentId} />;
   }
 
   if (equipmentId) {
-    return <MobilePdmAssetCasePage pdm={pdm} selectedRisk={selectedRisk} />;
+    return <MobilePdmAssetCasePage equipmentId={equipmentId} />;
   }
 
   return <MobilePdmQueuePage pdm={pdm} />;
@@ -77,34 +59,6 @@ function PdmBackLink({ href }: { href: string }) {
     <Link href={href} className="grid h-11 w-11 place-items-center rounded-lg" aria-label="Back">
       <ArrowLeft className="h-6 w-6" aria-hidden="true" />
     </Link>
-  );
-}
-
-function PdmTabs({ active }: { active: "summary" | "telemetry" }) {
-  const tabs =
-    active === "telemetry"
-      ? ["Summary", "Health", "Trend", "Telemetry", "Events"]
-      : ["Summary", "Health", "Trend", "Maintenance", "Info"];
-  return (
-    <div className="grid grid-cols-5 border-b border-slate-200 bg-white text-center text-xs font-semibold text-slate-600">
-      {tabs.map((tab) => {
-        const selected =
-          (active === "summary" && tab === "Summary") ||
-          (active === "telemetry" && tab === "Telemetry");
-        return (
-          <button
-            key={tab}
-            type="button"
-            className={cn(
-              "min-h-10 border-b-2 border-transparent px-1",
-              selected && "border-brand text-brand"
-            )}
-          >
-            {tab}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -210,240 +164,52 @@ function PdmRiskQueueCard({ risk }: { risk: PdmRiskCard }) {
   );
 }
 
-function MobilePdmAssetCasePage({
-  pdm,
-  selectedRisk,
-}: {
-  pdm: PdmScreen;
-  selectedRisk: PdmRiskCard;
-}) {
-  const telemetryChart = getMobileReadinessAsset(pdm.telemetryAdvanced.chartAssetId);
+/**
+ * Equipment detail (formerly the static "asset case" board). Now renders the
+ * live, tabbed PdM detail. The header keeps the `link-pdm-telemetry-advanced`
+ * deep link to the telemetry route (pinned by the link-audit journey).
+ */
+function MobilePdmAssetCasePage({ equipmentId }: { equipmentId: string }) {
   return (
     <MobilePageShell>
       <div data-testid="mobile-readiness-screen-pdm-asset-case">
         <NavyHeader
-          title={selectedRisk.asset}
-          subtitle={selectedRisk.subtitle}
+          title="Equipment Detail"
+          subtitle="Predictive maintenance"
           left={<PdmBackLink href="/pdm-platform" />}
           right={<PdmHeaderActions />}
         />
-        <PdmTabs active="summary" />
-        <Content>
-          <SectionCard>
-            <div className="grid grid-cols-[0.9fr_1.3fr] divide-x divide-slate-200">
-              <div className="bg-red-50 px-3 py-4 text-center">
-                <div className="text-xs font-bold uppercase text-red-600">High Risk</div>
-                <div className="text-5xl font-extrabold leading-none text-slate-950">
-                  {selectedRisk.riskScore ?? pdm.assetCase.riskScore}
-                </div>
-                <div className="mt-1 text-xs font-semibold text-red-600">Up 18 vs yesterday</div>
-              </div>
-              <div className="p-3">
-                <div className="text-xs font-semibold text-slate-500">Risk Trend (7d)</div>
-                <img
-                  src={telemetryChart.src}
-                  alt={telemetryChart.alt}
-                  className="mt-2 h-24 w-full rounded-lg object-cover"
-                  data-asset-status={telemetryChart.status}
-                />
-              </div>
-            </div>
-          </SectionCard>
-          <div className="grid grid-cols-4 gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white text-center text-xs">
-            <MiniState label="Status" value={pdm.assetCase.status} tone="good" />
-            <MiniState label="Trend" value={pdm.assetCase.trend} tone="critical" />
-            <MiniState label="Source Health" value={pdm.assetCase.sourceHealth} tone="good" />
-            <MiniState label="Data" value={pdm.assetCase.dataFreshness} tone="good" />
-          </div>
-          <SectionCard>
-            <div className="divide-y divide-slate-200">
-              {pdm.assetCase.evidenceSections.map((section, index) => (
-                <PdmEvidenceRow key={section.title} section={section} index={index} />
-              ))}
-            </div>
-          </SectionCard>
-          <SectionCard>
-            <Link
-              href={`/pdm/equipment/${selectedRisk.equipmentId}/telemetry`}
-              className="flex min-h-20 items-center justify-between gap-3 px-3 py-3"
-              data-testid="link-pdm-telemetry-advanced"
-            >
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-slate-900">Telemetry Evidence</span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  Last update {pdm.telemetryAdvanced.lastUpdate} - confidence{" "}
-                  {pdm.telemetryAdvanced.confidence}%
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                <StatusPill tone="good">{pdm.telemetryAdvanced.trust}</StatusPill>
-                <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
-              </span>
-            </Link>
-          </SectionCard>
-        </Content>
+        <div className="mx-auto w-full max-w-6xl px-4 pt-3">
+          <Link
+            href={`/pdm/equipment/${equipmentId}/telemetry`}
+            data-testid="link-pdm-telemetry-advanced"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand"
+          >
+            Telemetry Evidence
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+        <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
       </div>
     </MobilePageShell>
   );
 }
 
-function PdmEvidenceRow({
-  section,
-  index,
-}: {
-  section: PdmScreen["assetCase"]["evidenceSections"][number];
-  index: number;
-}) {
-  const icons: LucideIcon[] = [AlertTriangle, List, Wrench, ClipboardList, Package, Users, Camera];
-  const Icon = icons[index] ?? FileText;
-  const compact = index >= 3;
-  return (
-    <div className={cn("flex gap-3 px-3", compact ? "py-1.5" : "py-2")}>
-      <Icon
-        className={cn("mt-0.5 h-5 w-5 shrink-0", index === 0 ? "text-amber-500" : "text-slate-600")}
-        aria-hidden="true"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold text-slate-900">{section.title}</div>
-        <div
-          className={cn(
-            "mt-0.5 text-xs leading-tight text-slate-600",
-            compact ? "truncate" : "line-clamp-3"
-          )}
-        >
-          {section.body}
-        </div>
-      </div>
-      {index >= 3 ? (
-        <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
-      ) : null}
-    </div>
-  );
-}
-
-function MobilePdmTelemetryPage({
-  pdm,
-  selectedRisk,
-}: {
-  pdm: PdmScreen;
-  selectedRisk: PdmRiskCard;
-}) {
-  const telemetryChart = getMobileReadinessAsset(pdm.telemetryAdvanced.chartAssetId);
+/**
+ * Advanced telemetry view (formerly a static chart board). Renders the same
+ * live PdM detail; reached via `?view=telemetry` or the `/telemetry` route.
+ */
+function MobilePdmTelemetryPage({ equipmentId }: { equipmentId: string }) {
   return (
     <MobilePageShell>
       <div data-testid="mobile-readiness-screen-pdm-telemetry">
         <NavyHeader
-          title={selectedRisk.asset}
-          subtitle={selectedRisk.subtitle}
-          left={<PdmBackLink href={`/pdm/equipment/${selectedRisk.equipmentId}`} />}
+          title="Telemetry"
+          subtitle="Live sensor history"
+          left={<PdmBackLink href={`/pdm/equipment/${equipmentId}`} />}
           right={<PdmHeaderActions />}
         />
-        <PdmTabs active="telemetry" />
-        <Content>
-          <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
-            {["Overview", "Advanced Graph", "Raw Data", "Sensors"].map((segment) => (
-              <button
-                key={segment}
-                type="button"
-                className={cn(
-                  "min-h-10 border-r border-slate-200 px-1 last:border-r-0",
-                  segment === "Advanced Graph" && "bg-brand-navy text-white"
-                )}
-              >
-                {segment}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-2">
-              {["1d", "7d", "30d", "Custom"].map((range) => (
-                <button
-                  key={range}
-                  type="button"
-                  className={cn(
-                    "min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600",
-                    range === "7d" && "border-brand bg-blue-50 text-brand"
-                  )}
-                >
-                  {range}
-                </button>
-              ))}
-            </div>
-            <button className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              Compare
-            </button>
-          </div>
-          <SectionCard>
-            <div className="space-y-3 p-3">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-semibold text-slate-600">
-                <span className="text-blue-700">Vibration DE (RMS) mm/s</span>
-                <span className="text-red-600">Temp DE C</span>
-                <span className="text-sky-600">Vibration NDE (RMS) mm/s</span>
-                <span className="text-emerald-600">Pressure Oil bar</span>
-              </div>
-              <img
-                src={telemetryChart.src}
-                alt={telemetryChart.alt}
-                className="h-48 w-full rounded-lg border border-slate-200 object-cover"
-                data-asset-status={telemetryChart.status}
-              />
-            </div>
-          </SectionCard>
-          <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs">
-            <MiniState label="Last Update" value={pdm.telemetryAdvanced.lastUpdate} tone="info" />
-            <MiniState label="Source Health" value={pdm.telemetryAdvanced.trust} tone="good" />
-            <MiniState
-              label="Confidence"
-              value={`High ${pdm.telemetryAdvanced.confidence}%`}
-              tone="good"
-            />
-            <Link
-              href={`/pdm/equipment/${selectedRisk.equipmentId}`}
-              className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-brand"
-            >
-              Details <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-          <SectionCard
-            title="Raw Readings (Latest)"
-            action={<span className="text-xs font-semibold text-brand">CSV</span>}
-          >
-            <div className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500">
-              <span>Time (UTC)</span>
-              <span>Vib DE</span>
-              <span>Vib NDE</span>
-              <span>Temp DE</span>
-              <span>Oil Press</span>
-            </div>
-            {[
-              ["19 May 09:39", "7.8", "4.2", "86.4", "4.3"],
-              ["19 May 09:38", "7.6", "4.1", "86.1", "4.3"],
-              ["19 May 09:37", "7.4", "4.0", "85.9", "4.3"],
-              ["19 May 09:36", "7.2", "3.9", "85.7", "4.2"],
-            ].map((row) => (
-              <div
-                key={row[0]}
-                className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600 last:border-b-0"
-              >
-                {row.map((cell) => (
-                  <span key={cell} className="truncate">
-                    {cell}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </SectionCard>
-          <SectionCard>
-            <div className="flex min-h-14 items-center justify-between px-3">
-              <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-900">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-                Sensor Health ({pdm.telemetryAdvanced.sensorHealthCount})
-              </span>
-              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
-            </div>
-          </SectionCard>
-        </Content>
+        <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
       </div>
     </MobilePageShell>
   );

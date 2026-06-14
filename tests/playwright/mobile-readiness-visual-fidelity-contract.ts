@@ -64,22 +64,12 @@ export const mobileReadinessVisualFidelityCases: readonly MobileReadinessVisualF
     referenceFrame: "mobile/04_mobile_maintenance_overview.svg",
     referenceArtifact: `${pngReference}/mobile__04_mobile_maintenance_overview_preview.png`,
   },
-  {
-    id: "asset-case",
-    boardGroup: "Asset case",
-    route: "/pdm/equipment/port-generator",
-    screenMarker: "pdm-asset-case",
-    referenceFrame: "mobile/03_mobile_section_detail_equipment_thumbnails.svg",
-    referenceArtifact: `${pngReference}/mobile__03_mobile_section_detail_equipment_thumbnails_preview.png`,
-  },
-  {
-    id: "telemetry-advanced",
-    boardGroup: "Telemetry advanced",
-    route: "/pdm/equipment/port-generator/telemetry",
-    screenMarker: "pdm-telemetry",
-    referenceFrame: "desktop/08_desktop_performance_health_analytics.svg",
-    referenceArtifact: `${pngReference}/desktop__08_desktop_performance_health_analytics_preview.png`,
-  },
+  // NOTE: "asset-case" (/pdm/equipment/:id) and "telemetry-advanced"
+  // (/pdm/equipment/:id/telemetry) were removed here when those screens were
+  // converted from static Figma-fidelity boards into the live, data-driven
+  // PdmEquipmentDetail page. They are no longer pixel-pinned to a reference
+  // board; their behaviour is covered by tests/playwright/journeys/
+  // pdm-equipment-detail.spec.ts instead. The pdm-queue board stays static.
   {
     id: "work-queue",
     boardGroup: "Work queue",

@@ -56,10 +56,10 @@ export const SENSOR_COLORS: Record<string, string> = {
   voltage: "hsl(60, 70%, 45%)",
 };
 
-export function usePdmEquipmentDetailData() {
+export function usePdmEquipmentDetailData(equipmentIdOverride?: string) {
   const params = useParams<{ equipmentId: string }>();
   const [, setLocation] = useLocation();
-  const equipmentId = params.equipmentId;
+  const equipmentId = equipmentIdOverride ?? params.equipmentId;
 
   const {
     data: equipment,
