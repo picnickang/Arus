@@ -24,6 +24,7 @@ import {
   queueNotification,
   processQueueItem,
   processDigestQueue,
+  processPendingNotifications,
   retryFailedNotifications,
 } from "./queue-processor.js";
 import {
@@ -226,6 +227,15 @@ class EmailNotificationService {
 
   async processDigestQueue(): Promise<number> {
     return processDigestQueue();
+  }
+
+  /**
+   * Drain immediate pending notifications (e.g. RMS alerts queued directly with
+   * no scheduledFor). Without this they are never sent — processDigestQueue only
+   * handles rows whose scheduledFor has elapsed.
+   */
+  async processPendingNotifications(): Promise<number> {
+    return processPendingNotifications();
   }
 
   async retryFailedNotifications(maxAttempts: number = 3): Promise<number> {

@@ -181,7 +181,8 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      const processedCount = await emailNotificationService.processDigestQueue();
+      const sent = await emailNotificationService.processPendingNotifications();
+      const processedCount = sent + (await emailNotificationService.processDigestQueue());
       return res.json({ success: true, processedCount });
     })
   );

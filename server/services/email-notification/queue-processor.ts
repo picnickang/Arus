@@ -164,6 +164,27 @@ export async function processDigestQueue(): Promise<number> {
   return processedCount;
 }
 
+/**
+ * Drain immediate (non-digest) pending notifications: rows with recipients and
+ * no scheduledFor — e.g. RMS alerts inserted directly into notification_queue.
+ * Each is sent individually via processQueueItem (with its retry/backoff
+ * semantics). Digest-scheduled rows (scheduledFor set) are handled by
+ * processDigestQueue; rows with no recipients (in-app feed entries) are skipped.
+ */
+export async function processPendingNotifications(): Promise<number> {
+  const pendingItems = await dbNotificationsStorage.getNotificationQueue("pending");
+  const immediate = pendingItems.filter(
+    (item) => !item.scheduledFor && ((item.recipients as string[] | null)?.length ?? 0) > 0
+  );
+
+  let processed = 0;
+  for (const item of immediate) {
+    await processQueueItem(item);
+    processed++;
+  }
+  return processed;
+}
+
 export async function retryFailedNotifications(maxAttempts: number = 3): Promise<number> {
   const failedItems = await dbNotificationsStorage.getNotificationQueue("failed");
   const retriable = failedItems.filter((item) => (item.attemptCount ?? 0) < maxAttempts);

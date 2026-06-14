@@ -31,9 +31,12 @@ jest.unstable_mockModule("../../server/services/email-notification/email-sender.
   },
 }));
 
-const { processQueueItem, processDigestQueue, retryFailedNotifications } = await import(
-  "../../server/services/email-notification/queue-processor.js"
-);
+const {
+  processQueueItem,
+  processDigestQueue,
+  processPendingNotifications,
+  retryFailedNotifications,
+} = await import("../../server/services/email-notification/queue-processor.js");
 
 const qItem = (o: Partial<NotificationQueue> & { id: string }): NotificationQueue => ({
   orgId: "org-1",
@@ -201,5 +204,23 @@ describe("retryFailedNotifications", () => {
     expect(count).toBe(1);
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     expect(idOf(0)).toBe("f1");
+  });
+});
+
+describe("processPendingNotifications", () => {
+  it("sends immediate rows (no scheduledFor + recipients) and skips scheduled/empty rows", async () => {
+    sendEmailMock.mockResolvedValue({ success: true, messageId: "m" });
+    getQueueMock.mockResolvedValue([
+      qItem({ id: "immediate", scheduledFor: null }),
+      qItem({ id: "scheduled", scheduledFor: new Date(Date.now() + 60_000) }),
+      qItem({ id: "no-recipients", recipients: [] }),
+    ]);
+
+    const count = await processPendingNotifications();
+
+    expect(getQueueMock).toHaveBeenCalledWith("pending");
+    expect(count).toBe(1);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(idOf(0)).toBe("immediate");
   });
 });

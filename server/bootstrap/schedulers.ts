@@ -77,9 +77,10 @@ export function setupEmailDigestSchedule(): void {
       const { emailNotificationService } = await import(
         "../services/email-notification-service.js"
       );
-      const processed = await emailNotificationService.processDigestQueue();
-      if (processed > 0) {
-        logger.info(`[EmailDigest] Processed ${processed} digest item(s)`);
+      const sent = await emailNotificationService.processPendingNotifications();
+      const digested = await emailNotificationService.processDigestQueue();
+      if (sent + digested > 0) {
+        logger.info(`[EmailDigest] Sent ${sent} pending, processed ${digested} digest item(s)`);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

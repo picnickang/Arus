@@ -8,8 +8,12 @@
 import { jest } from "@jest/globals";
 
 const processDigestMock = jest.fn(async () => 0);
+const processPendingMock = jest.fn(async () => 0);
 jest.unstable_mockModule("../../server/services/email-notification-service.js", () => ({
-  emailNotificationService: { processDigestQueue: processDigestMock },
+  emailNotificationService: {
+    processDigestQueue: processDigestMock,
+    processPendingNotifications: processPendingMock,
+  },
 }));
 
 const { setupEmailDigestSchedule } = await import("../../server/bootstrap/schedulers");
@@ -37,6 +41,7 @@ function restoreEnv(): void {
 beforeEach(() => {
   jest.useFakeTimers();
   processDigestMock.mockClear().mockResolvedValue(0);
+  processPendingMock.mockClear().mockResolvedValue(0);
   process.env["EMAIL_DIGEST_INTERVAL_MS"] = "1000";
 });
 
@@ -53,6 +58,7 @@ it("runs processDigestQueue on each interval when enabled", async () => {
   setupEmailDigestSchedule();
 
   await jest.advanceTimersByTimeAsync(1000);
+  expect(processPendingMock).toHaveBeenCalledTimes(1);
   expect(processDigestMock).toHaveBeenCalledTimes(1);
 
   await jest.advanceTimersByTimeAsync(1000);
