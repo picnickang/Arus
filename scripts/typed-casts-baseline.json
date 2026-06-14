@@ -1,5 +1,5 @@
 {
   "$note": "Monotonic-decrease ratchet for typed `as <ConcreteType>` casts. Drops each task; do not raise. Excludes `as any`, `as unknown as X`, `as const`, `as never`, and string/numeric literal coercions (those are tracked elsewhere or harmless).",
-  "generatedAt": "2026-06-14T20:40:20.274Z",
-  "total": 1287
+  "generatedAt": "2026-06-14T20:51:29.415Z",
+  "total": 1286
 }

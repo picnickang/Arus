@@ -479,13 +479,13 @@ export default function PdmPack() {
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={p.bearingForm.control}
-                            name={"sampleRateHz" as never}
+                            name="fs"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Sample Rate (Hz)</FormLabel>
                                 <FormControl>
                                   <Input
-                                    {...(field as object as React.ComponentProps<typeof Input>)}
+                                    {...field}
                                     type="number"
                                     placeholder="1000"
                                     data-testid="input-sample-rate"

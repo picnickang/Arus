@@ -36,8 +36,10 @@ export interface AnalysisResult {
 export const bearingFormSchema = z.object({
   vesselName: z.string().min(1, "Vessel name is required"),
   assetId: z.string().min(1, "Asset ID is required"),
-  fs: z.number().min(1, "Sampling frequency must be positive"),
-  rpm: z.number().min(0).optional(),
+  // coerce: the form binds these to <input type="number">, which yields a
+  // string on edit; coercion keeps validation correct without per-field onChange.
+  fs: z.coerce.number().min(1, "Sampling frequency must be positive"),
+  rpm: z.coerce.number().min(0).optional(),
   series: z.string().min(1, "Vibration data is required"),
   autoBaseline: z.boolean(),
 });
