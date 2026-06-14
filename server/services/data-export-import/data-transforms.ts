@@ -17,12 +17,19 @@ import type { IdMappings } from "./types";
  */
 export type MutableRecord = Record<string, unknown>;
 
+// Writing an arbitrary string key on a generic `T extends MutableRecord` otherwise
+// needs a cast at every call site; funnel those index writes through one typed
+// helper (T is assignable to MutableRecord, so no cast is needed here).
+function setField(record: MutableRecord, field: string, value: unknown): void {
+  record[field] = value;
+}
+
 export function convertDates<T extends MutableRecord>(record: T): T {
   for (const field of DATE_FIELDS) {
     const value = record[field];
 
     if (value === null || value === undefined || value === "") {
-      (record as MutableRecord)[field] = null;
+      setField(record, field, null);
       continue;
     }
 
@@ -34,12 +41,12 @@ export function convertDates<T extends MutableRecord>(record: T): T {
       try {
         const date = new Date(value);
         if (!Number.isNaN(date.getTime())) {
-          (record as MutableRecord)[field] = date;
+          setField(record, field, date);
         } else {
-          (record as MutableRecord)[field] = null;
+          setField(record, field, null);
         }
       } catch {
-        (record as MutableRecord)[field] = null;
+        setField(record, field, null);
       }
     }
   }
@@ -60,11 +67,11 @@ export function remapOrgId<T extends MutableRecord>(
   }
 
   if (record["orgId"] === sourceOrgId) {
-    (record as MutableRecord)["orgId"] = targetOrgId;
+    setField(record, "orgId", targetOrgId);
   }
 
   if (record["org_id"] === sourceOrgId) {
-    (record as MutableRecord)["org_id"] = targetOrgId;
+    setField(record, "org_id", targetOrgId);
   }
 
   return record;
@@ -89,14 +96,14 @@ export function remapForeignKeys<T extends MutableRecord>(
       const newId = idMappings[mappingSource].get(oldId);
       if (newId) {
         logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
-        (record as MutableRecord)[fieldName] = newId;
+        setField(record, fieldName, newId);
       } else {
         logger.info(
           `[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`
         );
-        (record as MutableRecord)[fieldName] = null;
+        setField(record, fieldName, null);
         if (fieldName === "vesselId") {
-          (record as MutableRecord)["vesselName"] = null;
+          setField(record, "vesselName", null);
         }
       }
     }
