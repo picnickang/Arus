@@ -5,7 +5,6 @@
     "client/src/**/*.test.tsx",
     "client/src/components/ops/ActionCard.tsx",
     "client/src/components/ops/OpsStatusRail.tsx",
-    "client/src/core/runtime/opsRuntimeMachine.ts",
     "jest.client.config.mjs",
     "server/beast/index.ts",
     "server/compliance/routes.ts",

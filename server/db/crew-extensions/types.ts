@@ -2,18 +2,6 @@
  * Crew Extensions - Types
  */
 
-export type {
-  SelectCrewCertification,
-  InsertCrewCertification,
-  SelectCrewDocument,
-  InsertCrewDocument,
-  CrewNotificationSettings,
-  PortCall as SelectPortCall,
-  InsertPortCall,
-  DrydockWindow as SelectDrydockWindow,
-  InsertDrydockWindow,
-} from "@shared/schema";
-
 export interface AlertScanResult {
   scanned: number;
   flagged: number;

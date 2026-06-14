@@ -2,21 +2,6 @@
  * Analytics - Types
  */
 
-export type {
-  MaintenanceCost,
-  InsertMaintenanceCost,
-  LaborRate,
-  InsertLaborRate,
-  Expense,
-  InsertExpense,
-  EquipmentLifecycle,
-  InsertEquipmentLifecycle,
-  PerformanceMetric,
-  InsertPerformanceMetric,
-  PartsInventory,
-  SelectCrew,
-} from "@shared/schema-runtime";
-
 export interface CostSummary {
   equipmentId: string;
   totalCost: number;
