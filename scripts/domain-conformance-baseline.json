@@ -1,9 +1,9 @@
 {
   "_comment": "Domain layering conformance baseline. The 'full' set may only grow; 'partial' and 'flat' may only shrink. Regenerate with: node scripts/check-domain-conformance.mjs --write-baseline. See docs/adr/003-domain-layering-policy.md.",
-  "generatedAt": "2026-06-14T20:27:04.063Z",
+  "generatedAt": "2026-06-14T20:34:27.994Z",
   "counts": {
-    "full": 29,
-    "partial": 4,
+    "full": 30,
+    "partial": 3,
     "flat": 29,
     "total": 62
   },
@@ -36,13 +36,13 @@
     "sensors",
     "telemetry",
     "vessel-diagram-registry",
-    "work-orders"
+    "work-orders",
+    "workflow"
   ],
   "partial": [
     "me-portal",
     "permissions",
-    "system-admin",
-    "workflow"
+    "system-admin"
   ],
   "flat": [
     "autofill-logs",
