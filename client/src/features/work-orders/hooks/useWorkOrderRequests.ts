@@ -7,15 +7,20 @@ import type { PartsRequestCardData } from "../components/PartsRequestCard";
 export function useWorkOrderRequests(workOrderId: string) {
   const { toast } = useToast();
 
-  const serviceOrdersQuery = useQuery<ServiceOrderCardData[]>({
+  // Cache the raw endpoint object ({ workOrderId, serviceOrders, count }) rather
+  // than a pre-extracted array. useWoSoBridge keys the *same* query and caches
+  // that object; React Query has one cache entry per key, so transforming to an
+  // array here created a shape collision — whichever hook populated the cache
+  // last won, and the bridge's object shape made consumers call
+  // serviceOrders.map on a non-array. Both hooks now agree on the object shape;
+  // the array is derived below.
+  const serviceOrdersQuery = useQuery<{ serviceOrders?: ServiceOrderCardData[]; count?: number }>({
     queryKey: ["/api/work-orders", workOrderId, "service-orders"],
-    queryFn: async () => {
-      // Backend wraps the array as { workOrderId, serviceOrders, count }.
-      const resp = await apiRequest<
-        { serviceOrders?: ServiceOrderCardData[] } | ServiceOrderCardData[]
-      >("GET", `/api/work-orders/${workOrderId}/service-orders`);
-      return Array.isArray(resp) ? resp : (resp?.serviceOrders ?? []);
-    },
+    queryFn: () =>
+      apiRequest<{ serviceOrders?: ServiceOrderCardData[]; count?: number }>(
+        "GET",
+        `/api/work-orders/${workOrderId}/service-orders`
+      ),
   });
 
   const purchaseRequestsQuery = useQuery<PartsRequestCardData[]>({
@@ -306,7 +311,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   return {
-    serviceOrders: serviceOrdersQuery.data || [],
+    serviceOrders: serviceOrdersQuery.data?.serviceOrders ?? [],
     isLoadingServiceOrders: serviceOrdersQuery.isLoading,
     purchaseRequests: purchaseRequestsQuery.data || [],
     isLoadingPurchaseRequests: purchaseRequestsQuery.isLoading,
