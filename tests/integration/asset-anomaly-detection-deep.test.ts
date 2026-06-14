@@ -175,28 +175,27 @@ describe("embedded ML-table round-trips (vessel-mode persistence)", () => {
     const prediction = statisticalFailurePrediction(
       calculateDegradationMetrics(degradationReadings("vibration", 2, 25))
     );
-    const id = randomUUID();
     await client.execute({
       sql: `INSERT INTO failure_predictions
-        (id, org_id, equipment_id, prediction_type, failure_probability, estimated_days_to_failure, prediction_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (org_id, equipment_id, prediction_timestamp, failure_probability, risk_level, remaining_useful_life)
+        VALUES (?, ?, ?, ?, ?, ?)`,
       args: [
-        id,
         ORG_ID,
         EQUIP_ID,
-        "statistical",
-        prediction.failureProbability,
-        prediction.remainingUsefulLife,
         NOW_S,
+        prediction.failureProbability,
+        prediction.riskLevel,
+        prediction.remainingUsefulLife,
       ],
     });
     const back = await client.execute({
-      sql: "SELECT failure_probability, estimated_days_to_failure FROM failure_predictions WHERE id = ?",
-      args: [id],
+      sql: "SELECT failure_probability, remaining_useful_life, risk_level FROM failure_predictions WHERE equipment_id = ?",
+      args: [EQUIP_ID],
     });
     expect(back.rows).toHaveLength(1);
     expect(Number(back.rows[0]!["failure_probability"])).toBeCloseTo(0.95, 5);
-    expect(Number(back.rows[0]!["estimated_days_to_failure"])).toBe(90);
+    expect(Number(back.rows[0]!["remaining_useful_life"])).toBe(90);
+    expect(back.rows[0]!["risk_level"]).toBe("critical");
   });
 
   it("persists and reads back a pdm_score_logs row", async () => {

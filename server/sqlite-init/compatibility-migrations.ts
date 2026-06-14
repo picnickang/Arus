@@ -399,3 +399,52 @@ export async function runAnomalyDetectionsCompatibilityMigration(client: LibsqlC
     logger.info("✓ Recreated anomaly_detections with the canonical shape");
   }
 }
+
+export async function runFailurePredictionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "failure_predictions");
+  if (!cols.length) {
+    return;
+  }
+  // Legacy vessel shape (prediction_type/estimated_days_to_failure/failure_type)
+  // diverged from the PG columns the ML repos write (prediction_timestamp/
+  // risk_level/remaining_useful_life/maintenance_recommendations/…). Unpopulated
+  // today, so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("prediction_type") ||
+    cols.includes("estimated_days_to_failure") ||
+    !cols.includes("prediction_timestamp")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS failure_predictions`);
+    await client.execute(
+      `CREATE TABLE failure_predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, equipment_type TEXT, prediction_timestamp INTEGER, failure_probability REAL NOT NULL, predicted_failure_date INTEGER, remaining_useful_life INTEGER, confidence REAL, confidence_interval TEXT, failure_mode TEXT, risk_level TEXT NOT NULL, model_type TEXT, model_id TEXT, input_features TEXT, maintenance_recommendations TEXT, cost_impact TEXT, resolved_by_work_order_id TEXT, actual_failure_date INTEGER, actual_failure_mode TEXT, prediction_accuracy REAL, time_to_failure_error INTEGER, outcome_label TEXT, outcome_verified_at INTEGER, outcome_verified_by TEXT, prediction_valid_until INTEGER, model_version_id TEXT, feature_set_version TEXT, feature_snapshot_id TEXT, review_status TEXT DEFAULT 'pending', reviewed_by TEXT, reviewed_at INTEGER, suppression_reason TEXT, governance_metadata TEXT, metadata TEXT)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_fp_equipment_risk ON failure_predictions(equipment_id, risk_level)`
+    );
+    logger.info("✓ Recreated failure_predictions with the canonical shape");
+  }
+}
+
+export async function runComponentDegradationCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "component_degradation");
+  if (!cols.length) {
+    return;
+  }
+  // Legacy vessel shape (component_name/degradation_percent/health_index) diverged
+  // from the PG columns (component_type/degradation_metric/sensor-level fields).
+  // Unpopulated today, so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("component_name") ||
+    cols.includes("degradation_percent") ||
+    !cols.includes("component_type")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS component_degradation`);
+    await client.execute(
+      `CREATE TABLE component_degradation (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, component_type TEXT NOT NULL, measurement_timestamp INTEGER, degradation_metric REAL NOT NULL, degradation_rate REAL, vibration_level REAL, temperature REAL, oil_condition REAL, acoustic_signature REAL, wear_particle_count INTEGER, operating_hours INTEGER, cycle_count INTEGER, load_factor REAL, environment_conditions TEXT, trend_analysis TEXT, predicted_failure_date INTEGER, confidence_score REAL, metadata TEXT)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_cd_equipment_time ON component_degradation(equipment_id, measurement_timestamp)`
+    );
+    logger.info("✓ Recreated component_degradation with the canonical shape");
+  }
+}
