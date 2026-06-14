@@ -66,18 +66,19 @@ before a second tenant is onboarded.
       which orphans open PRs and invalidates every clone. Coordinate repo-wide
       (ideally no PRs in flight), then `git filter-repo --invert-paths` the
       artifact paths. `git-filter-repo` was not installable in the review env.
-- [ ] **`xlsx` → maintained alternative (HIGH, no upstream fix)** —
-      GHSA prototype-pollution + ReDoS. Used in 14 files; the dangerous path is
-      **reading untrusted spreadsheets** in document-ingestion / RAG, where
-      `exceljs` is a poor substitute. Scoped migration (or hardened reader),
-      not a drop-in swap — a partial swap would not drop the dependency.
-      **Surface-mitigated (2026-06):** the sole untrusted-read path
-      (`server/services/document-ingestion/extractors/xlsx.ts`) now caps input
-      size, disables formula/HTML/VBA parsing, and iterates sheets with
-      own-property checks (pinned by
-      `tests/unit/document-ingestion-xlsx-extractor.test.ts`). The other three
-      `xlsx` imports only _generate_ workbooks (not attacker input). The
-      dependency swap itself remains open.
+- [x] **`xlsx` → `exceljs` — DONE (2026-06), dependency dropped.** The `xlsx`
+      package (GHSA prototype-pollution + ReDoS, no upstream fix) has been
+      removed from `package.json` entirely and replaced with `exceljs@^4.4.0`.
+      Both call sites migrated: the untrusted-read RAG extractor
+      (`server/services/document-ingestion/extractors/xlsx.ts`) now reads via
+      `exceljs` — still size-capped, and it extracts only `cell.text` (a formula
+      cell's cached result, never its expression; exceljs never evaluates
+      formulas), pinned by `tests/unit/document-ingestion-xlsx-extractor.test.ts`
+      — and the compliance-excel write utils + their four async report builders.
+      Net audit posture: removed two unfixable HIGH advisories; `exceljs` adds
+      only one **moderate** (`uuid` bounds-check, reachable only when a `buf`
+      arg is passed — exceljs uses random v4 IDs, so not reachable). The
+      remaining HIGH `minimatch`/etc. advisories are pre-existing and unrelated.
 - [ ] **`@dsnp/parquetjs` → alternative, or drop (HIGH via `thrift`)** —
       7 files = the telemetry-warehouse-export feature. No drop-in replacement;
       evaluate whether parquet export is still needed.
