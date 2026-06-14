@@ -239,18 +239,13 @@ describe("asset anomaly E2E — coolant overheating (statistical Z-score)", () =
     expect(prediction.remainingUsefulLife).toBe(180); // degraded from the 365 healthy default
     expect(prediction.predictedFailureDate).toBeInstanceOf(Date);
 
-    // The coolant scenario's signature failure mode — asserted on the mapping
-    // directly, since the integrated metrics under-classify a single sensor.
+    // The coolant scenario's signature failure mode. The degradation gate is
+    // `sensorRisk >= 0.6`, so a single temperature sensor at exactly 0.6
+    // (increasing trend +0.3 and anomaly-count +0.3) is promoted to
+    // criticalSensors and the integrated failure mode resolves to "overheating".
+    expect(metrics.criticalSensors).toEqual(["temperature"]);
+    expect(prediction.failureMode).toBe("overheating");
     expect(inferFailureMode(["temperature"])).toBe("overheating");
-
-    // Characterization of a real gate quirk: calculateDegradationMetrics promotes
-    // a sensor to criticalSensors only when sensorRisk > 0.6, but a single
-    // realistic temperature sensor maxes at exactly 0.6 (variability cannot exceed
-    // 0.5 at plausible coolant temps). So it is never promoted, and the integrated
-    // failure mode falls back to "general_deterioration". If the gate is ever
-    // relaxed to >= 0.6, update these two expectations to overheating / [temperature].
-    expect(metrics.criticalSensors).toEqual([]);
-    expect(prediction.failureMode).toBe("general_deterioration");
 
     // A test-derived health projection (NOT a /api/pdm/health response, which is
     // a hardcoded 100 in this codebase): higher failure probability -> lower health.

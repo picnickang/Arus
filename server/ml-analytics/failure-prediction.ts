@@ -19,6 +19,7 @@ import {
   isBadTrendSensor,
   isGoodTrendSensor,
 } from "./statistical";
+import { hourBucketExpr, hourlyAvg } from "./sql-dialect";
 
 export async function getMultiSensorData(
   equipmentId: string,
@@ -29,12 +30,12 @@ export async function getMultiSensorData(
   // Hourly buckets aggregated on the fly from live telemetry (0044 — the
   // former telemetry_aggregates table was never written, so this path
   // previously always returned an empty series).
-  const hourBucket = sql`date_trunc('hour', ${equipmentTelemetry.ts})`;
+  const hourBucket = hourBucketExpr(equipmentTelemetry.ts);
   const data = await db
     .select({
       sensorType: equipmentTelemetry.sensorType,
       windowStart: sql<Date>`${hourBucket}`.as("window_start"),
-      avgValue: sql<number>`avg(${equipmentTelemetry.value})::float8`.as("avg_value"),
+      avgValue: hourlyAvg(equipmentTelemetry.value).as("avg_value"),
     })
     .from(equipmentTelemetry)
     .where(
@@ -91,7 +92,11 @@ export function calculateDegradationMetrics(
       sensorRisk += 0.3;
     }
 
-    if (sensorRisk > 0.6) {
+    // >= 0.6 so a single bad-trend sensor with sustained anomalies (trend +0.3
+    // and anomaly-count +0.3 = exactly 0.6, common for a lone overheating where
+    // the coefficient of variation never reaches the +0.2 variability tier) is
+    // still promoted to criticalSensors and gets a specific failure mode.
+    if (sensorRisk >= 0.6) {
       metrics.criticalSensors.push(sensorType);
       metrics.riskFactors.push(
         `${sensorType}: High degradation risk (${(sensorRisk * 100).toFixed(0)}%)`
@@ -112,7 +117,9 @@ export function statisticalFailurePrediction(
 
   let failureProbability = Math.min(0.95, degradationScore * 1.2);
   if (criticalSensorCount > 2) {
-    failureProbability *= 1.3;
+    // Re-apply the 0.95 cap after the multi-sensor boost; otherwise the *1.3
+    // could push probability past 1.0 (0.95 * 1.3 = 1.235).
+    failureProbability = Math.min(0.95, failureProbability * 1.3);
   }
 
   let remainingUsefulLife = 365;

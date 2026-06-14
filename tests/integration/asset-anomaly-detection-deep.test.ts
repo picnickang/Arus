@@ -122,7 +122,7 @@ describe("multi-sensor correlated degradation", () => {
     expect(inferFailureMode(metrics.criticalSensors)).toBe("bearing_wear");
   });
 
-  it("characterises the >2-critical-sensor probability boost (no final clamp)", () => {
+  it("clamps failureProbability at 0.95 even with >2 critical sensors", () => {
     const readings = [
       ...degradationReadings("vibration", 2, 25),
       ...degradationReadings("pressure", 20, 150),
@@ -133,10 +133,10 @@ describe("multi-sensor correlated degradation", () => {
 
     const prediction = statisticalFailurePrediction(metrics);
     expect(prediction.riskLevel).toBe("critical");
-    // BUG characterisation: with criticalSensorCount > 2 the function multiplies
-    // failureProbability by 1.3 *after* the min(0.95, …) clamp and never re-clamps,
-    // so it exceeds 1.0 (0.95 * 1.3 = 1.235). Asserted so a future fix flips it.
-    expect(prediction.failureProbability).toBeGreaterThan(1);
+    // The >2-critical-sensor *1.3 boost is re-clamped to the 0.95 cap, so
+    // probability never exceeds 1.0 (previously it reached 0.95 * 1.3 = 1.235).
+    expect(prediction.failureProbability).toBeLessThanOrEqual(0.95);
+    expect(prediction.failureProbability).toBeCloseTo(0.95, 5);
     expect(prediction.failureMode).toBe("bearing_wear"); // vibration takes precedence
   });
 });
