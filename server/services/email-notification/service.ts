@@ -193,6 +193,37 @@ class EmailNotificationService {
     }
   }
 
+  /**
+   * Queue a one-off test notification AND attempt delivery immediately.
+   *
+   * Mirrors the non-digest send paths (queue then processQueueItem on the same
+   * row). This exists because the HTTP test endpoint previously queued a
+   * "pending" row and then called retryFailedNotifications(1), which only ever
+   * reprocesses rows already in "failed" status — so the freshly-queued test
+   * row was never attempted. Returns the queue row id so callers can inspect
+   * the outcome.
+   */
+  async sendTestNotification(input: {
+    orgId: string;
+    email: string;
+    subject?: string | undefined;
+    message?: string | undefined;
+  }): Promise<{ id: string; queued: true }> {
+    const subject = input.subject || "ARUS Marine Test Notification";
+    const body = input.message || "This is a test notification from ARUS Marine.";
+    const item = await queueNotification({
+      orgId: input.orgId,
+      notificationType: "test",
+      subject,
+      body,
+      bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${body}</p></div>`,
+      recipients: [input.email],
+      status: "pending",
+    });
+    await processQueueItem(item);
+    return { id: item.id, queued: true };
+  }
+
   async processDigestQueue(): Promise<number> {
     return processDigestQueue();
   }
