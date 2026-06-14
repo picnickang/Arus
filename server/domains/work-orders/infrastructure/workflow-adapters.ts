@@ -1,8 +1,15 @@
 import { db } from "../../../db";
-import { workOrders, costSavings, failurePredictions } from "@shared/schema-runtime";
+import {
+  workOrders,
+  costSavings,
+  failurePredictions,
+  equipment,
+  vessels,
+} from "@shared/schema-runtime";
 import { IS_POSTGRES } from "@shared/schema-runtime";
 import type { InsertFailureHistory } from "@shared/schema/ml-analytics-core";
 import { eq, and, sql, ne } from "drizzle-orm";
+import { ValidationError } from "../../../lib/domain-errors";
 import { processWorkOrderCompletion } from "../../../cost-savings-engine/persistence";
 import type {
   IWorkOrderWorkflowRepository,
@@ -29,6 +36,29 @@ const failureHistoryLogger = createLogger(
 
 export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRepository {
   async createQuick(orgId: string, input: QuickWorkOrderInput): Promise<QuickWorkOrderResult> {
+    // Validate the FK targets up front: equipment_id is a NOT NULL FK and
+    // vessel_id a nullable FK. A non-existent id otherwise surfaces as a raw
+    // Postgres FK-violation 500 (the message is buried in a nested cause, so
+    // handleApiError's FK inference misses it). Return a clean 400 instead.
+    const [equip] = await db
+      .select({ id: equipment.id })
+      .from(equipment)
+      .where(eq(equipment.id, input.equipmentId))
+      .limit(1);
+    if (!equip) {
+      throw new ValidationError(`Equipment '${input.equipmentId}' not found`);
+    }
+    if (input.vesselId) {
+      const [vessel] = await db
+        .select({ id: vessels.id })
+        .from(vessels)
+        .where(eq(vessels.id, input.vesselId))
+        .limit(1);
+      if (!vessel) {
+        throw new ValidationError(`Vessel '${input.vesselId}' not found`);
+      }
+    }
+
     const woNumber = await this.nextWorkOrderNumber(orgId);
 
     const [row] = await db
