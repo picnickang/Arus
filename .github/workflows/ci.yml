@@ -198,6 +198,13 @@ jobs:
       - name: Run integration tests
         run: npm run test:integration
 
+      # PostgreSQL-contract lane (RLS, cross-tenant isolation, tenant quota,
+      # safety-bulletin scoping) — runs against the migrated arus_test above.
+      - name: Run PostgreSQL-contract integration tests
+        run: npm run test:integration:postgres
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
   python-sidecar:
     name: Python ML Sidecar
     runs-on: ubuntu-latest
