@@ -18,6 +18,7 @@
  * Handles devices, heartbeats, and PDM scores
  */
 import { db } from "../../db-config.js";
+import { isLocalMode } from "../../config/runtimeEnv.js";
 import {
   devices,
   edgeHeartbeats as edgeHeartbeatsTable,
@@ -85,6 +86,13 @@ export class DatabaseDevicesStorage {
     return r[0];
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
+    // pdm_score_logs is a cloud-only table (undefined in vessel/local mode — the
+    // PdM scoring pipeline runs shore-side). Degrade gracefully so vessel/embedded
+    // reads (GET /api/pdm/health, fleet summaries, exports, LLM dossiers) return
+    // empty and the callers fall back, instead of dereferencing an undefined table.
+    if (isLocalMode) {
+      return [];
+    }
     if (equipmentId) {
       return db
         .select()
@@ -98,6 +106,9 @@ export class DatabaseDevicesStorage {
       .orderBy(sql`ts DESC`);
   }
   async createPdmScore(data: InsertPdmScore): Promise<PdmScoreLog> {
+    if (isLocalMode) {
+      throw new Error("pdm_score_logs is cloud-only; PdM scoring is unavailable in vessel mode");
+    }
     const r = await db.insert(pdmScoreLogsTable).values(data).returning();
     if (!r[0]) {
       throw new Error("Failed to create PDM score");
@@ -105,6 +116,9 @@ export class DatabaseDevicesStorage {
     return r[0];
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
+    if (isLocalMode) {
+      return undefined;
+    }
     const r = await db
       .select()
       .from(pdmScoreLogsTable)
