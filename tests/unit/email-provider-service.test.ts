@@ -40,13 +40,15 @@ function sgOk(messageId: string | null = "sg-1"): FetchResponse {
 function sgErr(status: number): FetchResponse {
   return { ok: false, status, headers: { get: () => null }, text: async () => "err-body" };
 }
-function cfg(overrides: Partial<EmailConfig> & Pick<EmailConfig, "provider">): EmailConfig {
+function cfg(
+  overrides: Partial<Omit<EmailConfig, "provider">> & { provider: string }
+): EmailConfig {
   return { fromEmail: "noreply@arus.test", ...overrides } as EmailConfig;
 }
 
 beforeEach(() => {
   fetchMock = jest.fn<(...args: unknown[]) => Promise<FetchResponse>>();
-  global.fetch = fetchMock as unknown as typeof fetch;
+  (global as { fetch: unknown }).fetch = fetchMock;
   sendMailMock.mockReset();
   verifyMock.mockReset();
   createTransportMock.mockClear();
@@ -281,10 +283,11 @@ describe("sendEmail via SES", () => {
 
 describe("sendEmail with an unsupported provider", () => {
   it("returns a clear error", async () => {
-    const r = await emailProviderService.sendEmail(
-      cfg({ provider: "mailgun" as unknown as EmailConfig["provider"] }),
-      { to: ["a@x.test"], subject: "S", text: "T" }
-    );
+    const r = await emailProviderService.sendEmail(cfg({ provider: "mailgun" }), {
+      to: ["a@x.test"],
+      subject: "S",
+      text: "T",
+    });
     expect(r).toEqual({ success: false, error: "Unsupported provider: mailgun" });
   });
 });

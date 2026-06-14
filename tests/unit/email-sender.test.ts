@@ -47,7 +47,7 @@ const ORIGINAL_FROM = process.env["EMAIL_FROM"];
 
 beforeEach(() => {
   fetchMock = jest.fn<(...args: unknown[]) => Promise<FetchResponse>>();
-  global.fetch = fetchMock as unknown as typeof fetch;
+  (global as { fetch: unknown }).fetch = fetchMock;
   providerSendMock.mockReset().mockResolvedValue({ success: true, messageId: "prov-1" });
   resolveOrgConfigMock.mockReset().mockResolvedValue(null);
   delete process.env["SENDGRID_API_KEY"];

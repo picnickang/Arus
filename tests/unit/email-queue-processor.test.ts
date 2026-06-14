@@ -7,6 +7,7 @@
  * and the failed-only / attempt-bounded retry filter.
  */
 import { jest } from "@jest/globals";
+import type { NotificationQueue } from "@shared/schema";
 
 type SendResultLike = { success: boolean; retriable?: boolean; error?: string; messageId?: string };
 
@@ -34,28 +35,26 @@ const { processQueueItem, processDigestQueue, retryFailedNotifications } = await
   "../../server/services/email-notification/queue-processor.js"
 );
 
-type QRow = {
-  id: string;
-  orgId: string;
-  recipients: string[];
-  subject: string;
-  body: string;
-  bodyHtml?: string | null;
-  attemptCount?: number;
-  status?: string;
-  scheduledFor?: Date | null;
-};
-const qItem = (o: Partial<QRow> & { id: string }): QRow => ({
+const qItem = (o: Partial<NotificationQueue> & { id: string }): NotificationQueue => ({
   orgId: "org-1",
-  recipients: ["a@x.test"],
+  notificationType: "compliance",
   subject: "S",
   body: "B",
-  attemptCount: 0,
+  bodyHtml: null,
+  recipients: ["a@x.test"],
+  relatedEntityType: null,
+  relatedEntityId: null,
   status: "pending",
+  attemptCount: 0,
+  lastAttemptAt: null,
+  lastError: null,
+  sentAt: null,
+  scheduledFor: null,
+  createdAt: null,
+  updatedAt: null,
   ...o,
 });
-const run = (item: QRow) =>
-  processQueueItem(item as unknown as Parameters<typeof processQueueItem>[0]);
+const run = (item: NotificationQueue) => processQueueItem(item);
 
 type Updates = {
   status?: string;
