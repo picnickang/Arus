@@ -5,6 +5,7 @@
 import { equipmentRepository } from "../repository";
 import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
 import { TenantRepositoryFactory } from "../../../infrastructure/TenantScopedRepository";
+import { equipmentSensorProvider } from "../../../composition/equipment-cross-domain-data";
 import { DEFAULT_SENSORS, type SensorCoverageResult, type SensorSetupResult } from "./types.js";
 
 export async function getSensorCoverage(
@@ -48,7 +49,7 @@ export async function getSensorCoverage(
     },
     legacyFn: () =>
       Promise.resolve(
-        equipmentRepository.getSensorCoverage(equipmentId, orgId) as object as SensorCoverageResult
+        equipmentRepository.getSensorCoverage(equipmentId, orgId, equipmentSensorProvider) as object as SensorCoverageResult
       ),
   }) as object as SensorCoverageResult;
 }
@@ -114,6 +115,6 @@ export async function setupSensors(
         })),
       };
     },
-    legacyFn: () => equipmentRepository.setupSensors(equipmentId, orgId),
+    legacyFn: () => equipmentRepository.setupSensors(equipmentId, orgId, equipmentSensorProvider),
   });
 }

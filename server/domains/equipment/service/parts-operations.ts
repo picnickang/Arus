@@ -5,6 +5,7 @@
 import { equipmentRepository } from "../repository";
 import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
 import { TenantRepositoryFactory } from "../../../infrastructure/TenantScopedRepository";
+import { equipmentPartsProvider } from "../../../composition/equipment-cross-domain-data";
 
 export async function getCompatibleParts(
   adapter: DualWriteAdapter,
@@ -17,7 +18,7 @@ export async function getCompatibleParts(
       const repo = TenantRepositoryFactory.parts(orgId);
       return repo.getCompatibleParts(equipmentId);
     },
-    legacyFn: () => equipmentRepository.getCompatibleParts(equipmentId, orgId),
+    legacyFn: () => equipmentRepository.getCompatibleParts(equipmentId, orgId, equipmentPartsProvider),
   });
 }
 
@@ -32,6 +33,6 @@ export async function getSuggestedParts(
       const repo = TenantRepositoryFactory.parts(orgId);
       return repo.getSuggestedParts(equipmentId);
     },
-    legacyFn: () => equipmentRepository.getSuggestedParts(equipmentId, orgId),
+    legacyFn: () => equipmentRepository.getSuggestedParts(equipmentId, orgId, equipmentPartsProvider),
   });
 }
