@@ -80,3 +80,17 @@ test-results/*
 # Rust compiler crash dumps (transient tooling artifacts)
 rustc-ice-*.txt
 installer-review-bundle/rustc-ice-*.txt
+
+# Stale compiled duplicates of shared/*.ts sources (the .ts is the source of
+# truth). Builds bundle from .ts via esbuild/vite; jest maps .js -> .ts. These
+# loose .js drift from their .ts and must not be tracked or re-added.
+# (shared/conflict-resolution-types.js and shared/search.js are intentionally
+# NOT listed — they have no .ts sibling and are real source.)
+shared/money-utils.js
+shared/schema-runtime.js
+shared/schema-sqlite-sync.js
+shared/schema-sqlite-vessel.js
+shared/sensorKindPresets.js
+shared/sync-conflicts-schema.js
+shared/technician-status.js
+shared/telemetry-schema.js
