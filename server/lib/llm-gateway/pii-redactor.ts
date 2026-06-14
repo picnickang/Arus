@@ -117,17 +117,51 @@ function redactContent(content: unknown): { content: unknown; hits: number } {
   return { content, hits: 0 };
 }
 
+/**
+ * Redact PII inside an assistant message's tool calls. Only the model-emitted
+ * `function.arguments` JSON string is scrubbed; `function.name` and the tool
+ * call `id` are routing/correlation identifiers and are left intact so the
+ * provider can still dispatch and correlate the call. Returns the same
+ * reference when nothing changed.
+ */
+function redactToolCalls(toolCalls: unknown): { toolCalls: unknown; hits: number; changed: boolean } {
+  if (!Array.isArray(toolCalls)) {
+    return { toolCalls, hits: 0, changed: false };
+  }
+  let hits = 0;
+  let changed = false;
+  const out = toolCalls.map((tc) => {
+    const fn = (tc as { function?: { arguments?: unknown } })?.function;
+    if (!fn || typeof fn.arguments !== "string") {
+      return tc;
+    }
+    const { redacted, hits: argHits } = redactPII(fn.arguments);
+    hits += sumHits(argHits);
+    if (redacted === fn.arguments) {
+      return tc;
+    }
+    changed = true;
+    return { ...(tc as object), function: { ...fn, arguments: redacted } };
+  });
+  return { toolCalls: changed ? out : toolCalls, hits, changed };
+}
+
 export function redactMessages<T extends { role: string; content: unknown }>(
   messages: readonly T[]
 ): { messages: T[]; totalHits: number } {
   let totalHits = 0;
   const out = messages.map((m) => {
     const next = redactContent(m.content);
-    totalHits += next.hits;
-    if (next.content === m.content) {
+    const tc = redactToolCalls((m as { toolCalls?: unknown }).toolCalls);
+    totalHits += next.hits + tc.hits;
+    if (next.content === m.content && !tc.changed) {
       return m;
     }
-    return { ...m, content: next.content } as T;
+    return {
+      ...m,
+      content: next.content,
+      ...(tc.changed ? { toolCalls: tc.toolCalls } : {}),
+    } as T;
   });
   return { messages: out, totalHits };
 }

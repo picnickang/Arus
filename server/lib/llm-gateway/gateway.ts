@@ -98,11 +98,31 @@ export class DefaultLLMGateway implements LLMGateway {
     const started = Date.now();
     let finalUsage: LLMUsage | undefined;
 
-    for await (const chunk of this.provider.chatStream(effectiveParams)) {
-      if (chunk.usage) {
-        finalUsage = chunk.usage;
+    try {
+      for await (const chunk of this.provider.chatStream(effectiveParams)) {
+        if (chunk.usage) {
+          finalUsage = chunk.usage;
+        }
+        yield chunk;
       }
-      yield chunk;
+    } catch (err) {
+      // The stream errored mid-flight. The provider has already consumed tokens
+      // for the partial response, but the usage chunk (sent last) never
+      // arrived — so without this a failing stream would bypass budget
+      // accounting entirely and repeated failures could overspend. Charge what
+      // we know (usage so far) or the preflight estimate (errs high) before
+      // re-throwing to the caller.
+      const usage = finalUsage ?? estimateUsage(effectiveParams);
+      this.safeRecord({
+        provider: this.provider.name,
+        model: effectiveParams.model,
+        usage,
+        latencyMs: Date.now() - started,
+        streamed: true,
+        meta: effectiveParams.meta,
+      });
+      this.recordBudget(effectiveParams.meta, effectiveParams.model, usage);
+      throw err;
     }
 
     if (finalUsage) {
@@ -179,11 +199,12 @@ export class DefaultLLMGateway implements LLMGateway {
 
 /**
  * Upper-bound estimate of the tokens a chat call will consume: a prompt
- * estimate (total message characters / ~4) plus the completion cap. Used only
- * for the pre-call budget gate; the post-call `record` uses real usage. Errs
+ * estimate (total message characters / ~4) plus the completion cap. Used for
+ * the pre-call budget gate, and as the fallback charge for a streamed call
+ * whose actual usage never arrives (mid-stream error / no usage chunk). Errs
  * high so a runaway loop is stopped rather than under-counted.
  */
-function estimateProjectedTokens(params: LLMChatParams): number {
+function estimateUsage(params: LLMChatParams): LLMUsage {
   let chars = 0;
   for (const message of params.messages) {
     const { content } = message;
@@ -197,7 +218,11 @@ function estimateProjectedTokens(params: LLMChatParams): number {
       }
     }
   }
-  const promptEstimate = Math.ceil(chars / CHARS_PER_TOKEN);
-  const completionCap = params.maxCompletionTokens ?? DEFAULT_COMPLETION_TOKEN_CAP;
-  return promptEstimate + completionCap;
+  const promptTokens = Math.ceil(chars / CHARS_PER_TOKEN);
+  const completionTokens = params.maxCompletionTokens ?? DEFAULT_COMPLETION_TOKEN_CAP;
+  return { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens };
+}
+
+function estimateProjectedTokens(params: LLMChatParams): number {
+  return estimateUsage(params).totalTokens;
 }
