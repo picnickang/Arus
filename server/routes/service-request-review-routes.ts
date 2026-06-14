@@ -1,19 +1,23 @@
 import type { Express, Request, Response } from "express";
-import { sql } from "drizzle-orm";
-import { db } from "../db";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { requireOrgIdAndValidateBody } from "../middleware/auth";
 import { sendNotFound, withErrorHandling } from "../lib/route-utils";
 import { createDomainEvent, domainEventBus } from "../lib/domain-event-bus";
 import { logger } from "../utils/logger";
-import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 import {
-  getOrgId,
-  getUserId,
-  type ServiceRequestRouteRateLimiters,
-  type ServiceRequestRow,
-  unwrapRows,
-} from "./service-request-route-utils";
+  approveServiceRequest,
+  convertServiceRequestToServiceOrder,
+  getOtherActiveServiceRequest,
+  getServiceRequestForApproval,
+  getServiceRequestForConversion,
+  getServiceRequestForRejection,
+  getServiceRequestForReview,
+  getWorkOrderStatusRow,
+  rejectServiceRequest,
+  restoreWorkOrderStatus,
+  setServiceRequestUnderReview,
+} from "../service-orders/repository";
+import { getOrgId, getUserId, type ServiceRequestRouteRateLimiters } from "./service-request-route-utils";
 
 export function registerServiceRequestReviewRoutes(
   app: Express,
@@ -27,15 +31,9 @@ export function registerServiceRequestReviewRoutes(
     withErrorHandling("review service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
+      const id = req.params["id"] ?? "";
 
-      const [sr] = await db
-        .execute(
-          sql`
-        SELECT id, status, work_order_id, request_number FROM service_requests
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const sr = await getServiceRequestForReview(id, orgId);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -45,16 +43,7 @@ export function registerServiceRequestReviewRoutes(
         return res.status(400).json({ error: `Cannot review a request in '${sr.status}' status` });
       }
 
-      const [updated] = await db
-        .execute(
-          sql`
-        UPDATE service_requests
-        SET status = 'under_review', reviewed_by = ${userId}, updated_at = NOW()
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-        RETURNING *
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const updated = await setServiceRequestUnderReview(id, orgId, userId);
 
       res.json(updated);
     })
@@ -68,16 +57,9 @@ export function registerServiceRequestReviewRoutes(
     withErrorHandling("approve service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
+      const id = req.params["id"] ?? "";
 
-      const [sr] = await db
-        .execute(
-          sql`
-        SELECT id, status, work_order_id, title, description, estimated_cost, request_number
-        FROM service_requests
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const sr = await getServiceRequestForApproval(id, orgId);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -87,16 +69,7 @@ export function registerServiceRequestReviewRoutes(
         return res.status(400).json({ error: `Cannot approve a request in '${sr.status}' status` });
       }
 
-      const [updated] = await db
-        .execute(
-          sql`
-        UPDATE service_requests
-        SET status = 'approved', reviewed_by = ${userId}, reviewed_at = NOW(), updated_at = NOW()
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-        RETURNING *
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const updated = await approveServiceRequest(id, orgId, userId);
 
       domainEventBus.emit(
         "service_request.approved",
@@ -125,16 +98,9 @@ export function registerServiceRequestReviewRoutes(
     withErrorHandling("reject service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
+      const id = req.params["id"] ?? "";
 
-      const [sr] = await db
-        .execute(
-          sql`
-        SELECT id, status, work_order_id, request_number, previous_wo_status
-        FROM service_requests
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const sr = await getServiceRequestForRejection(id, orgId);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -146,44 +112,13 @@ export function registerServiceRequestReviewRoutes(
 
       const { reason } = req.body;
 
-      const [updated] = await db
-        .execute(
-          sql`
-        UPDATE service_requests
-        SET
-          status = 'rejected',
-          rejection_reason = ${reason || null},
-          reviewed_by = ${userId},
-          reviewed_at = NOW(),
-          updated_at = NOW()
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-        RETURNING *
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const updated = await rejectServiceRequest(id, orgId, userId, reason || null);
 
-      const [otherActiveSr] = await db
-        .execute(
-          sql`
-        SELECT id FROM service_requests
-        WHERE work_order_id = ${sr.work_order_id} AND org_id = ${orgId}
-          AND id != ${sr.id}
-          AND status NOT IN ('rejected', 'converted')
-        LIMIT 1
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const otherActiveSr = await getOtherActiveServiceRequest(sr.work_order_id, sr.id, orgId);
 
       if (!otherActiveSr) {
         const restoreStatus = sr.previous_wo_status || "open";
-        await db.execute(sql`
-          UPDATE work_orders
-          SET
-            status = ${restoreStatus},
-            updated_at = NOW()
-          WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
-            AND status = 'awaiting_service'
-        `);
+        await restoreWorkOrderStatus(sr.work_order_id, orgId, restoreStatus);
         logger.info(`WO status restored to '${restoreStatus}' (no other active SRs)`);
       } else {
         logger.info(
@@ -207,7 +142,7 @@ export function registerServiceRequestReviewRoutes(
         )
       );
 
-      logger.info(`Service request ${req.params["id"]} rejected by ${userId}`);
+      logger.info(`Service request ${id} rejected by ${userId}`);
       res.json(updated);
     })
   );
@@ -222,20 +157,9 @@ export function registerServiceRequestReviewRoutes(
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
         const userId = getUserId(req);
+        const id = req.params["id"] ?? "";
 
-        const [sr] = await db
-          .execute(
-            sql`
-        SELECT sr.id, sr.status, sr.work_order_id, sr.title, sr.description,
-               sr.estimated_cost, sr.request_number, sr.service_details, sr.special_requirements,
-               wo.wo_number, wo.description AS wo_description,
-               wo.equipment_id, wo.vessel_id
-        FROM service_requests sr
-        JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
-        WHERE sr.id = ${req.params["id"]} AND sr.org_id = ${orgId}
-      `
-          )
-          .then(unwrapRows<ServiceRequestRow>);
+        const sr = await getServiceRequestForConversion(id, orgId);
 
         if (!sr) {
           return sendNotFound(res, "Service Request");
@@ -247,14 +171,7 @@ export function registerServiceRequestReviewRoutes(
             .json({ error: `Can only convert approved requests. Current status: '${sr.status}'` });
         }
 
-        const [wo] = await db
-          .execute(
-            sql`
-        SELECT id, status FROM work_orders
-        WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
-      `
-          )
-          .then(unwrapRows<ServiceRequestRow>);
+        const wo = await getWorkOrderStatusRow(sr.work_order_id, orgId);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");
@@ -281,7 +198,7 @@ export function registerServiceRequestReviewRoutes(
           }
         }
 
-        const newSo = await createServiceOrderFromWorkOrder(db, {
+        const newSo = await convertServiceRequestToServiceOrder(id, orgId, userId, {
           orgId,
           workOrderId: sr.work_order_id,
           woNumber: sr.wo_number ?? "",
@@ -297,20 +214,7 @@ export function registerServiceRequestReviewRoutes(
           scheduledEndDate: scheduledEndDate || null,
           serviceDetails: sr.service_details || null,
           specialRequirements: sr.special_requirements || null,
-          updateWorkOrderStatus: true,
         });
-
-        await db.execute(sql`
-        UPDATE service_requests
-        SET
-          status = 'converted',
-          service_order_id = ${newSo.id},
-          converted_at = NOW(),
-          reviewed_by = ${userId},
-          reviewed_at = COALESCE(reviewed_at, NOW()),
-          updated_at = NOW()
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-      `);
 
         domainEventBus.emit(
           "service_request.converted",
@@ -329,11 +233,9 @@ export function registerServiceRequestReviewRoutes(
           )
         );
 
-        logger.info(
-          `Service request ${req.params["id"]} converted to SO ${newSo.so_number} by ${userId}`
-        );
+        logger.info(`Service request ${id} converted to SO ${newSo.so_number} by ${userId}`);
         res.json({
-          serviceRequest: { id: req.params["id"], status: "converted", serviceOrderId: newSo.id },
+          serviceRequest: { id, status: "converted", serviceOrderId: newSo.id },
           serviceOrder: newSo,
         });
       }
