@@ -20,7 +20,7 @@ interface OpsStatusRailProps {
 
 const chip = "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium";
 const chipBtn =
-  "inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
+  "inline-flex min-h-11 items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
 
 /**
  * Persistent Ops Status Rail — always-visible critical operational info
@@ -101,7 +101,7 @@ export default function OpsStatusRail({
         <button
           type="button"
           onClick={() => onAction?.("refresh-status")}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="Refresh status"
         >
           <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
