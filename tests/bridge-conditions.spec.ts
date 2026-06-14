@@ -1,19 +1,25 @@
-import { test, expect } from '@playwright/test';
+import { test } from "@playwright/test";
 
-// Phase 3 Bridge-condition tests (simulated)
-test.describe('Bridge Condition Simulation', () => {
-  test('rail and ActionCard remain visible and usable in low-light / night-vision mode', async ({ page }) => {
-    // Simulate night mode
-    await expect(page.getByRole('region', { name: /persistent operational status rail/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /accept wo/i })).toBeVisible();
-  });
+/**
+ * Bridge-condition tests — night-vision legibility, gloved operation, offline.
+ *
+ * Scaffold only. These scenarios assert against the Persistent Ops Status Rail,
+ * which is not yet mounted (see plan M1). They are registered with `test.fixme`
+ * so the file is valid and runs in no lane until M4.4 implements them for real
+ * and wires this spec into CORE_RELEASE_TESTS / the mobile-visual projects.
+ *
+ * This replaces a prior version that shipped a parse error (`toHaveCount(> 3)`)
+ * and asserted UI that does not exist.
+ */
+test.describe("Bridge conditions @mobile", () => {
+  // TODO(M1+M4.4): in the bridge (night-vision) theme, assert the rail and an
+  // ActionCard stay visible and meet WCAG-AA contrast.
+  test.fixme("rail stays visible and legible in night-vision (bridge) mode", async () => {});
 
-  test('touch targets remain usable in glove-simulation (larger hit area)', async ({ page }) => {
-    const buttons = page.getByRole('button');
-    await expect(buttons).toHaveCount(> 3); // example assertion
-  });
+  // TODO(M4.4): under a coarse-pointer (gloved) mobile viewport, assert every
+  // visible interactive control has a >=44px touch target (boundingBox).
+  test.fixme("touch targets stay >=44px for gloved operation", async () => {});
 
-  test('offline mode highlights outbox and cached indicators correctly', async ({ page }) => {
-    await expect(page.getByText(/offline|cached/i)).toBeVisible();
-  });
+  // TODO(M4.4): go offline and assert the connectivity/outbox indicators surface.
+  test.fixme("offline mode surfaces outbox + cached indicators", async () => {});
 });
