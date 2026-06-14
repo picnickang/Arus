@@ -51,6 +51,29 @@ export async function safeAddColumn(
   }
 }
 
+/**
+ * Drop a column from an existing vessel DB if it is still present. Used to retire
+ * legacy duplicate columns that have been reconciled onto their canonical
+ * counterparts (callers must backfill canonical ← legacy BEFORE dropping).
+ * No-op when the column is already absent (fresh DBs built from current DDL).
+ */
+export async function safeDropColumn(
+  client: LibsqlClient,
+  table: string,
+  col: string
+): Promise<void> {
+  try {
+    await client.execute(`ALTER TABLE ${table} DROP COLUMN ${col}`);
+    logger.info(`  ✓ Dropped ${table}.${col}`);
+  } catch (error) {
+    // SQLite reports "no such column" when the column was never present.
+    if (error instanceof Error && /no such column/i.test(error.message)) {
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function ensureDeclaredTablesAndIndexes(): Promise<void> {
   const { db } = await import("../db-config.js");
   const runner = db as object as { run: (s: unknown) => Promise<unknown> };
@@ -298,7 +321,6 @@ export async function runErrorLogsCompatibilityMigration(client: LibsqlClient): 
     ["timestamp", "INTEGER"],
     ["category", "TEXT NOT NULL DEFAULT 'application'"],
     ["error_type", "TEXT NOT NULL DEFAULT 'application'"],
-    ["error_message", "TEXT"],
     ["error_code", "TEXT"],
     ["message", "TEXT NOT NULL DEFAULT ''"],
     ["user_id", "TEXT"],
@@ -318,13 +340,14 @@ export async function runErrorLogsCompatibilityMigration(client: LibsqlClient): 
   }
 
   const refreshedCols = await getTableColumns(client, "error_logs");
+  // Retire the legacy duplicate `error_message` column: preserve any rows whose
+  // text lived only in `error_message` by folding it into the canonical
+  // `message`, then drop it so PG and SQLite converge on `message`.
   if (refreshedCols.includes("message") && refreshedCols.includes("error_message")) {
     await client.execute(
       `UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL`
     );
-    await client.execute(
-      `UPDATE error_logs SET error_message = message WHERE (error_message IS NULL OR error_message = '') AND message IS NOT NULL`
-    );
+    await safeDropColumn(client, "error_logs", "error_message");
   }
   if (refreshedCols.includes("timestamp") && refreshedCols.includes("created_at")) {
     await client.execute(
@@ -370,10 +393,6 @@ export async function runImmutableAuditTrailCompatibilityMigration(
     ["retention_expires_at", "TEXT"],
     ["metadata", "TEXT"],
     ["action", "TEXT NOT NULL DEFAULT ''"],
-    ["actor", "TEXT"],
-    ["actor_role", "TEXT"],
-    ["data_before", "TEXT"],
-    ["data_after", "TEXT"],
     ["data_hash", "TEXT NOT NULL DEFAULT ''"],
     ["previous_hash", "TEXT"],
     ["sequence_number", "INTEGER NOT NULL DEFAULT 0"],
@@ -397,6 +416,11 @@ export async function runImmutableAuditTrailCompatibilityMigration(
       `UPDATE immutable_audit_trail SET prev_hash = previous_hash WHERE prev_hash IS NULL AND previous_hash IS NOT NULL`
     );
   }
+  // Retire the legacy duplicate columns (actor/actor_role/data_before/data_after).
+  // Each was only ever a mirror-write of its canonical counterpart and is not part
+  // of the audit hash chain (see computeAuditHash). Fold any rows whose value lived
+  // only in the legacy column into the canonical column, then drop it so PG and
+  // SQLite converge.
   if (refreshedCols.includes("performed_by") && refreshedCols.includes("actor")) {
     await client.execute(
       `UPDATE immutable_audit_trail SET performed_by = actor WHERE performed_by IS NULL AND actor IS NOT NULL`
@@ -407,6 +431,20 @@ export async function runImmutableAuditTrailCompatibilityMigration(
       `UPDATE immutable_audit_trail SET performed_by_role = actor_role WHERE performed_by_role IS NULL AND actor_role IS NOT NULL`
     );
   }
+  if (refreshedCols.includes("previous_state") && refreshedCols.includes("data_before")) {
+    await client.execute(
+      `UPDATE immutable_audit_trail SET previous_state = data_before WHERE previous_state IS NULL AND data_before IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("new_state") && refreshedCols.includes("data_after")) {
+    await client.execute(
+      `UPDATE immutable_audit_trail SET new_state = data_after WHERE new_state IS NULL AND data_after IS NOT NULL`
+    );
+  }
+  await safeDropColumn(client, "immutable_audit_trail", "actor");
+  await safeDropColumn(client, "immutable_audit_trail", "actor_role");
+  await safeDropColumn(client, "immutable_audit_trail", "data_before");
+  await safeDropColumn(client, "immutable_audit_trail", "data_after");
   if (refreshedCols.includes("event_timestamp") && refreshedCols.includes("created_at")) {
     await client.execute(
       `UPDATE immutable_audit_trail SET event_timestamp = created_at WHERE event_timestamp IS NULL AND created_at IS NOT NULL AND created_at != 0`
