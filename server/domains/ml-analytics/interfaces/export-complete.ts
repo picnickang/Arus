@@ -7,7 +7,7 @@
 import type { Express } from "express";
 import type { MlAnalyticsConfig } from "./types.js";
 import { logger } from "../../../utils/logger.js";
-import { dbMlAnalyticsStorage, dbDevicesStorage } from "../../../repositories.js";
+import { mlAnalyticsService } from "../application/index.js";
 
 export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsConfig) {
   const { adaptiveTrainingWindow } = config;
@@ -20,19 +20,8 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
       const { db } = await import("../../../db.js");
       const { eq } = await import("drizzle-orm");
 
-      const [
-        mlModels,
-        failurePredictions,
-        anomalyDetections,
-        thresholdOptimizations,
-        pdmScores,
-        telemetryData,
-      ] = await Promise.all([
-        dbMlAnalyticsStorage.getMlModels(orgId as string),
-        dbMlAnalyticsStorage.getFailurePredictions(orgId as string),
-        dbMlAnalyticsStorage.getAnomalyDetections(orgId as string),
-        dbMlAnalyticsStorage.getThresholdOptimizations(orgId as string),
-        dbDevicesStorage.getPdmScores(),
+      const [datasets, telemetryData] = await Promise.all([
+        mlAnalyticsService.getCompleteExportDatasets(orgId as string),
         db
           .select({
             id: rawTelemetry.id,
@@ -48,6 +37,9 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
           .innerJoin(vessels, eq(rawTelemetry.vessel, vessels.id))
           .where(eq(vessels.orgId, orgId as string)),
       ]);
+
+      const { mlModels, failurePredictions, anomalyDetections, thresholdOptimizations, pdmScores } =
+        datasets;
 
       const enrichedModels = mlModels.map((model) => {
         const hyperparams = (model.hyperparameters ?? {}) as Record<string, unknown>;

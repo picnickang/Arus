@@ -1,7 +1,8 @@
 /**
  * ML Analytics - Threshold Optimization Routes
  *
- * CRUD operations for threshold optimizations.
+ * CRUD operations for threshold optimizations. Data access lives in the
+ * application service; this layer only handles HTTP concerns + validation.
  */
 
 import type { Express } from "express";
@@ -9,7 +10,7 @@ import { insertThresholdOptimizationSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import { authenticatedRequest } from "../../../middleware/auth";
-import { dbMlAnalyticsStorage } from "../../../repositories.js";
+import { mlAnalyticsService } from "../application/index.js";
 
 export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig) {
   const { writeOperationRateLimit } = config;
@@ -18,15 +19,13 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations",
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId, equipmentId, status } = req.query;
-      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
-        orgId as string,
-        equipmentId as string,
-        status as string
+      res.json(
+        await mlAnalyticsService.listThresholds(
+          orgId as string,
+          equipmentId as string,
+          status as string
+        )
       );
-      const { normalizeThresholdOptimizations } = await import(
-        "../../../analytics-data-normalizer.js"
-      );
-      res.json(normalizeThresholdOptimizations(optimizations));
     })
   );
 
@@ -34,17 +33,14 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations/:id",
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId } = req.query;
-      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
+      const optimization = await mlAnalyticsService.getThreshold(
         Number.parseInt(req.params["id"] ?? ""),
         orgId as string
       );
       if (!optimization) {
         return sendNotFound(res, "Threshold optimization");
       }
-      const { normalizeThresholdOptimization } = await import(
-        "../../../analytics-data-normalizer.js"
-      );
-      res.json(normalizeThresholdOptimization(optimization));
+      res.json(optimization);
     })
   );
 
@@ -54,14 +50,11 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     withErrorHandling("create threshold optimization", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId, ...optimizationData } = req.body;
       const validatedData = insertThresholdOptimizationSchema.parse(optimizationData);
-      const optimization = await dbMlAnalyticsStorage.createThresholdOptimization(
+      const optimization = await mlAnalyticsService.createThreshold(
         validatedData,
-        orgId
+        orgId as string
       );
-      const { normalizeThresholdOptimization } = await import(
-        "../../../analytics-data-normalizer.js"
-      );
-      res.status(201).json(normalizeThresholdOptimization(optimization));
+      res.status(201).json(optimization);
     })
   );
 
@@ -70,14 +63,11 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     writeOperationRateLimit,
     withErrorHandling("apply threshold optimization", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId } = req.body;
-      const optimization = await dbMlAnalyticsStorage.applyThresholdOptimization(
+      const optimization = await mlAnalyticsService.applyThreshold(
         Number.parseInt(req.params["id"] ?? ""),
-        orgId
+        orgId as string
       );
-      const { normalizeThresholdOptimization } = await import(
-        "../../../analytics-data-normalizer.js"
-      );
-      res.json(normalizeThresholdOptimization(optimization));
+      res.json(optimization);
     })
   );
 }
