@@ -38,6 +38,7 @@ import type { Request, Response, NextFunction } from "express";
 import type { PoolClient } from "pg";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzleNeonWs } from "drizzle-orm/neon-serverless";
+import { isTable } from "drizzle-orm/table";
 import * as schema from "@shared/schema-runtime";
 import {
   isLocalMode,
@@ -62,6 +63,14 @@ const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export type DbContextRequest = Request & { orgId?: string };
 
+// Pass only Table objects to drizzle (mirrors db-config's
+// buildDrizzleRuntimeSchema). The raw schema-runtime namespace also exports
+// zod validators and mode flags; handing those to drizzle's schema processor is
+// unnecessary and brittle (it dereferences non-table exports).
+const drizzleSchema = Object.fromEntries(
+  Object.entries(schema).filter(([, value]) => isTable(value))
+) as typeof schema;
+
 function buildClientDrizzle(client: PoolClient): unknown {
   // node-postgres and neon-serverless both accept a PoolClient and
   // return a drizzle handle with the same query-builder shape as the
@@ -70,9 +79,9 @@ function buildClientDrizzle(client: PoolClient): unknown {
   if (connectionMode === "websocket") {
     // neon-serverless WS driver expects its own PoolClient type; the
     // shape is identical at runtime to pg.PoolClient for our use.
-    return drizzleNeonWs(client as never, { schema });
+    return drizzleNeonWs(client as never, { schema: drizzleSchema });
   }
-  return drizzleNodePg(client, { schema });
+  return drizzleNodePg(client, { schema: drizzleSchema });
 }
 
 /**

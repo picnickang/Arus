@@ -33,6 +33,7 @@ const EMBEDDED = [
 
 const POSTGRES = [
   "tests/integration/asset-anomaly-postgres.test.ts",
+  "tests/integration/pdm-scoring-producer.test.ts",
   "tests/integration/audit-chain-mixed-hash-versions.test.ts",
   "tests/integration/cross-tenant-domains.test.ts",
   "tests/integration/rls-cross-tenant-api.test.ts",
