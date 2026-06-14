@@ -33,6 +33,15 @@ import {
   sendCrewComplianceNotification,
 } from "./crew-notifications.js";
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 class EmailNotificationService {
   private getRecipients(setting: NotificationSetting): string[] {
     const recipients: string[] = [];
@@ -217,7 +226,7 @@ class EmailNotificationService {
       notificationType: "test",
       subject,
       body,
-      bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${body}</p></div>`,
+      bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${escapeHtml(body)}</p></div>`,
       recipients: [input.email],
       status: "pending",
     });
