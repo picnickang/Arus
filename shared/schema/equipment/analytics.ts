@@ -2,17 +2,7 @@
  * Equipment analytics and operating condition schema tables.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  integer,
-  real,
-  timestamp,
-  boolean,
-  index,
-} from "../base";
+import { sql, pgTable, text, varchar, integer, real, timestamp, boolean, index } from "../base";
 import { organizations } from "../core";
 import { parts } from "../inventory";
 import { workOrders } from "../work-orders";

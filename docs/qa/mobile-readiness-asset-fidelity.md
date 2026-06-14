@@ -12,22 +12,22 @@ Production-critical UI must not silently use the fallback asset. The fallback is
 
 ## Inventory
 
-| Asset id | Kind | Registry status | Fidelity status | Source note |
-|---|---|---|---|---|
-| `vessel-atlas` | vessel thumbnail | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `vessel-borealis` | vessel thumbnail | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `vessel-corvus` | vessel thumbnail | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `avatar-alex` | crew avatar | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `avatar-michael` | crew avatar | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `avatar-sarah` | crew avatar | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `avatar-daniel` | crew avatar | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `work-compressor` | work photo | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `work-motor` | work photo | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `work-gauge` | work photo | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `diagram-side-elevation` | vessel diagram | recreated | recreated-approved | Editable visual-match rebuild from locked reference imagery |
-| `telemetry-risk-chart` | chart | recreated | recreated-approved | Editable visual-match rebuild from reference chart composition |
-| `icon-readiness-check` | icon | recreated | recreated-approved | Reference-specific icon recreated from vector primitives |
-| `fallback-generic` | icon | fallback | fallback-approved | Generic ARUS fallback for stale or unavailable reference assets |
+| Asset id                 | Kind             | Registry status | Fidelity status    | Source note                                                     |
+| ------------------------ | ---------------- | --------------- | ------------------ | --------------------------------------------------------------- |
+| `vessel-atlas`           | vessel thumbnail | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `vessel-borealis`        | vessel thumbnail | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `vessel-corvus`          | vessel thumbnail | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `avatar-alex`            | crew avatar      | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `avatar-michael`         | crew avatar      | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `avatar-sarah`           | crew avatar      | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `avatar-daniel`          | crew avatar      | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `work-compressor`        | work photo       | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `work-motor`             | work photo       | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `work-gauge`             | work photo       | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `diagram-side-elevation` | vessel diagram   | recreated       | recreated-approved | Editable visual-match rebuild from locked reference imagery     |
+| `telemetry-risk-chart`   | chart            | recreated       | recreated-approved | Editable visual-match rebuild from reference chart composition  |
+| `icon-readiness-check`   | icon             | recreated       | recreated-approved | Reference-specific icon recreated from vector primitives        |
+| `fallback-generic`       | icon             | fallback        | fallback-approved  | Generic ARUS fallback for stale or unavailable reference assets |
 
 ## Proof Artifacts
 
@@ -48,4 +48,3 @@ Required registry checks:
 ```bash
 npm run test:unit -- tests/unit/mobile-readiness-assets.test.ts
 ```
-

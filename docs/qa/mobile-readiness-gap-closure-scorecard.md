@@ -2,14 +2,14 @@
 
 Scores are evidence-based and should be updated after each full verification run.
 
-| Category | Current target | Status | Evidence |
-|---|---:|---|---|
-| Role-aware navigation | 9.5/10 | Passing locally | Curated link audit plus visible-control crawl pass for five personas |
-| Visual fidelity | 8.5/10 | Evidence generated, pending manual approval | 78 captures and comparison sheets generated under `/private/tmp` |
-| Asset fidelity | 9.0/10 | Evidence generated, pending manual approval | Registry tests pass and asset contact sheet contains 14 assets |
-| Production E2E readiness | 8.5/10 before live run, 9.0/10 after | Harness ready, pending live credentials | Production-gated write audit is discoverable with explicit write opt-in |
-| Responsive layout | 9.0/10 | Passing locally | Visual gate asserts no horizontal overflow at 360, 375, 390, 414, 430, and 768px |
-| Build/test health | 9.0/10 | Passing locally | TypeScript, test TypeScript, Playwright, nav matrix, and build pass |
+| Category                 |                       Current target | Status                                      | Evidence                                                                         |
+| ------------------------ | -----------------------------------: | ------------------------------------------- | -------------------------------------------------------------------------------- |
+| Role-aware navigation    |                               9.5/10 | Passing locally                             | Curated link audit plus visible-control crawl pass for five personas             |
+| Visual fidelity          |                               8.5/10 | Evidence generated, pending manual approval | 78 captures and comparison sheets generated under `/private/tmp`                 |
+| Asset fidelity           |                               9.0/10 | Evidence generated, pending manual approval | Registry tests pass and asset contact sheet contains 14 assets                   |
+| Production E2E readiness | 8.5/10 before live run, 9.0/10 after | Harness ready, pending live credentials     | Production-gated write audit is discoverable with explicit write opt-in          |
+| Responsive layout        |                               9.0/10 | Passing locally                             | Visual gate asserts no horizontal overflow at 360, 375, 390, 414, 430, and 768px |
+| Build/test health        |                               9.0/10 | Passing locally                             | TypeScript, test TypeScript, Playwright, nav matrix, and build pass              |
 
 ## Gap Closure Conditions
 

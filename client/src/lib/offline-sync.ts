@@ -8,7 +8,12 @@ import type {
   SyncConflict,
 } from "./offline-sync-types";
 
-export type { EntityType, OperationType, PendingOperation, SyncConflict } from "./offline-sync-types";
+export type {
+  EntityType,
+  OperationType,
+  PendingOperation,
+  SyncConflict,
+} from "./offline-sync-types";
 
 const DB_NAME = "arus-offline-sync";
 const DB_VERSION = 2;

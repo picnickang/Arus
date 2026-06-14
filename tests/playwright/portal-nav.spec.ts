@@ -17,12 +17,7 @@
 
 import { test, expect, type Page, type Route } from "@playwright/test";
 
-const ADMIN_LABELS = [
-  "System Admin",
-  "Crew Management",
-  "Logistics",
-  "AI Analytics",
-] as const;
+const ADMIN_LABELS = ["System Admin", "Crew Management", "Logistics", "AI Analytics"] as const;
 
 const EMPTY_ATTENTION_WORKFLOW = {
   queues: [],
@@ -246,7 +241,9 @@ test.describe("Portal split landing", () => {
     await expect(page.getByTestId("shell-user-portal")).toHaveCount(0);
   });
 
-  test("User portal shows role-specific mobile readiness items and no admin hubs", async ({ page }) => {
+  test("User portal shows role-specific mobile readiness items and no admin hubs", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginDevUser(page);
 
@@ -262,13 +259,13 @@ test.describe("Portal split landing", () => {
 
     // No admin hub label may leak into the user-portal nav.
     for (const label of ADMIN_LABELS) {
-      await expect(page.getByTestId("mobile-readiness-bottom-nav").getByText(label, { exact: true })).toHaveCount(0);
+      await expect(
+        page.getByTestId("mobile-readiness-bottom-nav").getByText(label, { exact: true })
+      ).toHaveCount(0);
     }
   });
 
-  test("User portal mobile nav routes Logs to the replacement logs screen", async ({
-    page,
-  }) => {
+  test("User portal mobile nav routes Logs to the replacement logs screen", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginDevUser(page);
 
@@ -324,9 +321,7 @@ test.describe("Portal return affordance", () => {
     await resetClientState(page);
   });
 
-  test("profile exposes a switch-portal button that returns to /portal-login", async ({
-    page,
-  }) => {
+  test("profile exposes a switch-portal button that returns to /portal-login", async ({ page }) => {
     await loginDevUser(page);
     await navigateWithinAuthenticatedSpa(page, "/profile");
 

@@ -103,9 +103,7 @@ function readExportedNames(filePath, visited = new Set()) {
       const trimmed = part.trim();
       if (!trimmed) continue;
       // `a: b` binds b; `a = default` binds a — strip default first, then alias.
-      const bound = trimmed.includes(":")
-        ? trimmed.split(":")[1]
-        : trimmed.replace(/=.*$/, "");
+      const bound = trimmed.includes(":") ? trimmed.split(":")[1] : trimmed.replace(/=.*$/, "");
       const simple = bound.trim().match(/^([A-Za-z_$][\w$]*)/);
       if (simple) names.add(simple[1]);
     }

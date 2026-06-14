@@ -1,8 +1,4 @@
-import {
-  dbCrewExtensionsStorage,
-  dbCrewStorage,
-  dbVesselStorage,
-} from "../repositories";
+import { dbCrewExtensionsStorage, dbCrewStorage, dbVesselStorage } from "../repositories";
 import type { SelectCrewAssignment } from "@shared/schema";
 
 export async function loadShiftTemplates(orgId: string, vessels?: string[]) {

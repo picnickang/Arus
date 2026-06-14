@@ -339,16 +339,7 @@ export function useHoursOfRestActions({
       });
       setResult({ error: error instanceof Error ? error.message : String(error) });
     }
-  }, [
-    isVesselSelected,
-    isCrewSelected,
-    rows,
-    meta,
-    queryClient,
-    setSaveStatus,
-    setResult,
-    toast,
-  ]);
+  }, [isVesselSelected, isCrewSelected, rows, meta, queryClient, setSaveStatus, setResult, toast]);
 
   const runCheck = useCallback(async () => {
     if (!meta.crew_id) {

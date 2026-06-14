@@ -68,7 +68,9 @@ export function StormGeoImportHistory({ model }: { model: StormGeoSettingsModel 
             <Upload className="h-5 w-5" />
             Import Weather Data
           </CardTitle>
-          <CardDescription>Upload StormGeo route forecast files (CSV or JSON format)</CardDescription>
+          <CardDescription>
+            Upload StormGeo route forecast files (CSV or JSON format)
+          </CardDescription>
         </div>
         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
           <DialogTrigger asChild>

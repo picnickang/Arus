@@ -1,9 +1,6 @@
 import type { FmccPollingConfig, FmccRawPollData, FmccSnapshot } from "./fmcc-types";
 
-export function buildFmccSnapshot(
-  config: FmccPollingConfig,
-  data: FmccRawPollData
-): FmccSnapshot {
+export function buildFmccSnapshot(config: FmccPollingConfig, data: FmccRawPollData): FmccSnapshot {
   const snapshot: FmccSnapshot = {
     vesselId: config.vesselId,
     orgId: config.orgId,

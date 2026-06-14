@@ -1,4 +1,4 @@
-import { MobilePageShell } from './MobilePageShell';
+import { MobilePageShell } from "./MobilePageShell";
 
 export function MobileAttentionInboxPage() {
   return (

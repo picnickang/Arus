@@ -14,15 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Bell,
-  Shield,
-  Sparkles,
-  Send,
-  ChevronDown,
-  AlertTriangle,
-  Check,
-} from "lucide-react";
+import { Bell, Shield, Sparkles, Send, ChevronDown, AlertTriangle, Check } from "lucide-react";
 import {
   useSchedulingSettingsData,
   type NotificationSettings,

@@ -1,7 +1,4 @@
-import {
-  TrendingDown,
-  Target,
-} from "lucide-react";
+import { TrendingDown, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExportButton } from "@/components/ui/export-button";
 import { ScenarioBanner } from "./ScenarioBanner";
@@ -25,10 +22,7 @@ import { formatDate } from "@/lib/formatters";
 import { useFinanceModeData } from "@/features/analytics";
 import { useQuery } from "@tanstack/react-query";
 import { FinanceModeKpiCards } from "./FinanceModeKpiCards";
-import {
-  type SavingsRecord,
-  SavingsClaimsSection,
-} from "./FinanceModeSavingsClaims";
+import { type SavingsRecord, SavingsClaimsSection } from "./FinanceModeSavingsClaims";
 
 export function FinanceMode() {
   const {
@@ -290,7 +284,6 @@ export function FinanceMode() {
       </CollapsibleSection>
 
       <SavingsClaimsSection savingsRecords={savingsRecords} />
-
     </div>
   );
 }

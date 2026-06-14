@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 
 interface ActionCardProps {
   title: string;
   description?: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
   confidence?: number;
   source?: string;
   timestamp?: string;
@@ -25,32 +25,38 @@ const ActionCard: React.FC<ActionCardProps> = ({
   description,
   severity,
   confidence,
-  source = 'AI',
+  source = "AI",
   timestamp,
   isCached = false,
   onAccept,
   onSnooze,
   onAssign,
   onDetails,
-  className = '',
+  className = "",
 }) => {
   const severityConfig = {
-    high: { color: 'red', icon: '🔴', label: 'HIGH' },
-    medium: { color: 'amber', icon: '🟠', label: 'MEDIUM' },
-    low: { color: 'emerald', icon: '🟢', label: 'LOW' },
+    high: { color: "red", icon: "🔴", label: "HIGH" },
+    medium: { color: "amber", icon: "🟠", label: "MEDIUM" },
+    low: { color: "emerald", icon: "🟢", label: "LOW" },
   };
 
   const config = severityConfig[severity];
 
   return (
-    <div className={`bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden shadow-sm ${className}`}>
+    <div
+      className={`bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden shadow-sm ${className}`}
+    >
       {/* Header */}
       <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg" aria-hidden="true">{config.icon}</span>
+          <span className="text-lg" aria-hidden="true">
+            {config.icon}
+          </span>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded bg-${config.color}-950 text-${config.color}-400`}>
+              <span
+                className={`text-xs font-semibold px-2 py-0.5 rounded bg-${config.color}-950 text-${config.color}-400`}
+              >
                 {config.label}
               </span>
               {confidence && (
@@ -64,11 +70,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
       </div>
 
       {/* Description */}
-      {description && (
-        <div className="px-4 pb-3 text-sm text-zinc-300">
-          {description}
-        </div>
-      )}
+      {description && <div className="px-4 pb-3 text-sm text-zinc-300">{description}</div>}
 
       {/* Fixed Action Bar */}
       <div className="border-t border-zinc-700 bg-zinc-950/50 px-3 py-2 flex flex-wrap gap-2">

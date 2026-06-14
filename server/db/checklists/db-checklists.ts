@@ -301,5 +301,4 @@ export class DatabaseChecklistsStorage extends DatabaseChecklistWorkOrderRecords
       return created;
     });
   }
-
 }

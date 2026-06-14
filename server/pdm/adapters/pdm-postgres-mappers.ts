@@ -1,9 +1,4 @@
-import type {
-  AlertStatus,
-  EvidenceChip,
-  RiskLevel,
-  RiskQueueItem,
-} from "../domain/types";
+import type { AlertStatus, EvidenceChip, RiskLevel, RiskQueueItem } from "../domain/types";
 
 export type RiskQueueStatus = "new" | "active" | "resolved";
 
