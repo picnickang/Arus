@@ -579,6 +579,15 @@
   color: #f87171;
 }
 
+/* Daylight/light legibility: `text-slate-500` muted labels clear AA on pure
+ * white but dip below it on the pale tinted surfaces the screens use
+ * (`bg-*-50` badges, near-white panels) — worst for the outdoor/daylight
+ * brilliance where sunlight contrast matters most. Darken muted labels one
+ * step (→ slate-600) within the mobile shell on the light themes only. */
+:is(.light, .daylight) [data-testid="mobile-readiness-shell"] .text-slate-500 {
+  color: #475569;
+}
+
 /* --- Reduced motion (WCAG 2.1 SC 2.3.3; rough-seas / vestibular safety) ---
  * Crew in heavy seas and motion-sensitive operators can request reduced motion
  * at the OS level. When they do, collapse animation/transition durations to ~0
