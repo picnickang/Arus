@@ -207,7 +207,7 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
 
   it("silently installs the setup exe into a temporary Windows smoke directory", () => {
     expect(windowsWorkflow).toContain("Smoke install ARUS Desktop setup");
-    expect(windowsWorkflow).toContain('Start-Process -FilePath $setup.FullName');
+    expect(windowsWorkflow).toContain("Start-Process -FilePath $setup.FullName");
     expect(windowsWorkflow).toContain('"/S"');
     expect(windowsWorkflow).toContain('"/D=$installDir"');
     expect(windowsWorkflow).toContain("$env:RUNNER_TEMP");

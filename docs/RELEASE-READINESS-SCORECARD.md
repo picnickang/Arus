@@ -16,6 +16,7 @@ fundamentals — type safety, all 20 architecture guards, security invariants, d
 migration down-files, and **1,687 passing tests** (1,543 unit + 144 integration) — are all green.
 
 **Active blockers (must clear before ship):**
+
 1. `format:check` — **108 files** violate `.prettierrc.json` (`printWidth: 100`). → `npm run format`
 2. `check:dead-code` (knip) — **regressed** past baseline (+56 atomic). → remove dead code, or re-baseline
 3. `check:client-wire-parses` — **92 → 93** (one new unparsed `fetch`/`apiRequest`). → Zod-wrap it, or re-baseline
@@ -31,19 +32,19 @@ enforced, Dependency Graph off (C9); high-but-holding debt — 1,967 lint warnin
 
 ## Category scorecard
 
-| # | Category | Status | Evidence (command → live result) |
-|---|----------|:------:|----------------------------------|
-| C1 | Type Safety & Compilation | ✅ PASS | `check` (tsc) 0 · `check:tests` 0 · ts-burndown 0 · explicit-any 0 · casts at baseline (4 prod / 83 test) |
-| C2 | Architecture & Boundary Guards | ✅ PASS | `check:guards` exit 0 — all 20 guards green |
-| C3 | API / Wire Contracts | ❌ FAIL | `check:client-wire-parses` **92 → 93 (+1)**. api-contracts 552, server-wire 285, route-contract (114 unmatched, no new drift), hex-storage 145/145, raw-fetch 16, envelope 36 — all hold |
-| C4 | Data Layer & Dual-Schema | ✅ PASS | `check:schema` parity ok · drizzle-config · schema-builders · rls-coverage · `check:dup-types` 8/8 canonicals = 1, 225 tracked dup ≤ baseline |
-| C5 | Migration & Rollback Safety | ✅ PASS\* | LR-1A: 49 up-migrations, **0 missing `.down.sql`**. \*reversibility advisory-only — see caveat |
-| C6 | Test Suite Health | ✅ PASS | `test:unit` 159 suites / **1,543** tests / 0 fail · `test:integration:embedded` 17 suites / **144** / 0 fail |
-| C7 | Coverage Depth | ⏳ n/m | 20% threshold configured in `jest.config.mjs`, **not CI-gated**; not measured this run |
-| C8 | Build, Bundle & Deploy | ❌ FAIL | build:renderer ✓ · build:server ✓ · boot-health ✓ (113 modules, 0 fail) · **`size-limit` initial bundle 287.28 kB > 215 kB budget** |
-| C9 | Security Posture (invariants) | ✅ PASS | LR-1B org-id gate (145 route files) · lr35 public-API allowlist pin **60/60** · Ed25519/secure-exec/LLM-redact/const-time sources present |
-| C10 | Dependency & Vuln Posture | ✅ PASS | `npm audit --omit=dev --audit-level=critical` exit 0 — **0 critical**. 13 high + 9 moderate (advisory) |
-| C11 | Hygiene & Debt Ratchets | ❌ FAIL | **`format:check` 108 files** · **`check:dead-code` knip regressed**. lint 0-err / 1,967-warn (≤1,984 ✓), lint-warnings improved, hygiene & ui-ratchets hold |
+| #   | Category                       |  Status   | Evidence (command → live result)                                                                                                                                                         |
+| --- | ------------------------------ | :-------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | Type Safety & Compilation      |  ✅ PASS  | `check` (tsc) 0 · `check:tests` 0 · ts-burndown 0 · explicit-any 0 · casts at baseline (4 prod / 83 test)                                                                                |
+| C2  | Architecture & Boundary Guards |  ✅ PASS  | `check:guards` exit 0 — all 20 guards green                                                                                                                                              |
+| C3  | API / Wire Contracts           |  ❌ FAIL  | `check:client-wire-parses` **92 → 93 (+1)**. api-contracts 552, server-wire 285, route-contract (114 unmatched, no new drift), hex-storage 145/145, raw-fetch 16, envelope 36 — all hold |
+| C4  | Data Layer & Dual-Schema       |  ✅ PASS  | `check:schema` parity ok · drizzle-config · schema-builders · rls-coverage · `check:dup-types` 8/8 canonicals = 1, 225 tracked dup ≤ baseline                                            |
+| C5  | Migration & Rollback Safety    | ✅ PASS\* | LR-1A: 49 up-migrations, **0 missing `.down.sql`**. \*reversibility advisory-only — see caveat                                                                                           |
+| C6  | Test Suite Health              |  ✅ PASS  | `test:unit` 159 suites / **1,543** tests / 0 fail · `test:integration:embedded` 17 suites / **144** / 0 fail                                                                             |
+| C7  | Coverage Depth                 |  ⏳ n/m   | 20% threshold configured in `jest.config.mjs`, **not CI-gated**; not measured this run                                                                                                   |
+| C8  | Build, Bundle & Deploy         |  ❌ FAIL  | build:renderer ✓ · build:server ✓ · boot-health ✓ (113 modules, 0 fail) · **`size-limit` initial bundle 287.28 kB > 215 kB budget**                                                      |
+| C9  | Security Posture (invariants)  |  ✅ PASS  | LR-1B org-id gate (145 route files) · lr35 public-API allowlist pin **60/60** · Ed25519/secure-exec/LLM-redact/const-time sources present                                                |
+| C10 | Dependency & Vuln Posture      |  ✅ PASS  | `npm audit --omit=dev --audit-level=critical` exit 0 — **0 critical**. 13 high + 9 moderate (advisory)                                                                                   |
+| C11 | Hygiene & Debt Ratchets        |  ❌ FAIL  | **`format:check` 108 files** · **`check:dead-code` knip regressed**. lint 0-err / 1,967-warn (≤1,984 ✓), lint-warnings improved, hygiene & ui-ratchets hold                              |
 
 Status legend: ✅ PASS · ❌ FAIL (a blocking gate is red) · ⏳ n/m (not measured this run).
 
@@ -58,7 +59,7 @@ holds is PASS regardless of absolute debt; a ratchet that regresses past its com
 - **Release-blocking** (any FAIL ⇒ HOLD): C1, C2, C3, C4, C6, C8, C9, C10 (critical only), and the
   LR-1A down-file gate within C5. These are exactly the gates the `ci.yml` `lint-and-typecheck`,
   `unit-tests`, `integration-tests`, `build`, and `security.yml` jobs hard-fail on.
-- **Non-blocking → caveat** (FAIL never forces HOLD): C5 migration *reversibility*
+- **Non-blocking → caveat** (FAIL never forces HOLD): C5 migration _reversibility_
   (`check-migrations-reversible.sh`, `continue-on-error: true`), C7 coverage (configured, not gated),
   C9 deferred-ledger items, C10 high/moderate advisories, and the high-but-holding WARN tier of C3/C4/C11.
 - **Decision:** any blocking FAIL → **HOLD** · else any caveat → SHIP WITH CAVEATS · all clean → SHIP.
@@ -132,6 +133,7 @@ tracked, mitigated/upstream-blocked set (`xlsx` surface-hardened, `@dsnp/parquet
 `@tensorflow/tfjs-node`→tar).
 
 **C11 — Hygiene & Debt Ratchets · FAIL.** Two ratchets are red:
+
 - **`format:check` — 108 files** do not match `.prettierrc.json` (`printWidth: 100`); verified as a
   genuine config/format drift (committed files retain 80-column import wrapping). This is a hard CI
   gate (`ci.yml` "Prettier format gate"). Remediation: `npm run format`.
@@ -146,33 +148,33 @@ hygiene at baseline (todo 7, dense-oneliner 1, long-files 0), UI ratchets all �
 
 ## Debt-ratchet appendix (baseline ceiling vs live)
 
-| Ratchet | Baseline | Live | Held? |
-|---------|---------:|-----:|:-----:|
-| ts-burndown (tsc errors) | 0 | 0 | ✅ |
-| explicit-any | 0 | 0 | ✅ |
-| cast-burndown (prod / test) | 4 / 83 | 4 / 83 | ✅ |
-| duplicate types (canonicals / tracked) | 8×1 / ≤ baseline | 8×1 / 225 | ✅ |
-| lint (errors / warnings) | 0 / 1,984 | 0 / 1,967 | ✅ (improved) |
-| hygiene (todo / dense / long-files) | 7 / 1 / 0 | 7 / 1 / 0 | ✅ |
-| ui-ratchets (headers / poll / indexKeys) | 58 / 95 / 51 | 58 / 95 / 51 | ✅ |
-| raw-fetch call sites | 16 | 16 | ✅ |
-| envelope adoption (prefixes) | 36 | 36 | ✅ |
-| hex-storage boundary (files) | 145 | 145 | ✅ |
-| api-contracts (unbacked) | 552 | 552 | ✅ |
-| server-wire-parses | 285 | 285 | ✅ |
-| route-contract drift | no new | no new | ✅ |
-| **client-wire-parses** | **92** | **93** | ❌ |
-| **knip dead-code (exports / types / atomic)** | **2,685 / 1,122 / 3,853** | **2,704 / 1,153 / 3,909** | ❌ |
-| **size-limit — initial app bundle (gzip)** | **215 kB** | **287.28 kB** | ❌ |
-| size-limit — vendor-export / vendor-charts / total | 320 / 150 kB / 1.95 MB | 138 / 123 kB / 1.35 MB | ✅ |
-| **prettier format:check (non-conforming files)** | **0** | **108** | ❌ |
+| Ratchet                                            |                  Baseline |                      Live |     Held?     |
+| -------------------------------------------------- | ------------------------: | ------------------------: | :-----------: |
+| ts-burndown (tsc errors)                           |                         0 |                         0 |      ✅       |
+| explicit-any                                       |                         0 |                         0 |      ✅       |
+| cast-burndown (prod / test)                        |                    4 / 83 |                    4 / 83 |      ✅       |
+| duplicate types (canonicals / tracked)             |          8×1 / ≤ baseline |                 8×1 / 225 |      ✅       |
+| lint (errors / warnings)                           |                 0 / 1,984 |                 0 / 1,967 | ✅ (improved) |
+| hygiene (todo / dense / long-files)                |                 7 / 1 / 0 |                 7 / 1 / 0 |      ✅       |
+| ui-ratchets (headers / poll / indexKeys)           |              58 / 95 / 51 |              58 / 95 / 51 |      ✅       |
+| raw-fetch call sites                               |                        16 |                        16 |      ✅       |
+| envelope adoption (prefixes)                       |                        36 |                        36 |      ✅       |
+| hex-storage boundary (files)                       |                       145 |                       145 |      ✅       |
+| api-contracts (unbacked)                           |                       552 |                       552 |      ✅       |
+| server-wire-parses                                 |                       285 |                       285 |      ✅       |
+| route-contract drift                               |                    no new |                    no new |      ✅       |
+| **client-wire-parses**                             |                    **92** |                    **93** |      ❌       |
+| **knip dead-code (exports / types / atomic)**      | **2,685 / 1,122 / 3,853** | **2,704 / 1,153 / 3,909** |      ❌       |
+| **size-limit — initial app bundle (gzip)**         |                **215 kB** |             **287.28 kB** |      ❌       |
+| size-limit — vendor-export / vendor-charts / total |    320 / 150 kB / 1.95 MB |    138 / 123 kB / 1.35 MB |      ✅       |
+| **prettier format:check (non-conforming files)**   |                     **0** |                   **108** |      ❌       |
 
 ---
 
 ## Environment & coverage caveats
 
 - **Scored in-container** (Node 22.22.2, embedded SQLite, no external Postgres/Redis): C1–C6, C8 (build
-  + bundle + boot-health), C9 invariant pins, C10 audit, C11.
+  - bundle + boot-health), C9 invariant pins, C10 audit, C11.
 - **Verified via CI config, not run locally** (need external Postgres/Redis/browser/Python): the Postgres
   integration lane and `db:migrate` apply, `check-migrations-reversible.sh` (advisory), Playwright
   `e2e-smoke`, the Python ML sidecar, CodeQL / gitleaks / dependency-review (`security.yml`), and Tauri

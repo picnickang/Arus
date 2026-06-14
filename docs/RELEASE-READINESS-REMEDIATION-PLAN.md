@@ -15,15 +15,18 @@
 
 ---
 
-## Phase 1 — Unblock the merge  ·  clears 3 of 4 blocking gates  ·  ~½ day
+## Phase 1 — Unblock the merge · clears 3 of 4 blocking gates · ~½ day
 
-### Task 1.1 — G1 Prettier drift  *(effort XS)*
+### Task 1.1 — G1 Prettier drift _(effort XS)_
+
 - **Do:** `npm run format`, review the diff is formatting-only, commit as `style: prettier --write (printWidth 100 reconcile)`.
 - **Then:** re-run `npm run check:lint-warnings` (formatting can nudge a few line-length warnings; there are 17 of headroom under the 1,984 ceiling).
 - **Accept:** `npm run format:check` exits 0.
 
-### Task 1.2 — G3 Dead-code regression  *(effort S; contains ⚑)*
+### Task 1.2 — G3 Dead-code regression _(effort S; contains ⚑)_
+
 Address per item (do **not** blanket-delete the `ops/` directory — `UniversalOpsShell` is live):
+
 1. **Remove the truly orphaned runtime:** delete `client/src/core/runtime/opsRuntimeMachine.ts` and drop
    `xstate` from `package.json` dependencies (it is imported only by that file). ⚑ confirm no imminent
    plan to use the state machine.
@@ -31,17 +34,19 @@ Address per item (do **not** blanket-delete the `ops/` directory — `UniversalO
    references outside `package*.json`; the sidecar uses `scripts/build-sidecar.mjs`, not pkg). ⚑ confirm
    it is not earmarked for future binary packaging.
 3. **Trim redundant exports:** remove the unused `default` exports from `client/src/components/ops/OpsShell.tsx`,
-   `OpsSidebar.tsx`, `OpsTopBar.tsx` (each is imported by *name* via `UniversalOpsShell.tsx`).
+   `OpsSidebar.tsx`, `OpsTopBar.tsx` (each is imported by _name_ via `UniversalOpsShell.tsx`).
 4. **⚑ Phase-2 compliance components** `client/src/components/ops/ActionCard.tsx` + `OpsStatusRail.tsx`:
    these are referenced as planned maritime-HMI controls (`docs/compliance/Maritime-HMI-Compliance.md`) and a
    playwright spec. **Decide:** (a) wire them into `UniversalOpsShell` now, (b) keep as WIP and add a scoped
    knip ignore with a comment, or (c) remove if abandoned. Default recommendation: (b) until the Phase-2 work lands.
 5. **Spec entry:** add `…/playwright-mobile-guard.spec.ts` to knip's test entry globs (it is a real spec, not dead).
+
 - **Accept:** `npm run check:dead-code` exits 0 (knip back at/under baseline) **without** running
   `--write-baseline`. Re-baseline only if the team consciously accepts residual items.
 - **Also run after:** `npm run check` + `npm run lint` (removing `xstate`/files must not break types/imports).
 
-### Task 1.3 — G4 Unparsed client wire read  *(effort XS–S)*
+### Task 1.3 — G4 Unparsed client wire read _(effort XS–S)_
+
 - The baseline is count-only (`scripts/client-wire-parses-baseline.json` = `{"unparsed":92}`), so pinpoint the
   +1 via `node scripts/check-client-wire-parses.mjs --report` cross-referenced with recent `git log -p` on `client/src`.
 - **Do:** wrap the offending response in its Zod schema (the `validateResponse`/parse pattern the ratchet enforces).
@@ -54,17 +59,19 @@ Address per item (do **not** blanket-delete the `ops/` directory — `UniversalO
 
 ---
 
-## Phase 2 — Initial bundle budget (G2)  ·  the real engineering blocker  ·  1–3 days
+## Phase 2 — Initial bundle budget (G2) · the real engineering blocker · 1–3 days
 
 Current `app-*` 125.7 + `vendor-react-*` 116.9 + `vendor-ui-*` 45.3 = **287.3 kB gzip vs 215 kB**.
 `vendor-react` is near-fixed; the lever is the `app-*` entry chunk.
 
-### Task 2.1 — Measure  *(effort S)*
+### Task 2.1 — Measure _(effort S)_
+
 - Add `rollup-plugin-visualizer` (dev-only) to `vite.config.ts` to break down `app-*` into first-party vs
   ungrouped-vendor contributors. (Today `manualChunks` groups only react / radix+lucide+cmdk / recharts+d3 /
   @tanstack / jspdf+xlsx+pdf-lib; everything else collapses into `app-*`.)
 
-### Task 2.2 — Genuine reduction  *(effort M; the core work)*
+### Task 2.2 — Genuine reduction _(effort M; the core work)_
+
 - **Lazy-load non-first-paint code** reachable synchronously from `client/src/App.tsx` (heavy providers,
   dialogs, admin/analytics surfaces) using the `React.lazy` + Suspense pattern already used for ~22 page chunks.
 - **Defer lib-heavy paths:** ensure libraries only needed by lazy routes are reached via dynamic `import()`,
@@ -72,7 +79,8 @@ Current `app-*` 125.7 + `vendor-react-*` 116.9 + `vendor-ui-*` 45.3 = **287.3 kB
 - **⚑ Vendor re-bucketing is allowed only when it reflects real deferral** (a chunk that genuinely loads
   later), not merely to move bytes out of the measured glob. Renaming to dodge `.size-limit.json` is gate-gaming.
 
-### Task 2.3 — Re-measure & decide  *(⚑)*
+### Task 2.3 — Re-measure & decide _(⚑)_
+
 - `npm run build:renderer && npx size-limit`.
 - If genuinely ≤ 215 kB → done. If the residual is truly first-paint-critical and accepted, **raise the
   budget in `.size-limit.json` with a justifying comment** (honest budget decision, reviewed) — do not re-glob.
@@ -88,7 +96,7 @@ Current `app-*` 125.7 + `vendor-react-*` 116.9 + `vendor-ui-*` 45.3 = **287.3 kB
 
 ---
 
-## Phase 4 — Caveats, by leverage  *(post-ship; ongoing)*
+## Phase 4 — Caveats, by leverage _(post-ship; ongoing)_
 
 1. **G8 repo settings (S):** enable GitHub branch-protection required checks (`lint-and-typecheck`,
    `unit-tests`, `integration-tests`, `build`); enable Dependency Graph, then drop `continue-on-error`
@@ -107,15 +115,15 @@ Current `app-*` 125.7 + `vendor-react-*` 116.9 + `vendor-ui-*` 45.3 = **287.3 kB
 
 ## Acceptance matrix
 
-| Gap | Task | Acceptance gate (must exit 0) |
-|-----|------|-------------------------------|
-| G1 | 1.1 | `npm run format:check` |
-| G3 | 1.2 | `npm run check:dead-code` (no `--write-baseline`) |
-| G4 | 1.3 | `npm run check:client-wire-parses` |
-| G2 | 2.1–2.3 | `npx size-limit` |
-| all blocking | 3 | `npm run check:guards-full` + CI jobs green |
-| G6 | 4.2 | CI coverage step present (≥20%) |
-| G5 | 4.3 | `check-migrations-reversible.sh` blocking (no `continue-on-error`) |
+| Gap          | Task    | Acceptance gate (must exit 0)                                      |
+| ------------ | ------- | ------------------------------------------------------------------ |
+| G1           | 1.1     | `npm run format:check`                                             |
+| G3           | 1.2     | `npm run check:dead-code` (no `--write-baseline`)                  |
+| G4           | 1.3     | `npm run check:client-wire-parses`                                 |
+| G2           | 2.1–2.3 | `npx size-limit`                                                   |
+| all blocking | 3       | `npm run check:guards-full` + CI jobs green                        |
+| G6           | 4.2     | CI coverage step present (≥20%)                                    |
+| G5           | 4.3     | `check-migrations-reversible.sh` blocking (no `continue-on-error`) |
 
 ## Decision points (⚑ — need a human call)
 

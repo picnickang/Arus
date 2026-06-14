@@ -96,7 +96,9 @@ export function TrainedModelsSection({ training: t }: ManagementSectionProps) {
                               : model.modelType}
                         </Badge>
                       </TableCell>
-                      <TableCell>{(model.targetEquipmentType as string | undefined) || "All"}</TableCell>
+                      <TableCell>
+                        {(model.targetEquipmentType as string | undefined) || "All"}
+                      </TableCell>
                       <TableCell>
                         {model.performance?.accuracy ? (
                           <span className="text-sm">
@@ -139,7 +141,9 @@ export function DataExportSection() {
           <Download className="h-5 w-5" />
           Export ML/PDM Data
         </CardTitle>
-        <CardDescription>Export machine learning models and predictions for external use</CardDescription>
+        <CardDescription>
+          Export machine learning models and predictions for external use
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">

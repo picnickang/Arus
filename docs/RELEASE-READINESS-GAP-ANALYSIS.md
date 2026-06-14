@@ -12,18 +12,18 @@ are red at this commit). None are architecture, security, or correctness defects
 reconcile-the-ratchet items (one is a single command) and one is a genuine bundle-size regression.
 Beyond the blockers, **6 caveat gaps** are strategic debt that should be tracked but does not stop a ship.
 
-| Gap | Category | Current → Target | Class | Effort | Risk if shipped as-is |
-|-----|----------|------------------|:-----:|:------:|-----------------------|
-| **G1** Prettier drift | C11 | 108 files → 0 | **BLOCK** | **XS** (1 cmd) | None functional; blocks every PR merge |
-| **G2** Initial bundle over budget | C8 | 287.3 kB → ≤215 kB (−72 kB) | **BLOCK** | **M–L** | Slower first paint, worst on VESSEL/low-bandwidth |
-| **G3** Dead-code regression (knip) | C11 | +56 atomic → baseline | **BLOCK** | **S** | Ships unwired feature + unused dep |
-| **G4** Unparsed client wire read | C3 | 93 → ≤92 | **BLOCK** | **XS–S** | One unvalidated client response |
-| G5 No rollback proof | C5 | advisory → verified | caveat | L | Down-migrations unproven; risky prod rollback |
-| G6 Coverage ungated | C7 | configured → CI-gated | caveat | S | Coverage can silently rot |
-| G7 HIGH dependency advisories | C10 | 13 high → 0/waived | caveat | M (upstream-blocked) | Known, surface-mitigated CVEs remain |
-| G8 Security-ledger deferred | C9 | open → closed | caveat | S–M | Branch protection/dep-graph not enforced |
-| G9 Dual-schema drift | C4 | 5 tbl + 29 col → 0 | caveat | M | CLOUD/VESSEL parity holes |
-| G10 High-but-holding debt | C3/C11 | 1.9k warn, 552 unbacked | caveat | L (burndown) | Slows change; not a regression |
+| Gap                                | Category | Current → Target            |   Class   |        Effort        | Risk if shipped as-is                             |
+| ---------------------------------- | -------- | --------------------------- | :-------: | :------------------: | ------------------------------------------------- |
+| **G1** Prettier drift              | C11      | 108 files → 0               | **BLOCK** |    **XS** (1 cmd)    | None functional; blocks every PR merge            |
+| **G2** Initial bundle over budget  | C8       | 287.3 kB → ≤215 kB (−72 kB) | **BLOCK** |       **M–L**        | Slower first paint, worst on VESSEL/low-bandwidth |
+| **G3** Dead-code regression (knip) | C11      | +56 atomic → baseline       | **BLOCK** |        **S**         | Ships unwired feature + unused dep                |
+| **G4** Unparsed client wire read   | C3       | 93 → ≤92                    | **BLOCK** |       **XS–S**       | One unvalidated client response                   |
+| G5 No rollback proof               | C5       | advisory → verified         |  caveat   |          L           | Down-migrations unproven; risky prod rollback     |
+| G6 Coverage ungated                | C7       | configured → CI-gated       |  caveat   |          S           | Coverage can silently rot                         |
+| G7 HIGH dependency advisories      | C10      | 13 high → 0/waived          |  caveat   | M (upstream-blocked) | Known, surface-mitigated CVEs remain              |
+| G8 Security-ledger deferred        | C9       | open → closed               |  caveat   |         S–M          | Branch protection/dep-graph not enforced          |
+| G9 Dual-schema drift               | C4       | 5 tbl + 29 col → 0          |  caveat   |          M           | CLOUD/VESSEL parity holes                         |
+| G10 High-but-holding debt          | C3/C11   | 1.9k warn, 552 unbacked     |  caveat   |     L (burndown)     | Slows change; not a regression                    |
 
 Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day/coordination.
 
@@ -32,6 +32,7 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
 ## Blocking gaps (must close before SHIP)
 
 ### G1 — Prettier format drift · 108 files · C11
+
 - **Gap:** `npm run format:check` fails on 108 files; the CI "Prettier format gate" (`ci.yml:63`) is red.
 - **Root cause:** `.prettierrc.json` sets `printWidth: 100` (file last modified Jun 9) but the 108 files
   retain 80-column import/line wrapping — a config bump without a full reformat. Verified via diff
@@ -41,19 +42,21 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
   "format-only" commit so it doesn't muddy a feature diff. Re-check `check:lint-warnings` after (formatting
   can shift a handful of line-length-sensitive warnings, but the ratchet has 17 warnings of headroom).
 
-### G2 — Initial app bundle over budget · +72 kB · C8 *(the only "real engineering" blocker)*
+### G2 — Initial app bundle over budget · +72 kB · C8 _(the only "real engineering" blocker)_
+
 - **Gap:** `size-limit` "Initial app bundle (entry + critical vendor chunks)" = **287.28 kB gzip vs 215 kB
   budget (+72 kB, ~34% over)**. Composition (vite gzip):
 
-  | Chunk (size-limit glob) | gzip |
-  |---|---:|
-  | `app-*.js` (app entry) | 125.7 kB |
-  | `vendor-react-*.js` | 116.9 kB |
-  | `vendor-ui-*.js` | 45.3 kB |
-  | **initial total** | **≈287.9 kB** |
+  | Chunk (size-limit glob) |          gzip |
+  | ----------------------- | ------------: |
+  | `app-*.js` (app entry)  |      125.7 kB |
+  | `vendor-react-*.js`     |      116.9 kB |
+  | `vendor-ui-*.js`        |       45.3 kB |
+  | **initial total**       | **≈287.9 kB** |
 
   (Other budgets pass: vendor-export 138/320, vendor-charts 123/150, total JS 1.35 MB/1.95 MB. Heaviest
-  *lazy* chunk is `index-Ic-LIlS8.js` at 160 kB gzip — outside the initial budget, so it does not count here.)
+  _lazy_ chunk is `index-Ic-LIlS8.js` at 160 kB gzip — outside the initial budget, so it does not count here.)
+
 - **Root cause:** the `app-*` entry chunk (125.7 kB) carries more than first-paint-critical code; `vendor-react`
   (116.9 kB) is near-fixed cost, `vendor-ui` (45.3 kB) is the Radix/UI layer.
 - **Close it (in priority order):**
@@ -68,9 +71,10 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
   links). This is the gap most worth fixing properly rather than waiving.
 
 ### G3 — Dead-code regression (knip) · C11
+
 - **Gap:** `check:dead-code` regressed past baseline: files 0→4, dependencies 0→1, devDependencies 0→1,
   exports 2685→2704, types 1122→1153 (+56 atomic). CI `dead-code` job is red.
-- **Root cause (concrete — refined after import-graph check; see remediation plan):** a *mix* of truly
+- **Root cause (concrete — refined after import-graph check; see remediation plan):** a _mix_ of truly
   dead code and intentional-but-unwired code. Note `UniversalOpsShell` **is** wired (`App.tsx:336`) and
   imports `OpsShell/OpsSidebar/OpsTopBar` by name, so those files are NOT dead — knip only flags their
   **redundant `default` exports**. knip's hits break down as:
@@ -87,6 +91,7 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
 - **Effort S · Risk:** ships an unused state-machine dependency and a half-built feature surface.
 
 ### G4 — Unparsed client wire read · C3
+
 - **Gap:** `check:client-wire-parses` regressed 92→93 — one new `await fetch(...)`/`apiRequest(...)`
   whose response is not validated through a Zod parse.
 - **Root cause:** a recently-added client read skipped the `validateResponse`/schema step the ratchet enforces.
@@ -103,7 +108,7 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
 
 - **G5 — Rollback unproven (C5).** LR-1A passes (49/49 down-files exist) but `check-migrations-reversible.sh`
   is advisory and a from-empty replay fails at `0001` (numbered SQL ALTERs tables the `drizzle-kit push`
-  baseline created). *Highest-value caveat:* there is no automated proof a rollback restores schema. Closing
+  baseline created). _Highest-value caveat:_ there is no automated proof a rollback restores schema. Closing
   it means reconciling the push-baseline vs numbered-migration mechanisms (tracked in
   `docs/SECURITY-REVIEW-FOLLOWUPS.md`). **Effort L.**
 - **G6 — Coverage ungated (C7).** A 20% threshold is configured in `jest.config.mjs` but no CI job runs
@@ -136,6 +141,6 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
    G5 (rollback proof — highest operational value), G9 (schema parity), G7 (dependency swaps), G10 (ongoing).
 
 **Bottom line:** the gap to a mergeable branch is small and mostly mechanical — one format command, one
-dead-feature cleanup, one wire-parse fix. The gap to a *confident* ship is G2 (bundle) plus the operational
+dead-feature cleanup, one wire-parse fix. The gap to a _confident_ ship is G2 (bundle) plus the operational
 caveat G5 (rollback proof). The engine room (types, 20 guards, security invariants, 1,687 passing tests,
 0 critical CVEs) needs no remediation.

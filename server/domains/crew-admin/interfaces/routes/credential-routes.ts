@@ -17,7 +17,10 @@ import {
   type CrewAdminRouteContext,
 } from "./shared";
 
-export function registerCrewAdminCredentialRoutes(app: Express, context: CrewAdminRouteContext): void {
+export function registerCrewAdminCredentialRoutes(
+  app: Express,
+  context: CrewAdminRouteContext
+): void {
   const { generalApiRateLimit, writeLimit } = context;
   /* ----------------------------- Credentials ----------------------- */
 

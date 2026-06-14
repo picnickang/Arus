@@ -30,9 +30,7 @@ describe("mobile readiness visual fidelity contract", () => {
       "settings",
     ];
 
-    expect(MOBILE_READINESS_VISUAL_COMPARISON_ROOT).toBe(
-      "/private/tmp/arus-visual-comparison"
-    );
+    expect(MOBILE_READINESS_VISUAL_COMPARISON_ROOT).toBe("/private/tmp/arus-visual-comparison");
     expect(MOBILE_READINESS_VISUAL_VIEWPORT).toEqual({ width: 390, height: 844 });
     expect(MOBILE_READINESS_VISUAL_VIEWPORTS).toEqual([
       { width: 360, height: 800 },
@@ -60,13 +58,9 @@ describe("mobile readiness visual fidelity contract", () => {
   test("maps each visual case to an existing Figma/reference-board artifact", () => {
     for (const visualCase of mobileReadinessVisualFidelityCases) {
       expect(isMobileReadinessReplacementPath(visualCase.route)).toBe(true);
-      expect(getMobileReadinessExpectedScreen(visualCase.route)).toBe(
-        visualCase.screenMarker
-      );
+      expect(getMobileReadinessExpectedScreen(visualCase.route)).toBe(visualCase.screenMarker);
       expect(path.isAbsolute(visualCase.referenceArtifact)).toBe(false);
-      expect(fs.existsSync(path.resolve(process.cwd(), visualCase.referenceArtifact))).toBe(
-        true
-      );
+      expect(fs.existsSync(path.resolve(process.cwd(), visualCase.referenceArtifact))).toBe(true);
     }
   });
 });

@@ -1,10 +1,4 @@
-import {
-  MarkerType,
-  applyNodeChanges,
-  type Edge,
-  type Node,
-  type NodeChange,
-} from "reactflow";
+import { MarkerType, applyNodeChanges, type Edge, type Node, type NodeChange } from "reactflow";
 import type { Equipment, EquipmentDependency } from "@shared/schema";
 
 export type DependencyWithEditor = EquipmentDependency & {
@@ -189,8 +183,8 @@ export function buildDependencyEdges(dependencies: DependencyWithEditor[]): Edge
 }
 
 export function changesAffectLayout(changes: NodeChange[]): boolean {
-  return changes.some((change) =>
-    change.type === "position" || change.type === "remove" || change.type === "add"
+  return changes.some(
+    (change) => change.type === "position" || change.type === "remove" || change.type === "add"
   );
 }
 

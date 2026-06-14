@@ -393,9 +393,10 @@ test.describe("UI nav regression matrix", () => {
               finalUrl = url.pathname + url.search;
 
               if (role !== "system_admin" && !isRegularAllowedTarget(target)) {
-                expect(url.pathname, `${target.href} should redirect regular users to command`).toBe(
-                  "/"
-                );
+                expect(
+                  url.pathname,
+                  `${target.href} should redirect regular users to command`
+                ).toBe("/");
                 return;
               }
 

@@ -111,7 +111,13 @@ function installRuntimeMonitors(page: Page): {
 
 async function firstVisible(locators: Locator[]): Promise<Locator | null> {
   for (const locator of locators) {
-    if ((await locator.count()) > 0 && (await locator.first().isVisible().catch(() => false))) {
+    if (
+      (await locator.count()) > 0 &&
+      (await locator
+        .first()
+        .isVisible()
+        .catch(() => false))
+    ) {
       return locator.first();
     }
   }
@@ -220,7 +226,9 @@ async function auditRouteControls(
     await page.locator(`[data-prod-route-control="${control.auditId}"]`).click();
     await page.waitForTimeout(5_000);
     try {
-      await expect(page).toHaveURL(new RegExp(`${control.expectedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`));
+      await expect(page).toHaveURL(
+        new RegExp(`${control.expectedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`)
+      );
       await assertHealthyPage(page);
       events.push({
         area: "navigation",
@@ -362,9 +370,7 @@ ${rows}
 }
 
 test.describe("production full write interaction audit", () => {
-  test("audits production navigation and write paths with explicit opt-in", async ({
-    browser,
-  }) => {
+  test("audits production navigation and write paths with explicit opt-in", async ({ browser }) => {
     const config = requiredProductionConfig();
     await fs.mkdir(config.evidenceDir, { recursive: true });
     const context = await browser.newContext({

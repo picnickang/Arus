@@ -235,7 +235,9 @@ export function EquipmentFormFields({
                     {...field}
                     value={field.value ?? ""}
                     onChange={(event) =>
-                      field.onChange(event.target.value ? parseFloat(event.target.value) : undefined)
+                      field.onChange(
+                        event.target.value ? parseFloat(event.target.value) : undefined
+                      )
                     }
                     data-testid={`input-${testIdPrefix}purchase-value`}
                   />
@@ -314,7 +316,9 @@ export function EquipmentFormFields({
                       {...field}
                       value={field.value ?? ""}
                       onChange={(event) =>
-                        field.onChange(event.target.value ? parseFloat(event.target.value) : undefined)
+                        field.onChange(
+                          event.target.value ? parseFloat(event.target.value) : undefined
+                        )
                       }
                       data-testid={`input-${testIdPrefix}service-life-hours`}
                     />
@@ -337,7 +341,9 @@ export function EquipmentFormFields({
                       {...field}
                       value={field.value ?? ""}
                       onChange={(event) =>
-                        field.onChange(event.target.value ? parseFloat(event.target.value) : undefined)
+                        field.onChange(
+                          event.target.value ? parseFloat(event.target.value) : undefined
+                        )
                       }
                       data-testid={`input-${testIdPrefix}service-life-years`}
                     />
@@ -388,7 +394,9 @@ export function EquipmentFormFields({
                       {...field}
                       value={field.value ?? ""}
                       onChange={(event) =>
-                        field.onChange(event.target.value ? parseFloat(event.target.value) : undefined)
+                        field.onChange(
+                          event.target.value ? parseFloat(event.target.value) : undefined
+                        )
                       }
                       data-testid={`input-${testIdPrefix}depreciation-rate`}
                     />
@@ -410,7 +418,9 @@ export function EquipmentFormFields({
                       {...field}
                       value={field.value ?? ""}
                       onChange={(event) =>
-                        field.onChange(event.target.value ? parseFloat(event.target.value) : undefined)
+                        field.onChange(
+                          event.target.value ? parseFloat(event.target.value) : undefined
+                        )
                       }
                       data-testid={`input-${testIdPrefix}salvage-value`}
                     />

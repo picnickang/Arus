@@ -1,12 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  Target,
-  TrendingUp,
-} from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, Target, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
