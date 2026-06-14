@@ -21,6 +21,7 @@ import { processTelemetryRollup } from "./telemetry-rollup-processor";
 import { processTelemetryRetention } from "./telemetry-retention-processor";
 import { processTelemetryPartitionMaintenance } from "./telemetry-partition-processor";
 import { processDlqReplay } from "./dlq-replay-processor";
+import { processPdmScoring } from "./pdm-scoring-processor";
 
 export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.AI_EQUIPMENT_ANALYSIS, processEquipmentAnalysis);
@@ -82,6 +83,11 @@ export function registerJobProcessors(): void {
   // handlers re-enter their original org-aware write paths, so the cron
   // payload carries no orgId.
   jobQueue.registerProcessor(JOB_TYPES.DLQ_REPLAY, processDlqReplay, {
+    tenantScope: "fleet-wide",
+  });
+  // Daily PdM scoring sweep — fans out per-org under withTenantContext
+  // internally, so the cron payload carries no orgId.
+  jobQueue.registerProcessor(JOB_TYPES.PDM_SCORING_DAILY, processPdmScoring, {
     tenantScope: "fleet-wide",
   });
 
