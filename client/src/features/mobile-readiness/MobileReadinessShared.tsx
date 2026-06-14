@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ChevronDown, ChevronRight, Menu, type LucideIcon } from "lucide-react";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getMobileReadinessAsset } from "./mobile-readiness-assets";
 import {
   buildMobileReadinessNavigationForVariant,
@@ -193,6 +194,7 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
           {vesselName || roleLabel ? (
             <div className="text-right">
               {vesselName ? (
@@ -240,7 +242,10 @@ export function NavyHeader({
           <div className="truncate text-xl font-extrabold tracking-normal">{title}</div>
           {subtitle ? <div className="truncate text-xs text-blue-100">{subtitle}</div> : null}
         </div>
-        <div className="flex h-11 min-w-11 items-center justify-end gap-2">{right}</div>
+        <div className="flex h-11 min-w-11 items-center justify-end gap-2">
+          <ThemeToggle />
+          {right}
+        </div>
       </div>
     </header>
   );

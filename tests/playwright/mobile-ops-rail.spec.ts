@@ -92,7 +92,11 @@ async function installFixtures(page: Page, theme: "light" | "bridge"): Promise<v
   });
 }
 
-async function loginToMobileRoute(page: Page) {
+function railRegion(page: Page) {
+  return page.getByRole("region", { name: /persistent operational status rail/i });
+}
+
+async function loginToMobileRoute(page: Page, route = "/fleet") {
   await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
   await page.getByTestId("button-card-portal-admin").click();
   await page.getByTestId("input-admin-username").waitFor({ state: "visible" });
@@ -101,13 +105,11 @@ async function loginToMobileRoute(page: Page) {
   await page.getByTestId("button-admin-login").click();
   await page.waitForTimeout(1500);
   // In-SPA navigation to a mobile-readiness replacement route (its own shell).
-  await page.evaluate(() => {
-    window.history.pushState({}, "", "/fleet");
+  await page.evaluate((r) => {
+    window.history.pushState({}, "", r);
     window.dispatchEvent(new PopStateEvent("popstate"));
-  });
-  const rail = page.getByRole("region", { name: /persistent operational status rail/i });
-  await expect(rail).toBeVisible({ timeout: 15000 });
-  return rail;
+  }, route);
+  await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible({ timeout: 15000 });
 }
 
 test.describe("Mobile ops rail @mobile @visual", () => {
@@ -115,7 +117,8 @@ test.describe("Mobile ops rail @mobile @visual", () => {
 
   test("docks above the bottom nav and shows the risk chip", async ({ page }) => {
     await installFixtures(page, "light");
-    const rail = await loginToMobileRoute(page);
+    await loginToMobileRoute(page);
+    const rail = railRegion(page);
     // The rail renders the OpenBridge IEC alert symbol for the critical risk.
     await expect(rail.locator("obi-alert-category-a")).toBeVisible();
     // Docked at the bottom: its lower edge sits at (or above) the nav top edge,
@@ -133,7 +136,8 @@ test.describe("Mobile ops rail @mobile @visual", () => {
 
   test("dims for night under the bridge theme", async ({ page }) => {
     await installFixtures(page, "bridge");
-    const rail = await loginToMobileRoute(page);
+    await loginToMobileRoute(page);
+    const rail = railRegion(page);
     const bg = await rail.evaluate((el) => getComputedStyle(el).backgroundColor);
     const [r, g, b] = (bg.match(/\d+/g) ?? ["255", "255", "255"]).map(Number);
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -144,9 +148,30 @@ test.describe("Mobile ops rail @mobile @visual", () => {
 
   test("surfaces when connectivity drops (offline)", async ({ page, context }) => {
     await installFixtures(page, "light");
-    const rail = await loginToMobileRoute(page);
+    await loginToMobileRoute(page);
+    const rail = railRegion(page);
     await context.setOffline(true);
     await expect(rail.getByText(/offline/i)).toBeVisible({ timeout: 10000 });
     await context.setOffline(false);
+  });
+
+  test("exposes a reachable night-vision control in the mobile header (no 360px overflow)", async ({ page }) => {
+    await installFixtures(page, "bridge");
+    await page.setViewportSize({ width: 360, height: 800 });
+    await loginToMobileRoute(page, "/work-orders");
+    const toggle = page.getByTestId("theme-toggle").first();
+    await expect(toggle).toBeVisible();
+    // Gloved-friendly target.
+    const tbox = await toggle.boundingBox();
+    expect(tbox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // The header control must not push the narrow layout into horizontal scroll.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(overflow, "no horizontal overflow at 360px with the header theme control").toBeLessThanOrEqual(1);
+    // Night-vision (Bridge) is one tap away.
+    await toggle.click();
+    await expect(page.getByTestId("theme-bridge")).toBeVisible();
+    await page.screenshot({ path: "test-results/mobile-header-theme.png" });
   });
 });

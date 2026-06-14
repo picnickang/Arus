@@ -1,20 +1,23 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Browser, type Page, type Route } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
 /**
- * WCAG color-contrast gate for the themed ops chrome (top bar, subnav, status
- * rail) across all four brilliances — light / dark / bridge (night) / daylight.
+ * WCAG color-contrast gate across all four brilliances — light / dark / bridge
+ * (night) / daylight — for both the admin ops chrome (/analytics) and the
+ * mobile-readiness surface (/fleet), so the night-dimming on the phone screens
+ * is held to the same contrast bar as the desktop chrome.
  *
  * axe `color-contrast` reads computed CSS colors (not rendered pixels), so the
- * result is deterministic across environments — a committed baseline is valid
- * for CI. Ratcheted (monotonic-decrease): regenerate with
+ * result is deterministic across environments — committed baselines are valid
+ * for CI. Both baselines ratchet (monotonic-decrease); regenerate with
  *   AXE_CONTRAST_UPDATE=1 npx playwright test axe-contrast
  */
 
 const THEMES = ["light", "dark", "bridge", "daylight"] as const;
-const BASELINE_PATH = path.resolve("tests/playwright/axe-contrast-baseline.json");
+const OPS_BASELINE_PATH = path.resolve("tests/playwright/axe-contrast-baseline.json");
+const MOBILE_BASELINE_PATH = path.resolve("tests/playwright/axe-contrast-mobile-baseline.json");
 const MOBILE = { width: 390, height: 844 };
 
 const ATTENTION = {
@@ -78,7 +81,7 @@ async function installFixtures(page: Page, theme: string): Promise<void> {
   });
 }
 
-async function loginToRail(page: Page): Promise<void> {
+async function submitLogin(page: Page): Promise<void> {
   await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
   await page.getByTestId("button-card-portal-admin").click();
   await page.getByTestId("input-admin-username").waitFor({ state: "visible" });
@@ -86,6 +89,10 @@ async function loginToRail(page: Page): Promise<void> {
   await page.getByTestId("input-admin-password").fill("password");
   await page.getByTestId("button-admin-login").click();
   await page.waitForTimeout(1500);
+}
+
+async function gotoOpsChrome(page: Page): Promise<void> {
+  await submitLogin(page);
   await page.evaluate(() => {
     window.history.pushState({}, "", "/analytics");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -93,38 +100,66 @@ async function loginToRail(page: Page): Promise<void> {
   await expect(page.getByRole("region", { name: /persistent operational status rail/i })).toBeVisible({ timeout: 15000 });
 }
 
-test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
+async function gotoMobileFleet(page: Page): Promise<void> {
+  await submitLogin(page);
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/fleet");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible({ timeout: 15000 });
+}
+
+async function contrastAcrossThemes(
+  browser: Browser,
+  navigate: (page: Page) => Promise<void>
+): Promise<{ perTheme: Record<string, number>; total: number }> {
   const perTheme: Record<string, number> = {};
   let total = 0;
   for (const theme of THEMES) {
     const context = await browser.newContext({ viewport: MOBILE, hasTouch: true, isMobile: true });
     const page = await context.newPage();
     await installFixtures(page, theme);
-    await loginToRail(page);
+    await navigate(page);
     const results = await new AxeBuilder({ page }).withRules(["color-contrast"]).analyze();
-    const count = results.violations.reduce((n, v) => n + v.nodes.length, 0);
-    perTheme[theme] = count;
-    total += count;
+    perTheme[theme] = results.violations.reduce((n, v) => n + v.nodes.length, 0);
+    total += perTheme[theme];
     await context.close();
   }
-  console.log(`axe color-contrast violations: ${JSON.stringify(perTheme)} total=${total}`);
+  return { perTheme, total };
+}
 
+function assertWithinBaseline(baselinePath: string, surface: string, perTheme: Record<string, number>, total: number): void {
   if (process.env.AXE_CONTRAST_UPDATE === "1") {
     fs.writeFileSync(
-      BASELINE_PATH,
+      baselinePath,
       JSON.stringify(
-        { _comment: "WCAG color-contrast violation nodes on /analytics across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.", maxContrastViolations: total, perTheme },
+        {
+          _comment: `WCAG color-contrast violation nodes on ${surface} across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.`,
+          maxContrastViolations: total,
+          perTheme,
+        },
         null,
         2
       ) + "\n"
     );
-    console.log(`[axe-contrast] baseline written: ${total}`);
+    console.log(`[axe-contrast] ${surface} baseline written: ${total}`);
     return;
   }
-
-  const baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
+  const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
   expect(
     total,
-    `color-contrast violations (${total}) exceed baseline (${baseline.maxContrastViolations}). Per theme: ${JSON.stringify(perTheme)}`
+    `${surface} color-contrast violations (${total}) exceed baseline (${baseline.maxContrastViolations}). Per theme: ${JSON.stringify(perTheme)}`
   ).toBeLessThanOrEqual(baseline.maxContrastViolations);
+}
+
+test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
+  const { perTheme, total } = await contrastAcrossThemes(browser, gotoOpsChrome);
+  console.log(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
+  assertWithinBaseline(OPS_BASELINE_PATH, "/analytics", perTheme, total);
+});
+
+test("mobile-readiness screens meet WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
+  const { perTheme, total } = await contrastAcrossThemes(browser, gotoMobileFleet);
+  console.log(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
+  assertWithinBaseline(MOBILE_BASELINE_PATH, "/fleet", perTheme, total);
 });
