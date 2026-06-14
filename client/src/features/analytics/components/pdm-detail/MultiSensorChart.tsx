@@ -42,7 +42,7 @@ function SensorTooltip({ active, payload, unit }: TooltipProps<number, string> &
   if (!point) {
     return null;
   }
-  const ts = point.payload.t as number;
+  const ts = Number(point.payload.t);
   return (
     <div className="rounded-lg border bg-popover p-2 text-xs shadow-lg">
       <p className="font-medium">{format(new Date(ts), "MMM dd HH:mm")}</p>
@@ -153,8 +153,8 @@ export function MultiSensorChart({ sensorData, baselines, isLoading }: MultiSens
         className="grid grid-cols-1 gap-3 md:grid-cols-2"
         data-testid="multi-sensor-chart-loading"
       >
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Skeleton key={i} className="h-[220px] w-full" />
+        {["skeleton-a", "skeleton-b"].map((id) => (
+          <Skeleton key={id} className="h-[220px] w-full" />
         ))}
       </div>
     );

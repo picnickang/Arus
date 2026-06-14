@@ -10,6 +10,10 @@ interface OverviewTabProps {
 
 type OverviewTimeRange = "1h" | "6h" | "24h" | "7d";
 
+function isOverviewTimeRange(value: string): value is OverviewTimeRange {
+  return value === "1h" || value === "6h" || value === "24h" || value === "7d";
+}
+
 /**
  * PdM Overview tab: live multi-sensor telemetry over a selectable window.
  * The time window drives `useOverviewTabData`, which queries
@@ -25,7 +29,11 @@ export function OverviewTab({ equipmentId, healthData }: OverviewTabProps) {
         <h3 className="text-sm font-semibold text-muted-foreground">Sensor telemetry</h3>
         <TimeWindowPicker
           value={timeRange}
-          onChange={(value) => setTimeRange(value as OverviewTimeRange)}
+          onChange={(value) => {
+            if (isOverviewTimeRange(value)) {
+              setTimeRange(value);
+            }
+          }}
           data-testid="overview-time-window"
         />
       </div>
