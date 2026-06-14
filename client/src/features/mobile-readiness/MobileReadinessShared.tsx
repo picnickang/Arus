@@ -541,17 +541,3 @@ export function MiniState({
     </div>
   );
 }
-
-/**
- * Compact sticky page header used by the Phase-3 mobile pages (#59,
- * MobileProfilePage). Kept intentionally simple — title + optional subtitle —
- * so leaky desktop routes have a mobile-safe header without the legacy chrome.
- */
-export function MobilePageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
-      <h1 className="text-lg font-semibold text-slate-950">{title}</h1>
-      {subtitle ? <p className="text-sm text-slate-500">{subtitle}</p> : null}
-    </header>
-  );
-}

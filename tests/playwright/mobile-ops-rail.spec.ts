@@ -191,4 +191,20 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     await page.waitForTimeout(450); // let the slide-in settle for the capture
     await page.screenshot({ path: "test-results/mobile-nav-drawer.png" });
   });
+
+  test("the profile screen exposes real navigation, not placeholder buttons", async ({ page }) => {
+    await installFixtures(page, "light");
+    await loginToMobileRoute(page, "/profile");
+    await expect(page.getByTestId("profile-identity")).toBeVisible();
+    // Quick actions are real wouter links to existing routes (were dead buttons).
+    const settings = page.getByTestId("profile-link-settings");
+    await expect(settings).toHaveAttribute("href", "/system");
+    const box = await settings.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: "test-results/mobile-profile.png" });
+  });
 });
