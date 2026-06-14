@@ -265,7 +265,7 @@ export class AlertSettingsService {
     // emailProviderService is a plaintext transport, so decrypt the stored
     // credentials here (this service owns their encrypted-at-rest storage).
     return {
-      provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp" | "ses",
+      provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp",
       sendgridApiKey: settings.apiKeyEncrypted
         ? decryptSecret(settings.apiKeyEncrypted)
         : undefined,
@@ -295,8 +295,7 @@ export class AlertSettingsService {
     const config = this.buildEmailConfig(settings);
     const hasUsableCreds =
       (config.provider === "sendgrid" && !!config.sendgridApiKey) ||
-      (config.provider === "smtp" && !!config.smtpHost) ||
-      (config.provider === "ses" && !!config.sesAccessKeyId && !!config.sesSecretAccessKey);
+      (config.provider === "smtp" && !!config.smtpHost);
     return hasUsableCreds ? config : null;
   }
 

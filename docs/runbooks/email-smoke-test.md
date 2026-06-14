@@ -9,7 +9,7 @@ the queue transitions correctly after a change.
 ## Background: the email stacks
 
 - **Transport — multi-provider** (`server/services/email-provider-service.ts`):
-  SendGrid/SMTP/SES over plaintext credentials. `alertSettingsService` builds the
+  SendGrid/SMTP over plaintext credentials. `alertSettingsService` builds the
   per-org config from the `alert_settings` table (decrypting stored credentials)
   and drives the alert-settings test endpoints and purchasing→supplier mail
   (`email_queue` + the 30s worker).

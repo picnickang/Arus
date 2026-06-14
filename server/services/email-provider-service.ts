@@ -1,7 +1,7 @@
 /**
  * Multi-Provider Email Service
  *
- * Supports SendGrid, SMTP, and AWS SES for sending emails.
+ * Supports SendGrid and SMTP for sending emails.
  *
  * This is a pure transport: credentials in EmailConfig are expected to be
  * PLAINTEXT. Callers that persist encrypted credentials (see
@@ -11,7 +11,7 @@
 
 import { createTransport, Transporter } from "nodemailer";
 
-export type EmailProvider = "sendgrid" | "smtp" | "ses";
+export type EmailProvider = "sendgrid" | "smtp";
 
 export interface EmailConfig {
   provider: EmailProvider;
@@ -21,9 +21,6 @@ export interface EmailConfig {
   smtpUser?: string | undefined;
   smtpPassword?: string | undefined;
   smtpUseTls?: boolean | undefined;
-  sesAccessKeyId?: string | undefined;
-  sesSecretAccessKey?: string | undefined;
-  sesRegion?: string | undefined;
   fromEmail: string;
   fromName?: string | undefined;
 }
@@ -74,7 +71,6 @@ class EmailProviderService {
   > = {
     sendgrid: (config, payload) => this.sendViaSendGrid(config, payload),
     smtp: (config, payload) => this.sendViaSmtp(config, payload),
-    ses: (config, payload) => this.sendViaSes(config, payload),
   };
 
   async sendEmail(config: EmailConfig, payload: EmailPayload): Promise<SendResult> {
@@ -226,61 +222,6 @@ class EmailProviderService {
     }
   }
 
-  private async sendViaSes(config: EmailConfig, payload: EmailPayload): Promise<SendResult> {
-    const { sesAccessKeyId, sesSecretAccessKey, sesRegion } = config;
-
-    if (!sesAccessKeyId || !sesSecretAccessKey) {
-      return { success: false, error: "AWS SES credentials not configured" };
-    }
-
-    const region = sesRegion || "us-east-1";
-
-    try {
-      // NOSONAR: S5332 - secure:false is correct for port 587 (STARTTLS)
-      // AWS SES SMTP uses STARTTLS which upgrades the connection after initial handshake
-      const transporter = createTransport({
-        host: `email-smtp.${region}.amazonaws.com`,
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        auth: {
-          user: sesAccessKeyId,
-          pass: sesSecretAccessKey,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: config.fromName ? `"${config.fromName}" <${config.fromEmail}>` : config.fromEmail,
-        to: payload.to.join(", "),
-        cc: payload.cc?.join(", "),
-        bcc: payload.bcc?.join(", "),
-        replyTo: payload.replyTo,
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-      });
-
-      log("info", "Email sent via SES", {
-        messageId: info.messageId,
-        recipients: payload.to.length,
-      });
-      return { success: true, messageId: info.messageId, provider: "ses" };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      const isRetriable =
-        errorMessage.includes("ECONNREFUSED") ||
-        errorMessage.includes("ETIMEDOUT") ||
-        errorMessage.includes("throttl");
-      log("error", "SES error", { error: errorMessage, retriable: isRetriable });
-      return {
-        success: false,
-        error: errorMessage,
-        retriable: isRetriable,
-        provider: "ses",
-      };
-    }
-  }
-
   async testConnection(config: EmailConfig): Promise<{ success: boolean; error?: string }> {
     const { provider } = config;
 
@@ -324,38 +265,6 @@ class EmailProviderService {
                     pass: smtpPassword,
                   }
                 : undefined,
-          });
-
-          await transporter.verify();
-          return { success: true };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Connection failed",
-          };
-        }
-      }
-
-      case "ses": {
-        const { sesAccessKeyId, sesSecretAccessKey, sesRegion } = config;
-        if (!sesAccessKeyId || !sesSecretAccessKey) {
-          return { success: false, error: "AWS SES credentials not configured" };
-        }
-
-        const region = sesRegion || "us-east-1";
-
-        try {
-          // NOSONAR: S5332 - secure:false is correct for port 587 (STARTTLS)
-          // AWS SES SMTP uses STARTTLS which upgrades the connection after initial handshake
-          const transporter = createTransport({
-            host: `email-smtp.${region}.amazonaws.com`,
-            port: 587,
-            secure: false,
-            requireTLS: true,
-            auth: {
-              user: sesAccessKeyId,
-              pass: sesSecretAccessKey,
-            },
           });
 
           await transporter.verify();

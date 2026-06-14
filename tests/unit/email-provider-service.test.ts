@@ -237,50 +237,6 @@ describe("sendEmail via SMTP", () => {
   });
 });
 
-describe("sendEmail via SES", () => {
-  it("builds a fresh STARTTLS transporter on every send with the given keys", async () => {
-    sendMailMock.mockResolvedValue({ messageId: "ses-1" });
-    const c = cfg({
-      provider: "ses",
-      sesAccessKeyId: "akid",
-      sesSecretAccessKey: "secret",
-      sesRegion: "ap-southeast-1",
-    });
-
-    await emailProviderService.sendEmail(c, { to: ["a@x.test"], subject: "S", text: "T" });
-    await emailProviderService.sendEmail(c, { to: ["a@x.test"], subject: "S", text: "T" });
-
-    expect(createTransportMock).toHaveBeenCalledTimes(2); // never cached
-    const transportCfg = createTransportMock.mock.calls[0]![0] as Record<string, unknown>;
-    expect(transportCfg).toMatchObject({
-      host: "email-smtp.ap-southeast-1.amazonaws.com",
-      port: 587,
-      secure: false,
-      requireTLS: true,
-    });
-    expect(transportCfg["auth"] as Record<string, string>).toEqual({
-      user: "akid",
-      pass: "secret",
-    });
-  });
-
-  it("classifies ETIMEDOUT as retriable and missing creds as a hard error", async () => {
-    sendMailMock.mockRejectedValueOnce(new Error("ETIMEDOUT"));
-    const retriable = await emailProviderService.sendEmail(
-      cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" }),
-      { to: ["a@x.test"], subject: "S", text: "T" }
-    );
-    expect(retriable).toMatchObject({ success: false, retriable: true, provider: "ses" });
-
-    const missing = await emailProviderService.sendEmail(cfg({ provider: "ses" }), {
-      to: ["a@x.test"],
-      subject: "S",
-      text: "T",
-    });
-    expect(missing).toEqual({ success: false, error: "AWS SES credentials not configured" });
-  });
-});
-
 describe("sendEmail with an unsupported provider", () => {
   it("returns a clear error", async () => {
     const r = await emailProviderService.sendEmail(cfg({ provider: "mailgun" }), {
@@ -333,27 +289,6 @@ describe("testConnection", () => {
     expect(await emailProviderService.testConnection(cfg({ provider: "smtp" }))).toEqual({
       success: false,
       error: "SMTP host not configured",
-    });
-  });
-
-  it("SES: verify resolves, rejects, and missing creds", async () => {
-    verifyMock.mockResolvedValueOnce(true);
-    expect(
-      await emailProviderService.testConnection(
-        cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" })
-      )
-    ).toEqual({ success: true });
-
-    verifyMock.mockRejectedValueOnce(new Error("bad keys"));
-    expect(
-      await emailProviderService.testConnection(
-        cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" })
-      )
-    ).toMatchObject({ success: false, error: "bad keys" });
-
-    expect(await emailProviderService.testConnection(cfg({ provider: "ses" }))).toEqual({
-      success: false,
-      error: "AWS SES credentials not configured",
     });
   });
 });
