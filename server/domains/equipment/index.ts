@@ -3,6 +3,6 @@
  * Exports all equipment domain functionality
  */
 
-export { registerEquipmentRoutes } from "./routes";
+export { registerEquipmentRoutes } from "./interfaces/routes";
 export { equipmentService } from "./service";
 export { equipmentRepository } from "./repository";

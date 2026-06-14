@@ -2,17 +2,17 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 import { LRUCache } from "lru-cache";
-import { equipmentService } from "./service";
+import { equipmentService } from "../service";
 import { insertEquipmentSchema } from "@shared/schema-runtime";
 import {
   authenticatedRequest,
   requireOrgId,
   requireOrgIdAndValidateBody,
-} from "../../middleware/auth";
-import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
-import { requirePermission } from "../permissions/middleware";
-import { enforceQuota } from "../../middleware/tenant-quota";
-import { quotaService } from "../../tenancy/quota-service";
+} from "../../../middleware/auth";
+import { withErrorHandling, handleApiError, sendNotFound } from "../../../lib/route-utils";
+import { requirePermission } from "../../permissions/middleware";
+import { enforceQuota } from "../../../middleware/tenant-quota";
+import { quotaService } from "../../../tenancy/quota-service";
 import { registerEquipmentLifecycleRoutes } from "./lifecycle-routes";
 
 const equipmentCache = new LRUCache<string, object>({ max: 200, ttl: 30_000 });
@@ -210,7 +210,7 @@ export function registerEquipmentRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
 
-      const { RulEngine } = await import("../../rul-engine.js");
+      const { RulEngine } = await import("../../../rul-engine.js");
       const rulEngine = new RulEngine(undefined);
 
       const prediction = await rulEngine.calculateRul(equipmentId, orgId);
@@ -236,7 +236,7 @@ export function registerEquipmentRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { equipmentIds } = batchRulBodySchema.parse(req.body);
 
-      const { RulEngine } = await import("../../rul-engine.js");
+      const { RulEngine } = await import("../../../rul-engine.js");
       const rulEngine = new RulEngine(undefined);
 
       const predictions = await rulEngine.calculateBatchRul(equipmentIds, orgId);
@@ -256,7 +256,7 @@ export function registerEquipmentRoutes(
       const { id: equipmentId } = idParamSchema.parse(req.params);
       const body = degradationBodySchema.parse(req.body);
 
-      const { RulEngine } = await import("../../rul-engine.js");
+      const { RulEngine } = await import("../../../rul-engine.js");
       const rulEngine = new RulEngine(undefined);
 
       await rulEngine.recordDegradation(orgId, equipmentId, body.componentType, {

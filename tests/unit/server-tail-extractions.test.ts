@@ -289,8 +289,8 @@ describe("server tail extractions", () => {
   });
 
   it("keeps equipment lifecycle route groups behind the route module", () => {
-    const routes = read("server/domains/equipment/routes.ts");
-    const lifecycleRoutes = read("server/domains/equipment/lifecycle-routes.ts");
+    const routes = read("server/domains/equipment/interfaces/routes.ts");
+    const lifecycleRoutes = read("server/domains/equipment/interfaces/lifecycle-routes.ts");
 
     expect(routes).toContain('from "./lifecycle-routes"');
     expect(routes).toContain("export function registerEquipmentRoutes");

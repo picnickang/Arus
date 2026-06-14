@@ -116,7 +116,9 @@ beforeAll(async () => {
   // chain: middleware → ALS → `db` Proxy → repository.
   const { requireOrgId } = await import("../../server/middleware/auth");
   const { withDatabaseContext } = await import("../../server/middleware/db-context");
-  const { registerEquipmentRoutes } = await import("../../server/domains/equipment/routes");
+  const { registerEquipmentRoutes } = await import(
+    "../../server/domains/equipment/interfaces/routes"
+  );
 
   app = express();
   app.use(express.json());

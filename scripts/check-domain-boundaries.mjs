@@ -15,7 +15,7 @@ const DOMAINS_DIR = resolve("server/domains");
 
 const ALLOWLIST = [
   "server/domains/crew/interfaces/crew-member-routes.ts::../../permissions/repository.js",
-  "server/domains/equipment/routes.ts::../permissions/middleware",
+  "server/domains/equipment/interfaces/routes.ts::../../permissions/middleware",
   "server/domains/inventory/interfaces/routes.ts::../../permissions/middleware",
   "server/domains/vessels/routes.ts::../permissions/middleware",
   "server/domains/work-orders/interfaces/parts.ts::../../permissions/middleware",
