@@ -1,10 +1,15 @@
 import type { Express, RequestHandler } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
-import { dbNotificationsStorage } from "../../repositories";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
-import { logger } from "../../utils/logger.js";
-import type { RateLimit } from "../../lib/rate-limit-factory";
+import { notificationsAppService } from "../application";
+import type {
+  CreateNotificationSettingsCommand,
+  UpdateNotificationSettingsCommand,
+  CreateNotificationQueueCommand,
+} from "../domain/types";
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
+import { logger } from "../../../utils/logger.js";
+import type { RateLimit } from "../../../lib/rate-limit-factory";
 
 interface RateLimiters {
   writeOperationRateLimit: RateLimit;
@@ -49,7 +54,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const orgId = req.orgId;
       settingsQuerySchema.parse(req.query);
 
-      const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
+      const settings = await notificationsAppService.listSettings(orgId);
       return res.json(settings);
     })
   );
@@ -59,8 +64,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("get notification setting", async (req, res) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const setting = all.find((s) => s.id === id);
+      const setting = await notificationsAppService.getSettingById(orgId, id);
 
       if (!setting) {
         return sendNotFound(res, "Notification setting");
@@ -76,10 +80,10 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("create notification setting", async (req, res) => {
       const orgId = req.orgId;
       const body = settingsBodySchema.parse(req.body);
-      const setting = await dbNotificationsStorage.createNotificationSettings({
+      const setting = await notificationsAppService.createSettings({
         ...body,
         orgId,
-      } as Parameters<typeof dbNotificationsStorage.createNotificationSettings>[0]);
+      } as CreateNotificationSettingsCommand);
       sendCreated(res, setting);
     })
   );
@@ -91,14 +95,13 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
       const body = settingsBodySchema.parse(req.body);
-      const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const existing = all.find((s) => s.id === id);
+      const existing = await notificationsAppService.getSettingById(orgId, id);
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
-      const setting = await dbNotificationsStorage.updateNotificationSettings(
+      const setting = await notificationsAppService.updateSettings(
         id,
-        body as Parameters<typeof dbNotificationsStorage.updateNotificationSettings>[1],
+        body as UpdateNotificationSettingsCommand,
         orgId
       );
       return res.json(setting);
@@ -111,12 +114,11 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("delete notification setting", async (req, res) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const existing = all.find((s) => s.id === id);
+      const existing = await notificationsAppService.getSettingById(orgId, id);
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
-      await dbNotificationsStorage.deleteNotificationSettings(id, orgId);
+      await notificationsAppService.deleteSettings(id, orgId);
       sendDeleted(res);
     })
   );
@@ -128,11 +130,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("get notification queue", async (req, res) => {
       const orgId = req.orgId;
       const filters = queueQuerySchema.parse(req.query);
-      const queue = await dbNotificationsStorage.getNotificationQueue(
-        filters.status,
-        undefined,
-        orgId
-      );
+      const queue = await notificationsAppService.listQueue(filters.status, orgId);
       return res.json(queue);
     })
   );
@@ -143,10 +141,10 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("create notification queue item", async (req, res) => {
       const orgId = req.orgId;
       const body = settingsBodySchema.parse(req.body);
-      const item = await dbNotificationsStorage.createNotificationQueueItem({
+      const item = await notificationsAppService.createQueueItem({
         ...body,
         orgId,
-      } as Parameters<typeof dbNotificationsStorage.createNotificationQueueItem>[0]);
+      } as CreateNotificationQueueCommand);
       sendCreated(res, item);
     })
   );
@@ -157,7 +155,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("delete notification queue item", async (req, res) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      await dbNotificationsStorage.deleteNotificationQueueItem(id, orgId);
+      await notificationsAppService.deleteQueueItem(id, orgId);
       sendDeleted(res);
     })
   );
@@ -168,7 +166,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     "/api/notifications/email/status",
     withErrorHandling("get email notification status", async (req, res) => {
       const { emailNotificationService } = await import(
-        "../../services/email-notification-service"
+        "../../../services/email-notification-service"
       );
       return res.json(emailNotificationService.getStatus());
     })
@@ -179,7 +177,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     writeOperationRateLimit,
     withErrorHandling("process digest queue", async (req, res) => {
       const { emailNotificationService } = await import(
-        "../../services/email-notification-service"
+        "../../../services/email-notification-service"
       );
       const processedCount = await emailNotificationService.processDigestQueue();
       return res.json({ success: true, processedCount });
@@ -191,7 +189,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     writeOperationRateLimit,
     withErrorHandling("retry failed notifications", async (req, res) => {
       const { emailNotificationService } = await import(
-        "../../services/email-notification-service"
+        "../../../services/email-notification-service"
       );
       const { maxAttempts } = retryQuerySchema.parse(req.query);
       const retryCount = await emailNotificationService.retryFailedNotifications(maxAttempts ?? 3);
@@ -210,7 +208,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { email, subject, message } = parsed.data;
 
       const orgId = req.orgId;
-      await dbNotificationsStorage.createNotificationQueueItem({
+      await notificationsAppService.createQueueItem({
         orgId,
         notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",
@@ -221,7 +219,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       });
 
       const { emailNotificationService } = await import(
-        "../../services/email-notification-service"
+        "../../../services/email-notification-service"
       );
       const status = emailNotificationService.getStatus();
 

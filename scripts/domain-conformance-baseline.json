@@ -1,10 +1,10 @@
 {
   "_comment": "Domain layering conformance baseline. The 'full' set may only grow; 'partial' and 'flat' may only shrink. Regenerate with: node scripts/check-domain-conformance.mjs --write-baseline. See docs/adr/003-domain-layering-policy.md.",
-  "generatedAt": "2026-06-14T06:54:14.357Z",
+  "generatedAt": "2026-06-14T07:35:33.048Z",
   "counts": {
-    "full": 17,
+    "full": 18,
     "partial": 7,
-    "flat": 38,
+    "flat": 37,
     "total": 62
   },
   "full": [
@@ -18,6 +18,7 @@
     "equipment-intelligence",
     "inventory",
     "maintenance",
+    "notifications",
     "purchasing",
     "safety-alarms",
     "safety-bulletins",
@@ -58,7 +59,6 @@
     "llm",
     "logbook",
     "ml-pipeline",
-    "notifications",
     "offshore-ops",
     "rms",
     "scheduling",
