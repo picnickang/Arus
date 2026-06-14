@@ -553,6 +553,32 @@
   border-color: var(--border);
 }
 
+/* Night-vision accent legibility: the mobile screens use semantic accent colors
+ * (status badges + KPI values) that are too dark on the dimmed night background,
+ * plus `bg-*-50` badge fills that never dimmed. Within the mobile shell, dim the
+ * pale badge fills and lift the dark accent text to a brighter shade of the same
+ * hue so dark/bridge keep the at-a-glance status colour while clearing WCAG AA.
+ * Light/daylight (no `.dark`) are unaffected. */
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.bg-red-50, .bg-rose-50, .bg-orange-50, .bg-amber-50, .bg-yellow-50, .bg-emerald-50,
+    .bg-green-50, .bg-blue-50, .bg-sky-50, .bg-indigo-50) {
+  background-color: var(--muted);
+}
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.text-blue-700, .text-blue-800, .text-brand, .text-sky-700, .text-indigo-700) {
+  color: #60a5fa;
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.text-emerald-700, .text-emerald-800, .text-green-700) {
+  color: #34d399;
+}
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.text-amber-700, .text-amber-800, .text-yellow-700, .text-orange-700) {
+  color: #fbbf24;
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.text-red-700, .text-red-800, .text-rose-700) {
+  color: #f87171;
+}
+
 /* --- Reduced motion (WCAG 2.1 SC 2.3.3; rough-seas / vestibular safety) ---
  * Crew in heavy seas and motion-sensitive operators can request reduced motion
  * at the OS level. When they do, collapse animation/transition durations to ~0
