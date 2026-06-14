@@ -4,7 +4,7 @@
 
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:MlAnalytics:DbMlAnalytics");
-import { eq, and, sql, type SQL } from "drizzle-orm";
+import { eq, and, ne, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../db-config";
 import {
@@ -106,6 +106,81 @@ export class DatabaseMlAnalyticsStorage {
     }
     return u;
   }
+  /**
+   * Atomically promote `candidateId` to the sole deployed model for its
+   * equipmentType: in one transaction, archive any other currently-deployed
+   * model of that type and mark the candidate deployed. Replaces the previous
+   * non-transactional archive-loop-then-promote, which left the equipmentType
+   * with zero deployed models if the process failed between the two writes.
+   * Returns the promoted row and the ids it replaced.
+   */
+  async promoteMlModel(
+    candidateId: string,
+    equipmentType: string,
+    orgId: string
+  ): Promise<{ promoted: MlModel; replaced: string[] }> {
+    return db.transaction(async (tx) => {
+      const archived = await tx
+        .update(mlModels)
+        .set({ status: "archived", archivedOn: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(mlModels.orgId, orgId),
+            eq(mlModels.equipmentType, equipmentType),
+            eq(mlModels.status, "deployed"),
+            ne(mlModels.id, candidateId)
+          )
+        )
+        .returning({ id: mlModels.id });
+      const [promoted] = await tx
+        .update(mlModels)
+        .set({
+          status: "deployed",
+          deployedOn: new Date(),
+          archivedOn: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(mlModels.id, candidateId), eq(mlModels.orgId, orgId)))
+        .returning();
+      if (!promoted) {
+        throw new Error(`ML Model ${candidateId} not found or access denied`);
+      }
+      return { promoted, replaced: archived.map((a) => a.id) };
+    });
+  }
+
+  /**
+   * Atomically roll back a deployed model: in one transaction, archive
+   * `currentId` and restore `previousId` to deployed — so there is never a
+   * window where neither is the deployed model.
+   */
+  async rollbackMlModel(
+    currentId: string,
+    previousId: string,
+    orgId: string
+  ): Promise<MlModel> {
+    return db.transaction(async (tx) => {
+      await tx
+        .update(mlModels)
+        .set({ status: "archived", archivedOn: new Date(), updatedAt: new Date() })
+        .where(and(eq(mlModels.id, currentId), eq(mlModels.orgId, orgId)));
+      const [restored] = await tx
+        .update(mlModels)
+        .set({
+          status: "deployed",
+          deployedOn: new Date(),
+          archivedOn: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(mlModels.id, previousId), eq(mlModels.orgId, orgId)))
+        .returning();
+      if (!restored) {
+        throw new Error(`ML Model ${previousId} not found or access denied`);
+      }
+      return restored;
+    });
+  }
+
   async deleteMlModel(id: string, orgId: string): Promise<void> {
     const r = await db
       .delete(mlModels)

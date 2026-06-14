@@ -162,24 +162,9 @@ function registerPromoteRoute(router: Router): void {
           return sendBadRequest(res, "Model is missing equipmentType");
         }
 
-        const all = await mlModelStore.getMlModels(req.orgId);
-        const currentlyDeployed = all.filter(
-          (m) =>
-            m.status === "deployed" &&
-            m.equipmentType === candidate.equipmentType &&
-            m.id !== candidate.id
-        );
-
-        for (const prev of currentlyDeployed) {
-          await mlModelStore.updateMlModel(
-            prev.id,
-            { status: "archived", archivedOn: new Date() },
-            req.orgId
-          );
-        }
-        const promoted = await mlModelStore.updateMlModel(
+        const { promoted, replaced } = await mlModelStore.promoteMlModel(
           candidate.id,
-          { status: "deployed", deployedOn: new Date(), archivedOn: null },
+          candidate.equipmentType,
           req.orgId
         );
 
@@ -190,7 +175,7 @@ function registerPromoteRoute(router: Router): void {
           metadata: {
             modelId: candidate.id,
             equipmentType: candidate.equipmentType,
-            replacedIds: currentlyDeployed.map((m) => m.id),
+            replacedIds: replaced,
             proposerUserId: approval.proposerUserId,
             approverUserId: approverId,
           },
@@ -198,7 +183,7 @@ function registerPromoteRoute(router: Router): void {
         return sendSuccess(res, {
           message: "Model promoted",
           model: promoted,
-          replaced: currentlyDeployed.map((m) => m.id),
+          replaced,
           proposerUserId: approval.proposerUserId,
           approverUserId: approverId,
         });
@@ -249,16 +234,7 @@ function registerRollbackRoute(router: Router): void {
           );
         }
 
-        await mlModelStore.updateMlModel(
-          current.id,
-          { status: "archived", archivedOn: new Date() },
-          req.orgId
-        );
-        const restored = await mlModelStore.updateMlModel(
-          previous.id,
-          { status: "deployed", deployedOn: new Date(), archivedOn: null },
-          req.orgId
-        );
+        const restored = await mlModelStore.rollbackMlModel(current.id, previous.id, req.orgId);
         structuredLog("info", `ML model rolled back`, {
           operation: "ml_model_rollback",
           metadata: {
