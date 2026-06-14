@@ -45,6 +45,7 @@ const POSTGRES = [
 const SERVER = [
   "tests/integration/briefing.test.ts",
   "tests/integration/outcome-tracking.test.ts",
+  "tests/integration/email-notifications-api.test.ts",
   "tests/e2e/activity.e2e.ts",
   "tests/e2e/briefing.e2e.ts",
 ];

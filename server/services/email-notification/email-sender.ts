@@ -1,155 +1,183 @@
 /**
  * Email Notification - Email Sending Logic
+ *
+ * Orchestrates the notification_queue / crew / scheduler send path on top of the
+ * multi-provider emailProviderService:
+ *   1. Per-org provider from alert_settings (SendGrid/SMTP/SES) when configured.
+ *   2. Global env SendGrid (SENDGRID_API_KEY) as the default.
+ *   3. Dev mode (log only) when neither is configured.
+ *
+ * sendWithAttachment stays on the env SendGrid path because emailProviderService
+ * has no attachment support yet.
  */
 
 import type { EmailPayload, SendResult, RetryConfig } from "./types.js";
-import { RETRYABLE_STATUS_CODES, DEFAULT_RETRY_CONFIG } from "./types.js";
+import { DEFAULT_RETRY_CONFIG } from "./types.js";
 import { log } from "./logger.js";
+import {
+  emailProviderService,
+  type EmailConfig,
+  type EmailPayload as ProviderEmailPayload,
+} from "../email-provider-service.js";
+import { alertSettingsService } from "../../domains/alerts/settings-service.js";
+
+/** Optional audit metadata recorded alongside a send in alert_email_log. */
+export interface EmailAuditMeta {
+  alertType?: string;
+  severity?: string;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+}
 
 export class EmailSender {
-  private sendGridApiKey: string | null = null;
-  private fromEmail: string = "noreply@arus-marine.com";
-  private emailEnabled: boolean = false;
+  private envSendGridKey: string | null = null;
+  private fromEmail: string = "noreply@arus.io";
   private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG;
 
   constructor() {
-    this.initialize();
-  }
+    this.envSendGridKey = process.env["SENDGRID_API_KEY"] || null;
+    this.fromEmail = process.env["EMAIL_FROM"] || "noreply@arus.io";
 
-  private initialize(): void {
-    this.sendGridApiKey = process.env["SENDGRID_API_KEY"] || null;
-    this.fromEmail = process.env["EMAIL_FROM"] || "noreply@arus-marine.com";
-    this.emailEnabled = !!this.sendGridApiKey;
-
-    if (this.emailEnabled) {
-      log("info", "Initialized with SendGrid");
+    if (this.envSendGridKey) {
+      log("info", "Initialized with SendGrid (env key)");
     } else {
-      log("info", "Running in development mode (logging only)");
+      log("info", "No SENDGRID_API_KEY; using per-org providers or dev mode");
     }
   }
 
-  async sendEmail(payload: EmailPayload): Promise<SendResult> {
-    return this.sendEmailAttempt(payload, 0);
+  /**
+   * Send a notification email. When `orgId` is supplied and that org has a
+   * configured provider, it is used; otherwise we fall back to the global env
+   * SendGrid key, and finally to dev mode (log only). Every send with an orgId
+   * is recorded to the alert_email_log audit trail.
+   */
+  async sendEmail(
+    payload: EmailPayload,
+    orgId?: string,
+    meta?: EmailAuditMeta
+  ): Promise<SendResult> {
+    const result = await this.deliver(payload, orgId);
+    if (orgId) {
+      await this.recordAudit(orgId, payload, result, meta);
+    }
+    return result;
   }
 
-  private async sendEmailAttempt(payload: EmailPayload, attempt: number): Promise<SendResult> {
-    if (!this.emailEnabled || !this.sendGridApiKey) {
-      log("info", "DEV MODE - Would send email", {
-        recipients: payload.to.length,
-        subject: payload.subject,
-      });
-      return { success: true, messageId: `dev-${Date.now()}` };
-    }
-
-    try {
-      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.sendGridApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: payload.to.map((email) => ({ email })) }],
-          from: { email: this.fromEmail },
-          subject: payload.subject,
-          content: [
-            { type: "text/plain", value: payload.text },
-            ...(payload.html ? [{ type: "text/html", value: payload.html }] : []),
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const messageId = response.headers.get("x-message-id") || `sg-${Date.now()}`;
-        log("info", "Email sent successfully", { messageId, recipients: payload.to.length });
-        return { success: true, messageId };
+  private async deliver(payload: EmailPayload, orgId?: string): Promise<SendResult> {
+    if (orgId) {
+      const viaOrg = await this.trySendViaOrgProvider(orgId, payload);
+      if (viaOrg) {
+        return viaOrg;
       }
-      const isRetriable = RETRYABLE_STATUS_CODES.includes(response.status);
-      log("warn", "SendGrid API error", {
-        status: response.status,
-        retriable: isRetriable,
-        attempt,
+    }
+
+    if (this.envSendGridKey) {
+      return emailProviderService.sendEmail(
+        this.envSendGridConfig(),
+        this.toProviderPayload(payload)
+      );
+    }
+
+    log("info", "DEV MODE - Would send email", {
+      recipients: payload.to.length,
+      subject: payload.subject,
+    });
+    return { success: true, messageId: `dev-${Date.now()}` };
+  }
+
+  /**
+   * Record the send to the unified audit trail. Best-effort: an audit failure
+   * never breaks the send.
+   */
+  private async recordAudit(
+    orgId: string,
+    payload: EmailPayload,
+    result: SendResult,
+    meta?: EmailAuditMeta
+  ): Promise<void> {
+    try {
+      await alertSettingsService.logEmail({
+        orgId,
+        alertType: meta?.alertType ?? "notification",
+        severity: meta?.severity ?? "info",
+        recipients: payload.to,
+        subject: payload.subject,
+        status: result.success ? "sent" : "failed",
+        messageId: result.messageId ?? null,
+        errorMessage: result.error ?? null,
+        relatedEntityType: meta?.relatedEntityType ?? null,
+        relatedEntityId: meta?.relatedEntityId ?? null,
+        sentAt: result.success ? new Date() : null,
       });
-      return {
-        success: false,
-        error: `SendGrid error: ${response.status}`,
-        retriable: isRetriable,
-      };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      const isNetworkError =
-        errorMessage.includes("fetch") ||
-        errorMessage.includes("network") ||
-        errorMessage.includes("ECONNREFUSED");
-      log("error", "Email send exception", {
-        error: errorMessage,
-        retriable: isNetworkError,
-        attempt,
+      log("warn", "Failed to write email audit log", {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
       });
-      return {
-        success: false,
-        error: errorMessage,
-        retriable: isNetworkError,
-      };
     }
   }
 
+  private async trySendViaOrgProvider(
+    orgId: string,
+    payload: EmailPayload
+  ): Promise<SendResult | null> {
+    try {
+      const config = await alertSettingsService.resolveOrgEmailConfig(orgId);
+      if (!config) {
+        return null;
+      }
+      return await emailProviderService.sendEmail(config, this.toProviderPayload(payload));
+    } catch (error) {
+      log("warn", "Org email provider failed; falling back to env/dev", {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private envSendGridConfig(): EmailConfig {
+    return {
+      provider: "sendgrid",
+      sendgridApiKey: this.envSendGridKey ?? undefined,
+      fromEmail: this.fromEmail,
+      fromName: "ARUS Marine",
+    };
+  }
+
+  private toProviderPayload(payload: EmailPayload): ProviderEmailPayload {
+    // Build conditionally so `html` is omitted (not set to undefined) when
+    // absent — required under exactOptionalPropertyTypes.
+    const out: ProviderEmailPayload = {
+      to: payload.to,
+      subject: payload.subject,
+      text: payload.text,
+    };
+    if (payload.html !== undefined) {
+      out.html = payload.html;
+    }
+    if (payload.attachments !== undefined) {
+      out.attachments = payload.attachments;
+    }
+    return out;
+  }
+
+  /**
+   * Convenience wrapper for a single-recipient email with one attachment. Routed
+   * through the unified send path so it honours the org's configured provider,
+   * falls back to env/dev, and is audited like every other send.
+   */
   async sendWithAttachment(
     to: string,
     subject: string,
     text: string,
     html: string,
-    attachment: { filename: string; content: Buffer; contentType: string }
+    attachment: { filename: string; content: Buffer; contentType: string },
+    orgId?: string
   ): Promise<SendResult> {
-    if (!this.emailEnabled || !this.sendGridApiKey) {
-      log("info", "DEV MODE - Would send email with attachment", {
-        to,
-        subject,
-        filename: attachment.filename,
-        size: attachment.content.length,
-      });
-      return { success: true, messageId: `dev-${Date.now()}` };
-    }
-
-    try {
-      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.sendGridApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: to }] }],
-          from: { email: this.fromEmail },
-          subject,
-          content: [
-            { type: "text/plain", value: text },
-            { type: "text/html", value: html },
-          ],
-          attachments: [
-            {
-              content: attachment.content.toString("base64"),
-              filename: attachment.filename,
-              type: attachment.contentType,
-              disposition: "attachment",
-            },
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const messageId = response.headers.get("x-message-id") || `sg-${Date.now()}`;
-        log("info", "Email with attachment sent successfully", { messageId, to });
-        return { success: true, messageId };
-      }
-
-      log("warn", "SendGrid API error (attachment)", { status: response.status });
-      return { success: false, error: `SendGrid error: ${response.status}`, retriable: false };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      log("error", "Email send with attachment exception", { error: errorMessage });
-      return { success: false, error: errorMessage, retriable: false };
-    }
+    return this.sendEmail({ to: [to], subject, text, html, attachments: [attachment] }, orgId, {
+      alertType: "attachment",
+    });
   }
 
   getRetryConfig(): RetryConfig {
@@ -157,14 +185,39 @@ export class EmailSender {
   }
 
   isEnabled(): boolean {
-    return this.emailEnabled;
+    return !!this.envSendGridKey;
   }
 
+  /**
+   * Coarse, org-agnostic status: reflects the global env SendGrid key only.
+   * Used as the fallback for getStatusForOrg.
+   */
   getStatus(): { enabled: boolean; provider: string } {
     return {
-      enabled: this.emailEnabled,
-      provider: this.emailEnabled ? "sendgrid" : "development",
+      enabled: !!this.envSendGridKey,
+      provider: this.envSendGridKey ? "sendgrid" : "development",
     };
+  }
+
+  /**
+   * Org-aware status for the /email/status endpoint. Mirrors the send
+   * resolution: reports the org's configured provider when available, otherwise
+   * the global env SendGrid key, otherwise dev-mode. Falls back to the env/dev
+   * status when org config resolution fails (e.g. settings unavailable).
+   */
+  async getStatusForOrg(orgId: string): Promise<{ enabled: boolean; provider: string }> {
+    try {
+      const orgConfig = await alertSettingsService.resolveOrgEmailConfig(orgId);
+      if (orgConfig) {
+        return { enabled: true, provider: orgConfig.provider };
+      }
+    } catch (error) {
+      log("warn", "Org email status resolution failed; using env/dev status", {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return this.getStatus();
   }
 }
 

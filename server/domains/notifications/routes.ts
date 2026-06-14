@@ -170,7 +170,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      return res.json(emailNotificationService.getStatus());
+      return res.json(await emailNotificationService.getStatusForOrg(req.orgId));
     })
   );
 
@@ -181,7 +181,8 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      const processedCount = await emailNotificationService.processDigestQueue();
+      const sent = await emailNotificationService.processPendingNotifications();
+      const processedCount = sent + (await emailNotificationService.processDigestQueue());
       return res.json({ success: true, processedCount });
     })
   );
@@ -210,24 +211,17 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { email, subject, message } = parsed.data;
 
       const orgId = req.orgId;
-      await dbNotificationsStorage.createNotificationQueueItem({
-        orgId,
-        notificationType: "test",
-        subject: subject || "ARUS Marine Test Notification",
-        body: message || "This is a test notification from ARUS Marine.",
-        bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${message || "This is a test notification from ARUS Marine."}</p></div>`,
-        recipients: [email],
-        status: "pending",
-      });
-
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      const status = emailNotificationService.getStatus();
 
-      if (status.enabled) {
-        await emailNotificationService.retryFailedNotifications(1);
-      }
+      // Queue AND process the test row in one step. The previous implementation
+      // queued a "pending" row and then called retryFailedNotifications(1),
+      // which only reprocesses rows already in "failed" status — so the
+      // freshly-queued test row was never attempted (yet the response still
+      // claimed the email had been sent).
+      await emailNotificationService.sendTestNotification({ orgId, email, subject, message });
+      const status = await emailNotificationService.getStatusForOrg(orgId);
 
       return res.json({
         success: true,
@@ -235,7 +229,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         emailEnabled: status.enabled,
         message: status.enabled
           ? "Test notification sent"
-          : "Test notification queued (email not configured - check logs)",
+          : "Test notification queued and processed (email not configured - check logs)",
       });
     })
   );
