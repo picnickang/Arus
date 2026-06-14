@@ -1,38 +1,13 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
-import {
-  getMobileReadinessExpectedScreen,
-  isMobileReadinessReplacementPath,
-} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
+import { isMobileReadinessReplacementPath } from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 import {
   hideDevPerfOverlay,
   installRoleFixtures,
   loginRole,
   navigateWithinAuthenticatedSpa,
-  type PermissionMatrix,
 } from "./helpers/spa-auth";
-
-/**
- * Permission matrix that mirrors the controls an admin-capable role exposes in
- * the mobile shell (kept verbatim from the pre-helper crawl so the same set of
- * route/state controls is enumerated).
- */
-const CRAWL_ADMIN_PERMISSIONS: PermissionMatrix = {
-  crew_members: { view: true, create: true, edit: true, delete: true, export: true },
-  inventory: { view: true, create: true, edit: true, delete: true, export: true },
-  permission_management: { view: true, edit: true },
-  safety_bulletins: { view: true, create: true },
-  vessels: { view: true, edit: true },
-  work_orders: { view: true, create: true, edit: true, delete: true, export: true },
-};
-
-type AuditRole = "super_admin" | "system_admin" | "deck_officer" | "crew_member" | "viewer";
-
-interface RoleScenario {
-  role: AuditRole;
-  adminCapable: boolean;
-  startRoutes: string[];
-}
+import { ROLE_SCENARIOS, expectedScreenTestId } from "./helpers/roles";
 
 interface RouteControlDescriptor {
   auditId: string;
@@ -50,33 +25,6 @@ interface StateButtonDescriptor {
 }
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
-const adminRoutes = [
-  "/",
-  "/fleet",
-  "/vessel-intelligence/mv-atlas/overview",
-  "/vessel-intelligence/mv-atlas/diagrams",
-  "/pdm-platform",
-  "/pdm/equipment/port-generator",
-  "/pdm/equipment/port-generator/telemetry",
-  "/work-orders",
-  "/work-orders/so-4481",
-  "/logs",
-  "/crew-management",
-  "/logistics",
-  "/system",
-] as const;
-
-const roleScenarios: RoleScenario[] = [
-  { role: "super_admin", adminCapable: true, startRoutes: [...adminRoutes] },
-  { role: "system_admin", adminCapable: true, startRoutes: [...adminRoutes] },
-  {
-    role: "deck_officer",
-    adminCapable: false,
-    startRoutes: ["/", "/logs", "/crew-management", "/pdm-platform"],
-  },
-  { role: "crew_member", adminCapable: false, startRoutes: ["/", "/logs"] },
-  { role: "viewer", adminCapable: false, startRoutes: ["/", "/logs"] },
-];
 
 const documentedStateOnlyButton =
   /^(?:Open menu|Pull to refresh|Refresh|Legend|Zones|View section|Filters?|Overview|Machinery|Work|Alerts|Crew|Inventory|Documents|Summary|Health|Trend|Maintenance|Info|Telemetry|Events|Advanced Graph|Raw Data|Sensors|1d|7d|30d|Custom|Compare|Actions|Save Draft|Save Draft Offline|Complete Work|Add|View All|History|Logistics|Vendors|Card view|Table view|View More History|Log Out|Details|Linked|Daily|Engine|Deck|Safety|Compliance|All|Mine|My Work|Overdue|Watch|Blocked|Parts|Review|Done|Open|In Progress|Waiting|Ready|Closed|Intake|Triage|Assigned|CSV|Side elevation|Deck plan|Machinery arrangement|Fire safety|Electrical single-line|Engine Log|Deck Watch|Condition Log|Signoff)$/i;
@@ -92,11 +40,6 @@ function escapedRouteRegex(path: string): RegExp {
   return new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`);
 }
 
-function markerForPath(path: string): string | null {
-  const marker = getMobileReadinessExpectedScreen(path);
-  return marker ? `mobile-readiness-screen-${marker}` : null;
-}
-
 async function expectHealthyPage(page: Page, expectedPath: string): Promise<void> {
   await expect(page).toHaveURL(escapedRouteRegex(expectedPath));
   await expect(page.locator("#root")).not.toBeEmpty();
@@ -105,7 +48,7 @@ async function expectHealthyPage(page: Page, expectedPath: string): Promise<void
   await expect(page.getByTestId("text-admin-hubs-title")).toHaveCount(0);
 
   if (isMobileReadinessReplacementPath(expectedPath)) {
-    const marker = markerForPath(expectedPath);
+    const marker = expectedScreenTestId(expectedPath);
     expect(marker).not.toBeNull();
     await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
     await expect(page.getByTestId(marker!)).toBeVisible();
@@ -211,7 +154,7 @@ async function collectStateButtons(page: Page): Promise<StateButtonDescriptor[]>
 }
 
 test.describe("mobile readiness visible control crawl", () => {
-  for (const scenario of roleScenarios) {
+  for (const scenario of ROLE_SCENARIOS) {
     test(`${scenario.role} visible route-bearing controls and state buttons are wired`, async ({
       page,
     }) => {
@@ -228,7 +171,7 @@ test.describe("mobile readiness visible control crawl", () => {
       await installRoleFixtures(page, {
         role: scenario.role,
         adminCapable: scenario.adminCapable,
-        permissions: scenario.adminCapable ? CRAWL_ADMIN_PERMISSIONS : {},
+        permissions: scenario.permissions,
         hidePerfOverlay: true,
         viewport: MOBILE_VIEWPORT,
         serveDiagnostics: false,

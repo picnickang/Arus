@@ -80,6 +80,11 @@ test.describe("authenticated hub smoke @smoke", () => {
       timeout: 15_000,
     });
 
+    // Hub roots + curated deep links. Entity-specific DEEP_ROUTES (so-4481,
+    // port-generator) are NOT walked here: against an unseeded real backend they
+    // trigger client errors (missing entities) and exercise the data-dependent
+    // detail screens unreliably. Deep-route coverage lives in the mocked visual
+    // deep-routes spec, where the fixtures guarantee content.
     const routes = [...HUBS.map((hub) => hub.hubRoute), ...DEEP_LINKS];
     const failures: string[] = [];
 

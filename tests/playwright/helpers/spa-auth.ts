@@ -30,6 +30,12 @@ export function isBenignConsoleError(text: string): boolean {
   ) {
     return true;
   }
+  // A bare resource-load 404 (missing icon/asset, or a request the single-process
+  // test server dropped under concurrent load). A 404 that actually breaks a page
+  // surfaces via the #root / router-404 render checks, so this only filters noise.
+  if (text.includes("Failed to load resource") && text.includes("404 (Not Found)")) {
+    return true;
+  }
   // Egress-blocked external asset (font/CDN) in the sandbox — environment, not app.
   if (text.includes("Failed to load resource") && text.includes("ERR_CERT")) {
     return true;
@@ -121,6 +127,53 @@ export interface RoleFixtureOptions {
   viewport?: { width: number; height: number };
   /** Serve fixture diagnostics payloads (nav-matrix) vs `[]` (control-crawl). */
   serveDiagnostics?: boolean;
+  /**
+   * Exact-path `/api` → JSON body overrides (checked after diagnostics, before
+   * the `[]` fallback). Use for deep-route fixtures that must render content.
+   */
+  fixtures?: Record<string, unknown>;
+  /**
+   * Endpoint → row count: return an N-row array for a list endpoint (for the
+   * large-dataset stress lane). Keys may include `:id`-style params, matched by
+   * pathname prefix/regex via {@link LARGE_LIST_ENDPOINTS}.
+   */
+  largeLists?: Record<string, number>;
+}
+
+/** List endpoints that drive big tables/lists, eligible for `largeLists` mocking. */
+export const LARGE_LIST_ENDPOINTS: readonly string[] = [
+  "/api/work-orders",
+  "/api/crew",
+  "/api/crew/unified",
+  "/api/parts",
+  "/api/pdm/risk-queue",
+  "/api/pdm/dashboard",
+  "/api/telemetry/history",
+  "/api/notifications",
+  "/api/findings",
+];
+
+/**
+ * Build a deterministic N-row array for a list endpoint. Rows carry fixed,
+ * index-derived values (no Date.now/random) so the payload is stable across
+ * runs — important when a stress page is also screenshotted.
+ */
+const LIST_FIXTURE_STATUSES = ["open", "in_progress", "closed"] as const;
+
+export function makeListFixture(endpoint: string, count: number): unknown[] {
+  const rows: unknown[] = [];
+  for (let i = 0; i < count; i += 1) {
+    rows.push({
+      id: `${endpoint.replace(/[^a-z]/gi, "-")}-${i}`,
+      orgId: "default-org-id",
+      name: `Row ${i}`,
+      status: LIST_FIXTURE_STATUSES[i % LIST_FIXTURE_STATUSES.length],
+      priority: i % 2 === 0 ? "high" : "low",
+      value: i,
+      createdAt: "2026-06-12T00:00:00.000Z",
+    });
+  }
+  return rows;
 }
 
 /**
@@ -221,6 +274,21 @@ export async function installRoleFixtures(page: Page, options: RoleFixtureOption
     if (serveDiagnostics && Object.prototype.hasOwnProperty.call(diagnosticsResponses, path)) {
       await fulfillJson(route, diagnosticsResponses[path]);
       return;
+    }
+
+    if (options.fixtures && Object.prototype.hasOwnProperty.call(options.fixtures, path)) {
+      await fulfillJson(route, options.fixtures[path]);
+      return;
+    }
+
+    if (options.largeLists) {
+      for (const [endpoint, count] of Object.entries(options.largeLists)) {
+        // Match exact path or a `:id`-style sub-path (e.g. /api/pdm/risk-queue/new).
+        if (path === endpoint || path.startsWith(`${endpoint}/`)) {
+          await fulfillJson(route, makeListFixture(endpoint, count));
+          return;
+        }
+      }
     }
 
     await fulfillJson(route, []);
