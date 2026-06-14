@@ -91,29 +91,59 @@ function extractColumns(src) {
 }
 
 function scanDir(dir) {
-  if (!existsSync(dir)) return {};
   const out = {};
-  for (const f of readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"))) {
-    Object.assign(out, extractColumns(readFileSync(join(dir, f), "utf8")));
+  if (!existsSync(dir)) return out;
+  // Recurse into per-domain subdirectories (equipment/, crew/, …); a flat
+  // readdir misses every table defined there (mirrors validate-dual-schema.mjs).
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const filePath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(out, scanDir(filePath));
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      Object.assign(out, extractColumns(readFileSync(filePath, "utf8")));
+    }
   }
   return out;
 }
 
-// Read schema-runtime.ts to find paired tables (mirrors validate-dual-schema.mjs).
-const runtimeSrc = readFileSync(resolve(root, "shared/schema-runtime.ts"), "utf8");
+// Find paired tables exactly the way validate-dual-schema.mjs does: the switched
+// exports live in the schema-runtime tables modules (via pickSchema/cloudOnly),
+// not in the schema-runtime.ts barrel, and statements may span multiple lines.
+const runtimeSrc = [
+  "shared/schema-runtime.ts",
+  "shared/schema-runtime-tables-core.ts",
+  "shared/schema-runtime-tables-operations.ts",
+  "shared/schema-runtime-tables-cloud.ts",
+]
+  .map((rel) => {
+    try {
+      return readFileSync(resolve(root, rel), "utf8");
+    } catch {
+      return "";
+    }
+  })
+  .join("\n");
+
 const switchedPairs = [];
-for (const line of runtimeSrc.split("\n")) {
-  const exportMatch = line.match(/^export const (\w+)\s*=/);
+const runtimeLines = runtimeSrc.split("\n");
+for (let li = 0; li < runtimeLines.length; li++) {
+  const exportMatch = runtimeLines[li].match(/^export const (\w+)\s*=/);
   if (!exportMatch) continue;
   const name = exportMatch[1];
+  let stmt = runtimeLines[li];
+  for (let j = li + 1; j < runtimeLines.length && !stmt.includes(";"); j++) {
+    stmt += "\n" + runtimeLines[j];
+  }
   const isSwitched =
-    line.includes("isLocalMode ?") ||
-    line.includes("isEmbedded ?") ||
-    line.includes("IS_POSTGRES ?") ||
-    line.includes("IS_SQLITE ?");
+    stmt.includes("isLocalMode ?") ||
+    stmt.includes("isEmbedded ?") ||
+    stmt.includes("IS_POSTGRES ?") ||
+    stmt.includes("IS_SQLITE ?") ||
+    stmt.includes("pickSchema(") ||
+    stmt.includes("cloudOnly(");
   if (!isSwitched) continue;
-  const pgMatch = line.match(/pgSchema\.(\w+)/);
-  const sqliteMatch = line.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
+  const pgMatch = stmt.match(/pgSchema\.(\w+)/);
+  const sqliteMatch = stmt.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
   if (pgMatch && sqliteMatch) {
     switchedPairs.push({ name, pgExport: pgMatch[1], sqliteExport: sqliteMatch[1] });
   }
