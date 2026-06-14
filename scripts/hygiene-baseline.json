@@ -6,7 +6,7 @@
     "ts-ignore": 0,
     "ts-expect-error": 0,
     "todo-markers": 7,
-    "dense-oneliners": 1,
+    "dense-oneliners": 0,
     "long-files": 0
   },
   "policy": {
