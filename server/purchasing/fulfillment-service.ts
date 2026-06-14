@@ -132,7 +132,10 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
       .for("update");
 
     if (stockItems.length > 0) {
-      const totalOnHand = stockItems.reduce((s, r) => s + Math.round(r.quantityOnHand ?? 0), 0);
+      // stock.quantityOnHand is numeric(12,3) — do NOT Math.round it. Rounding
+      // each row truncated fractional stock (e.g. 2.5 units), corrupting the
+      // availability check and writing rounded integers back to a decimal column.
+      const totalOnHand = stockItems.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0);
       if (totalOnHand < quantityToFulfill) {
         throw new Error(
           `Insufficient stock. Available: ${totalOnHand}, Requested: ${quantityToFulfill}`
@@ -143,7 +146,7 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
         if (remaining <= 0) {
           break;
         }
-        const onHand = Math.round(row.quantityOnHand ?? 0);
+        const onHand = row.quantityOnHand ?? 0;
         const toDeduct = Math.min(remaining, onHand);
         if (toDeduct > 0) {
           await tx

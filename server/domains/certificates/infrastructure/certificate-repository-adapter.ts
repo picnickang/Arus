@@ -122,26 +122,33 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       .where(and(...conditions));
 
     const now = new Date();
-    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const ninetyDays = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    // Compare against start-of-day, not the current instant. expiryDate is a
+    // DATE (stored at midnight), so a cert expiring TODAY would otherwise read
+    // as already-expired (midnight < now) AND be excluded from "expiring soon"
+    // (midnight >= now is false) — a cert valid through today got
+    // double-misclassified. It is expired only once today has passed it.
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const thirtyDays = new Date(startOfToday.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const ninetyDays = new Date(startOfToday.getTime() + 90 * 24 * 60 * 60 * 1000);
 
     const expired = certs.filter(
       (c) =>
         c.status === "expired" ||
-        (c.expiryDate && new Date(c.expiryDate) < now && c.status === "valid")
+        (c.expiryDate && new Date(c.expiryDate) < startOfToday && c.status === "valid")
     );
     const expiringIn30 = certs.filter(
       (c) =>
         c.status === "valid" &&
         c.expiryDate &&
-        new Date(c.expiryDate) >= now &&
+        new Date(c.expiryDate) >= startOfToday &&
         new Date(c.expiryDate) <= thirtyDays
     );
     const expiringIn90 = certs.filter(
       (c) =>
         c.status === "valid" &&
         c.expiryDate &&
-        new Date(c.expiryDate) >= now &&
+        new Date(c.expiryDate) >= startOfToday &&
         new Date(c.expiryDate) <= ninetyDays
     );
     const surveysDue = certs.filter(
