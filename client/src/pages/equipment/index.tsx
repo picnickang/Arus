@@ -439,11 +439,18 @@ export default function EquipmentPage() {
                     </div>
                   ) : (
                     paginatedEquipment.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleView(item)}
-                        className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent/70 transition-colors"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleView(item);
+                          }
+                        }}
+                        className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent/70 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         data-testid={`card-equipment-${item.id}`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -513,7 +520,7 @@ export default function EquipmentPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </button>
+                      </div>
                     ))
                   )}
                 </div>

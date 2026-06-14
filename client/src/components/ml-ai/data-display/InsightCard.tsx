@@ -8,9 +8,9 @@ import { useState } from "react";
 interface InsightCardProps {
   title: string;
   description: string;
-  bullets: string[];
+  bullets?: string[];
   status: StatusType;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   defaultOpen?: boolean;
   actions?: React.ReactNode;
   className?: string;
@@ -20,7 +20,7 @@ interface InsightCardProps {
 export function InsightCard({
   title,
   description,
-  bullets,
+  bullets = [],
   status,
   icon: Icon,
   defaultOpen = false,
@@ -37,9 +37,11 @@ export function InsightCard({
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="p-2 rounded-lg bg-muted flex-shrink-0">
-                <Icon className="h-5 w-5 text-primary" />
-              </div>
+              {Icon && (
+                <div className="p-2 rounded-lg bg-muted flex-shrink-0">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+              )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
