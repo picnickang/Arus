@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ResponsiveContainer, ReferenceArea } from "recharts";
 import { ReactElement, cloneElement, Children, isValidElement } from "react";
 
-export interface ThresholdBand {
+interface ThresholdBand {
   min: number;
   max: number;
   label?: string | undefined;

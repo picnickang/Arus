@@ -1,6 +1,6 @@
 import { RETRY_BASE_MS } from "./constants";
 
-export class ClientError extends Error {
+class ClientError extends Error {
   constructor(
     message: string,
     public status: number

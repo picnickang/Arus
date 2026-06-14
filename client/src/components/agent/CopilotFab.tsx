@@ -52,20 +52,3 @@ export function CopilotFab() {
     </>
   );
 }
-
-export function useCopilotOpen() {
-  const [state, setState] = useState<{ open: boolean; message: string | null }>({
-    open: false,
-    message: null,
-  });
-
-  const openChat = useCallback((msg?: string) => {
-    setState({ open: true, message: msg || null });
-  }, []);
-
-  const closeChat = useCallback(() => {
-    setState({ open: false, message: null });
-  }, []);
-
-  return { ...state, openChat, closeChat };
-}

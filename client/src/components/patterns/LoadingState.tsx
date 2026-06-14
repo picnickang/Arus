@@ -59,7 +59,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: TableSkeletonProps) {
   );
 }
 
-export function CardSkeleton() {
+function CardSkeleton() {
   return (
     <Card data-testid="card-skeleton">
       <CardHeader>
@@ -81,7 +81,7 @@ interface ListSkeletonProps {
   rows?: number;
 }
 
-export function ListSkeleton({ rows = 5 }: ListSkeletonProps) {
+function ListSkeleton({ rows = 5 }: ListSkeletonProps) {
   return (
     <div className="space-y-3" data-testid="list-skeleton">
       {Array.from({ length: rows }).map((_, i) => (
@@ -98,7 +98,7 @@ export function ListSkeleton({ rows = 5 }: ListSkeletonProps) {
   );
 }
 
-export function FormSkeleton() {
+function FormSkeleton() {
   return (
     <div className="space-y-6" data-testid="form-skeleton">
       {Array.from({ length: 4 }).map((_, i) => (

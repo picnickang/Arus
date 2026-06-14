@@ -52,9 +52,9 @@ function addApiLatency(latency: ApiLatency) {
   notifyApiLatencyListeners();
 }
 
-export const FETCH_WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
+const FETCH_WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
 
-export function installFetchInterceptor(): boolean {
+function installFetchInterceptor(): boolean {
   if (!import.meta.env.DEV) {
     return false;
   }
@@ -150,7 +150,7 @@ export function installFetchInterceptor(): boolean {
   return true;
 }
 
-export function uninstallFetchInterceptor(): void {
+function uninstallFetchInterceptor(): void {
   if (!import.meta.env.DEV) {
     return;
   }
