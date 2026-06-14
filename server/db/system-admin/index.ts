@@ -198,24 +198,30 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
           ? log["errorType"]
           : "application";
     const errorType =
-      typeof log["errorType"] === "string" && log["errorType"]
-        ? log["errorType"]
-        : category;
+      typeof log["errorType"] === "string" && log["errorType"] ? log["errorType"] : category;
     const context =
       isLocalMode && typeof log["context"] === "object" && log["context"] !== null
         ? JSON.stringify(log["context"])
         : log["context"];
     const values = {
       ...log,
-      ...(isLocalMode && { id: typeof log["id"] === "string" ? log["id"] : randomUUID() }),
       category,
       context,
-      createdAt: log["createdAt"] instanceof Date ? log["createdAt"] : now,
-      errorMessage:
-        typeof log["errorMessage"] === "string" && log["errorMessage"] ? log["errorMessage"] : message,
-      errorType,
       message,
       timestamp: log["timestamp"] instanceof Date ? log["timestamp"] : now,
+      // `id`, `createdAt`, `errorMessage`, and `errorType` are SQLite-only
+      // columns — the Postgres error_logs table has none of them, so including
+      // them in a PG insert references non-existent columns and 500s. Gate them
+      // behind local mode (PG fills `id` via its gen_random_uuid() default).
+      ...(isLocalMode && {
+        id: typeof log["id"] === "string" ? log["id"] : randomUUID(),
+        createdAt: log["createdAt"] instanceof Date ? log["createdAt"] : now,
+        errorMessage:
+          typeof log["errorMessage"] === "string" && log["errorMessage"]
+            ? log["errorMessage"]
+            : message,
+        errorType,
+      }),
     };
     const [newLog] = await database
       .insert(errorLogs)
