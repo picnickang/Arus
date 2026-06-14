@@ -25,26 +25,23 @@
  * `docs/qa/ui-nav-matrix.md` so the user can see coverage at a glance.
  */
 
-import { test, expect, type ConsoleMessage, type Page, type Route } from "@playwright/test";
+import { test, expect, type ConsoleMessage, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { navigationCategories, migrateRoute } from "../../client/src/config/navigationConfig";
-import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
 import {
   getMobileReadinessExpectedScreen,
   isMobileReadinessReplacementPath,
 } from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
+import {
+  installRoleFixtures,
+  isBenignConsoleError,
+  loginRole,
+  navigateWithinAuthenticatedSpa,
+} from "./helpers/spa-auth";
+import { buildNavTargets, type NavTarget } from "./helpers/hub-targets";
 
 type RoleKey = "system_admin" | "deck_officer";
-
-interface NavTarget {
-  readonly label: string;
-  readonly href: string;
-  readonly resolved: string;
-  readonly category: string;
-  readonly kind: "hub" | "child";
-}
 
 interface Viewport {
   readonly name: "mobile" | "tablet" | "desktop";
@@ -70,219 +67,7 @@ const VIEWPORTS: readonly Viewport[] = [
 
 const ROLES: readonly RoleKey[] = ["system_admin", "deck_officer"];
 
-/**
- * Build the full list of nav targets from the single source of truth.
- * De-dupe by resolved URL so we don't visit `/foo` twice when two
- * children alias the same destination after `migrateRoute`.
- */
-function buildTargets(): NavTarget[] {
-  const seen = new Set<string>();
-  const out: NavTarget[] = [];
-  for (const cat of navigationCategories) {
-    const hubResolved = migrateRoute(cat.hubRoute);
-    if (!seen.has(hubResolved)) {
-      seen.add(hubResolved);
-      out.push({
-        label: cat.name,
-        href: cat.hubRoute,
-        resolved: hubResolved,
-        category: cat.id,
-        kind: "hub",
-      });
-    }
-    for (const child of cat.children) {
-      const resolvedChild = migrateRoute(child.href);
-      if (seen.has(resolvedChild)) {
-        continue;
-      }
-      seen.add(resolvedChild);
-      out.push({
-        label: child.name,
-        href: child.href,
-        resolved: resolvedChild,
-        category: cat.id,
-        kind: "child",
-      });
-    }
-  }
-  return out;
-}
-
-const NAV_TARGETS = buildTargets();
-
-/**
- * Narrowly-scoped allowlist of known benign dev-only console noise.
- * Mirrors `tests/playwright/smoke.spec.ts` exactly so the matrix
- * inherits the same blast radius — never broaden without review.
- */
-function isBenignConsoleError(text: string): boolean {
-  if (text.includes("Failed to load resource") && text.includes("favicon")) {
-    return true;
-  }
-  if (text.includes("[vite] connecting...")) {
-    return true;
-  }
-  if (text.includes("[vite] connected.")) {
-    return true;
-  }
-  return false;
-}
-
-async function fulfillJson(route: Route, body: unknown, status = 200): Promise<void> {
-  await route.fulfill({
-    status,
-    contentType: "application/json",
-    body: JSON.stringify(body),
-  });
-}
-
-const nowIso = "2026-06-12T00:00:00.000Z";
-const diagnosticsResponses: Record<string, unknown> = {
-  "/api/diagnostics/health": {
-    status: "healthy",
-    timestamp: nowIso,
-    version: "playwright",
-    uptime: 3600,
-    checks: {
-      database: { status: "pass", responseTimeMs: 4, message: "Fixture database healthy" },
-      telemetry: {
-        status: "pass",
-        details: { bufferUtilization: 0 },
-      },
-      memory: {
-        status: "pass",
-        details: { utilizationPercent: 22, heapUsedMB: 128 },
-      },
-      services: [{ name: "API", status: "running", lastHealthCheck: nowIso }],
-    },
-  },
-  "/api/diagnostics/metrics": {
-    memory: {
-      heapUsedMB: 128,
-      heapTotalMB: 512,
-      externalMB: 16,
-      utilizationPercent: 22,
-    },
-    uptime: 3600,
-    nodeVersion: "v20-playwright",
-    timestamp: nowIso,
-  },
-  "/api/diagnostics/telemetry/stats": {
-    batchWriter: {
-      bufferSize: 0,
-      totalQueued: 0,
-      totalFlushed: 0,
-      totalEvicted: 0,
-      totalErrors: 0,
-      totalDropped: 0,
-      lastFlushTime: null,
-      lastFlushDurationMs: 0,
-      lastFlushCount: 0,
-      avgFlushDurationMs: 0,
-      isRunning: true,
-    },
-    health: { bufferUtilization: 0, evictionRate: 0, writeSuccessRate: 100 },
-    timestamp: nowIso,
-  },
-  "/api/diagnostics/test-suites": { suites: [] },
-  "/api/diagnostics/config": {
-    telemetry: {
-      batchIntervalMs: 1000,
-      bufferSize: 1000,
-      evictionPercent: 0.1,
-      maxRetries: 3,
-    },
-    environment: { nodeEnv: "test", deploymentMode: "playwright" },
-    features: { dualDatabase: false, mlPredictions: false, fmccIntegration: false },
-  },
-};
-
-async function installRoleFixtures(page: Page, role: RoleKey): Promise<void> {
-  await page.addInitScript(
-    ({ key, value }) => {
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem(key, value);
-        localStorage.setItem("arus-ui-theme", "dark");
-        localStorage.setItem("arus-setup-complete", "true");
-      } catch {
-        /* private mode — fine */
-      }
-    },
-    { key: ROLE_STORAGE_KEY, value: role }
-  );
-
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname;
-
-    if (path === "/api/portal/login" && request.method() === "POST") {
-      await fulfillJson(route, {
-        sessionToken: `playwright-nav-matrix-${role}`,
-        expiresIn: 3600,
-        mustChangePassword: false,
-        user: {
-          id: `nav-matrix-${role}`,
-          name: role === "system_admin" ? "System Admin" : "Deck Officer",
-          role,
-          orgId: "default-org-id",
-        },
-      });
-      return;
-    }
-
-    if (path === "/api/permissions/me") {
-      const isAdmin = role === "system_admin";
-      await fulfillJson(route, {
-        userId: `nav-matrix-${role}`,
-        orgId: "default-org-id",
-        roles: [{ id: `role-${role}`, name: role, displayName: role }],
-        permissions: isAdmin
-          ? {
-              system: ["view", "create", "edit", "delete", "manage"],
-              admin: ["view", "create", "edit", "delete", "manage"],
-            }
-          : {},
-        hubAdmin: isAdmin,
-        hubAccess: isAdmin ? null : [],
-        isDevMode: false,
-      });
-      return;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(diagnosticsResponses, path)) {
-      await fulfillJson(route, diagnosticsResponses[path]);
-      return;
-    }
-
-    await fulfillJson(route, []);
-  });
-}
-
-async function loginRole(page: Page, role: RoleKey): Promise<void> {
-  await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
-  if (role === "system_admin") {
-    await page.getByTestId("button-card-portal-admin").click();
-    await page.getByTestId("input-admin-username").fill("nav-matrix-admin");
-    await page.getByTestId("input-admin-password").fill("playwright-password");
-    await page.getByTestId("button-admin-login").click();
-  } else {
-    await page.getByTestId("button-card-portal-user").click();
-    await page.getByTestId("input-login-username").fill("nav-matrix-deck");
-    await page.getByTestId("input-login-password").fill("playwright-password");
-    await page.getByTestId("button-login").click();
-  }
-  await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
-}
-
-async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
-  await page.evaluate((target) => {
-    window.history.pushState({}, "", target);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, path);
-}
+const NAV_TARGETS = buildNavTargets();
 
 function markerForPath(path: string): string {
   const marker = getMobileReadinessExpectedScreen(path);
@@ -354,7 +139,7 @@ test.describe("UI nav regression matrix", () => {
       test(`${role} @ ${viewport.name} (${viewport.width}x${viewport.height})`, async ({
         page,
       }) => {
-        await installRoleFixtures(page, role);
+        await installRoleFixtures(page, { role });
         await page.setViewportSize({
           width: viewport.width,
           height: viewport.height,
@@ -393,9 +178,10 @@ test.describe("UI nav regression matrix", () => {
               finalUrl = url.pathname + url.search;
 
               if (role !== "system_admin" && !isRegularAllowedTarget(target)) {
-                expect(url.pathname, `${target.href} should redirect regular users to command`).toBe(
-                  "/"
-                );
+                expect(
+                  url.pathname,
+                  `${target.href} should redirect regular users to command`
+                ).toBe("/");
                 return;
               }
 
@@ -505,7 +291,7 @@ test.describe("UI nav regression matrix", () => {
  */
 test.describe("Reskin smoke — admin home interactions", () => {
   test.beforeEach(async ({ page }) => {
-    await installRoleFixtures(page, "system_admin");
+    await installRoleFixtures(page, { role: "system_admin" });
     await page.setViewportSize({ width: 375, height: 812 });
     await loginRole(page, "system_admin");
   });
@@ -529,7 +315,7 @@ test.describe("Reskin smoke — admin home interactions", () => {
 
 test.describe("Reskin smoke — user home interactions", () => {
   test.beforeEach(async ({ page }) => {
-    await installRoleFixtures(page, "deck_officer");
+    await installRoleFixtures(page, { role: "deck_officer" });
     await page.setViewportSize({ width: 375, height: 812 });
     await loginRole(page, "deck_officer");
   });

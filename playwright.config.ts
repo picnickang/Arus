@@ -5,6 +5,7 @@ const INCLUDE_PRODUCTION_WRITE_AUDIT = process.env.ARUS_PROD_E2E_ALLOW_WRITES ==
 
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
+  "**/auth-hub-smoke.spec.ts",
   "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
@@ -17,6 +18,20 @@ const CORE_RELEASE_TESTS = [
     ? ["**/journeys/production-full-write-audit.spec.ts"]
     : []),
 ];
+
+// Advisory lanes (non-default): visual regression + stress. Kept OUT of
+// CORE_RELEASE_TESTS so the blocking e2e-smoke job stays narrow; run via their
+// own projects (see below) + the nightly workflow.
+const VISUAL_TESTS = ["**/visual/*.spec.ts"];
+const STRESS_TESTS = ["**/stress/*.spec.ts"];
+
+// Pin the Chromium binary when PLAYWRIGHT_CHROMIUM_PATH is set (local runs
+// against a pre-installed browser when the Playwright CDN is unreachable).
+// Unset in CI — Playwright then uses the version it `playwright install`ed.
+const CHROMIUM_EXECUTABLE_PATH = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const chromiumLaunchOptions = CHROMIUM_EXECUTABLE_PATH
+  ? { executablePath: CHROMIUM_EXECUTABLE_PATH }
+  : {};
 
 // Mobile spec subset run by the visual-regression projects below
 // (argos-visual-ci / playwright-visual-ci / mobile-qa-visual-argos).
@@ -61,7 +76,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], launchOptions: chromiumLaunchOptions },
     },
     // Mobile viewport projects for the visual-regression workflows. They run
     // the mobile spec subset under a Pixel 5 (chromium engine) viewport, so the
@@ -69,12 +84,43 @@ export default defineConfig({
     {
       name: "mobile-chromium",
       testMatch: MOBILE_VISUAL_TESTS,
-      use: { ...devices["Pixel 5"] },
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
     },
     {
       name: "mobile-visual",
       testMatch: MOBILE_VISUAL_TESTS,
-      use: { ...devices["Pixel 5"] },
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    // Advisory visual-regression lane (native toHaveScreenshot). Desktop +
+    // mobile viewports; mocked deterministic backend (see the spec). Baselines
+    // are platform-suffixed (-linux) so must be generated on linux/CI.
+    {
+      name: "visual",
+      testMatch: VISUAL_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+        launchOptions: chromiumLaunchOptions,
+      },
+    },
+    {
+      name: "visual-mobile",
+      testMatch: VISUAL_TESTS,
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    // Advisory stress lane: heap-growth nav loop + rapid-fire nav race.
+    // --expose-gc lets the spec force GC (via CDP) for stable heap samples.
+    {
+      name: "stress",
+      testMatch: STRESS_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+        launchOptions: {
+          ...chromiumLaunchOptions,
+          args: ["--js-flags=--expose-gc"],
+        },
+      },
     },
   ],
 
