@@ -30,31 +30,5 @@
  * Original file: 897 lines → 19 modules (avg ~60 lines each, max ~115 lines)
  */
 
-// Re-export the combined IStorage interface
+// Re-export the combined IStorage interface (the only consumed surface).
 export type { IStorage } from "./domains";
-
-// Re-export WorkOrderFilters (custom type defined in work-order.types)
-export type { WorkOrderFilters } from "./domains";
-
-// Re-export all domain-specific interfaces for granular typing
-export type {
-  ICoreStorage,
-  IDeviceStorage,
-  ITelemetryStorage,
-  IWorkOrderStorage,
-  IEquipmentStorage,
-  IMaintenanceStorage,
-  IAlertsStorage,
-  ISensorStorage,
-  IInventoryStorage,
-  ICrewStorage,
-  IVesselStorage,
-  IMlStorage,
-  IComplianceStorage,
-  IAnalyticsStorage,
-  IConditionMonitoringStorage,
-  ILogbookStorage,
-  IAdminStorage,
-  ISchedulingStorage,
-  IExternalStorage,
-} from "./domains";

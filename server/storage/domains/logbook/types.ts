@@ -207,24 +207,5 @@ export interface ILogbookStorage {
   deleteEngineLogEvent(id: string, orgId: string): Promise<void>;
 }
 
-// Re-export all types for convenience
-export type {
-  DeckLogDaily,
-  InsertDeckLogDaily,
-  DeckLogHourly,
-  InsertDeckLogHourly,
-  DeckLogWatch,
-  InsertDeckLogWatch,
-  DeckLogEvent,
-  InsertDeckLogEvent,
-  EngineLogDaily,
-  InsertEngineLogDaily,
-  EngineLogHourly,
-  InsertEngineLogHourly,
-  EngineLogGenerator,
-  InsertEngineLogGenerator,
-  EngineLogWatch,
-  InsertEngineLogWatch,
-  EngineLogEvent,
-  InsertEngineLogEvent,
-};
+// Deck/Engine log row + insert types are imported from @shared/schema above and
+// used by ILogbookStorage; import them from @shared/schema directly when needed.

@@ -115,7 +115,10 @@
     "server/routes/wo-so-bridge-routes.ts",
     "server/service-orders/index.ts",
     "server/suppliers/index.ts",
-    "shared/schema-runtime.ts"
+    "shared/schema-runtime.ts",
+    "client/src/core/runtime/opsRuntimeMachine.ts",
+    "client/src/components/ops/ActionCard.tsx",
+    "client/src/components/ops/OpsStatusRail.tsx"
   ],
   "project": ["server/**/*.ts", "client/src/**/*.{ts,tsx}", "shared/**/*.ts"],
   "paths": {
@@ -133,6 +136,7 @@
     "**/tools/**",
     "**/reports/**",
     "**/*.test.ts",
+    "**/*.spec.ts",
     "**/tests/**"
   ],
   "ignoreDependencies": [
@@ -159,7 +163,8 @@
     "@swc/*",
     "supertest",
     "jscpd",
-    "knip"
+    "knip",
+    "@yao-pkg/pkg"
   ],
   "rules": {
     "files": "warn",
