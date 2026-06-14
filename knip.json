@@ -159,7 +159,8 @@
     "@swc/*",
     "supertest",
     "jscpd",
-    "knip"
+    "knip",
+    "@yao-pkg/pkg"
   ],
   "rules": {
     "files": "warn",
