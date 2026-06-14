@@ -34,7 +34,12 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       text: item.body,
       html: item.bodyHtml || undefined,
     },
-    item.orgId
+    item.orgId,
+    {
+      alertType: item.notificationType,
+      relatedEntityType: item.relatedEntityType,
+      relatedEntityId: item.relatedEntityId,
+    }
   );
 
   if (result.success) {
@@ -142,7 +147,8 @@ export async function processDigestQueue(): Promise<number> {
         text: digestText,
         html: digestHtml,
       },
-      items[0]!.orgId
+      items[0]!.orgId,
+      { alertType: "digest" }
     );
 
     for (const item of items) {

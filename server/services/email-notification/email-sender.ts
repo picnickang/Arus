@@ -21,6 +21,14 @@ import {
 } from "../email-provider-service.js";
 import { alertSettingsService } from "../../domains/alerts/settings-service.js";
 
+/** Optional audit metadata recorded alongside a send in alert_email_log. */
+export interface EmailAuditMeta {
+  alertType?: string;
+  severity?: string;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+}
+
 export class EmailSender {
   private envSendGridKey: string | null = null;
   private fromEmail: string = "noreply@arus.io";
@@ -40,9 +48,22 @@ export class EmailSender {
   /**
    * Send a notification email. When `orgId` is supplied and that org has a
    * configured provider, it is used; otherwise we fall back to the global env
-   * SendGrid key, and finally to dev mode (log only).
+   * SendGrid key, and finally to dev mode (log only). Every send with an orgId
+   * is recorded to the alert_email_log audit trail.
    */
-  async sendEmail(payload: EmailPayload, orgId?: string): Promise<SendResult> {
+  async sendEmail(
+    payload: EmailPayload,
+    orgId?: string,
+    meta?: EmailAuditMeta
+  ): Promise<SendResult> {
+    const result = await this.deliver(payload, orgId);
+    if (orgId) {
+      await this.recordAudit(orgId, payload, result, meta);
+    }
+    return result;
+  }
+
+  private async deliver(payload: EmailPayload, orgId?: string): Promise<SendResult> {
     if (orgId) {
       const viaOrg = await this.trySendViaOrgProvider(orgId, payload);
       if (viaOrg) {
@@ -62,6 +83,38 @@ export class EmailSender {
       subject: payload.subject,
     });
     return { success: true, messageId: `dev-${Date.now()}` };
+  }
+
+  /**
+   * Record the send to the unified audit trail. Best-effort: an audit failure
+   * never breaks the send.
+   */
+  private async recordAudit(
+    orgId: string,
+    payload: EmailPayload,
+    result: SendResult,
+    meta?: EmailAuditMeta
+  ): Promise<void> {
+    try {
+      await alertSettingsService.logEmail({
+        orgId,
+        alertType: meta?.alertType ?? "notification",
+        severity: meta?.severity ?? "info",
+        recipients: payload.to,
+        subject: payload.subject,
+        status: result.success ? "sent" : "failed",
+        messageId: result.messageId ?? null,
+        errorMessage: result.error ?? null,
+        relatedEntityType: meta?.relatedEntityType ?? null,
+        relatedEntityId: meta?.relatedEntityId ?? null,
+        sentAt: result.success ? new Date() : null,
+      });
+    } catch (error) {
+      log("warn", "Failed to write email audit log", {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async trySendViaOrgProvider(

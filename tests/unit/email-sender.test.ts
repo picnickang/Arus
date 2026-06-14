@@ -29,8 +29,9 @@ jest.unstable_mockModule("../../server/services/email-provider-service.js", () =
 }));
 
 const resolveOrgConfigMock = jest.fn<(orgId: string) => Promise<ProviderConfig | null>>();
+const logEmailMock = jest.fn<(data: Record<string, unknown>) => Promise<unknown>>();
 jest.unstable_mockModule("../../server/domains/alerts/settings-service.js", () => ({
-  alertSettingsService: { resolveOrgEmailConfig: resolveOrgConfigMock },
+  alertSettingsService: { resolveOrgEmailConfig: resolveOrgConfigMock, logEmail: logEmailMock },
 }));
 
 const { EmailSender } = await import("../../server/services/email-notification/email-sender.js");
@@ -50,6 +51,7 @@ beforeEach(() => {
   (global as { fetch: unknown }).fetch = fetchMock;
   providerSendMock.mockReset().mockResolvedValue({ success: true, messageId: "prov-1" });
   resolveOrgConfigMock.mockReset().mockResolvedValue(null);
+  logEmailMock.mockReset().mockResolvedValue({});
   delete process.env["SENDGRID_API_KEY"];
   process.env["EMAIL_FROM"] = "from@arus.test";
 });
@@ -190,6 +192,43 @@ describe("getStatusForOrg", () => {
       enabled: false,
       provider: "development",
     });
+  });
+});
+
+describe("audit logging", () => {
+  it("records a 'sent' audit row (with meta) when orgId is provided", async () => {
+    process.env["SENDGRID_API_KEY"] = "env-key";
+    resolveOrgConfigMock.mockResolvedValue(null);
+    const sender = new EmailSender();
+
+    await sender.sendEmail({ to: ["a@x.test"], subject: "S", text: "T" }, "org-1", {
+      alertType: "compliance",
+    });
+
+    expect(logEmailMock).toHaveBeenCalledTimes(1);
+    expect(logEmailMock.mock.calls[0]![0]).toMatchObject({
+      orgId: "org-1",
+      alertType: "compliance",
+      status: "sent",
+      recipients: ["a@x.test"],
+      subject: "S",
+    });
+  });
+
+  it("does not audit when no orgId is provided", async () => {
+    const sender = new EmailSender();
+    await sender.sendEmail({ to: ["a@x.test"], subject: "S", text: "T" });
+    expect(logEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("does not let an audit write failure break the send", async () => {
+    process.env["SENDGRID_API_KEY"] = "env-key";
+    logEmailMock.mockRejectedValue(new Error("db down"));
+    const sender = new EmailSender();
+
+    const result = await sender.sendEmail({ to: ["a@x.test"], subject: "S", text: "T" }, "org-1");
+
+    expect(result.success).toBe(true);
   });
 });
 

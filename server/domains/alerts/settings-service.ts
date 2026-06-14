@@ -20,6 +20,7 @@ import type {
   AlertThreshold,
   InsertAlertThreshold,
   AlertEmailLog,
+  InsertAlertEmailLog,
   CrewAlertSettings,
   InsertCrewAlertSettings,
 } from "@shared/schema";
@@ -355,6 +356,15 @@ export class AlertSettingsService {
     }
   ): Promise<AlertEmailLog[]> {
     return alertSettingsRepository.getEmailLogs(orgId, options);
+  }
+
+  /**
+   * Record an outbound email to the unified alert_email_log audit trail. Used by
+   * the notification sender so Stack B (notification_queue) sends are logged the
+   * same way as the Stack A alert-settings sends.
+   */
+  async logEmail(data: InsertAlertEmailLog): Promise<AlertEmailLog> {
+    return alertSettingsRepository.logEmail(data);
   }
 
   async getCrewAlertSettings(orgId: string, vesselId?: string): Promise<CrewAlertSettings | null> {
