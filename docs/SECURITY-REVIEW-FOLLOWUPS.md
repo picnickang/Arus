@@ -369,6 +369,57 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
   - _Dependency graph_ (Settings → Code security) so `dependency-review`
     stops failing every PR; then flip the gate per the entry below.
 
+## B4. Domain-breadth audit follow-ups (2026-06)
+
+A second-pass audit swept previously-unaudited domains. Bugs that were clear,
+safe, and contained were fixed directly (see git history: stormgeo delete-all +
+ingestion, path-containment, db:migrate dead-table reconcile, work-order/service
+-order/scheduler/import correctness, cert expiry boundary, DSAR date filter,
+stock decimals). The items below were **verified as real but deferred** because
+they need a product/compliance decision, a schema migration, or deeper
+state-machine context — do NOT silently half-fix:
+
+- [ ] **GDPR DSAR erasure is a stub (CRITICAL — compliance).**
+      `server/db/gdpr/db-gdpr.ts` `executeDataErasure` marks the request
+      `status: "completed"` / returns `"erasure_recorded"` but **deletes no
+      personal data** ("Actual data erasure requires manual review"). Either the
+      status must reflect "pending manual review" or a real, owner-approved
+      erasure (erase-vs-anonymize, which PII tables, legal-retention exemptions
+      for maritime records) must be implemented. Auto-deleting retained records
+      is dangerous — needs a compliance owner.
+- [ ] **GDPR DSAR collection is incomplete.** `collectUserDataForDsar` only
+      populates `users` + `crewMembers`; `workOrders`/`restRecords`/`auditEvents`
+      are declared but never queried, it queries a wrong table name
+      (`crew_members` — the table is the crew people table), and a `try/catch`
+      swallows errors → a DSAR export silently omits categories. Complete the
+      collection (Art. 15) as feature work.
+- [ ] **Vetting inspection initial status.** `server/domains/vetting/routes.ts`
+      POST `/` inserts a `vetting_inspections` row without setting `status`; if
+      the column has no DB default a no-findings inspection is left status-less
+      ("zombie") and can never reach `closed_out`. Confirm the column default
+      (raw-SQL table, no drizzle schema) and set an explicit initial status.
+- [ ] **Cert conditions can't be marked `overdue`.** `certificate-service.ts`
+      `updateConditionStatus` accepts only `open|closed`, but the type +
+      summary count an `overdue` state that nothing ever sets. Add an
+      overdue-marking path (due-date job or allow the status) so open-condition
+      counts are accurate.
+- [ ] **Survey "due" ignores `surveyWindowStart`.**
+      `certificate-repository-adapter.ts` flags `nextSurveyDue <= 90d` without
+      checking the window has opened — surveys read as due before they're
+      openable. Confirm intended window semantics, then gate on the window.
+- [ ] **`crew` certification `daysUntilExpiry` boundary.**
+      `server/domains/crew/interfaces/certification-routes.ts` uses `Math.ceil`
+      so an already-expired-today cert reads `0` (indistinguishable from
+      "expires today"). Decide floor-vs-ceil semantics for "days remaining".
+- [ ] **Purchasing `rejectedQuantity` type mismatch.**
+      `shared/schema/purchasing/procurement.ts` declares `rejectedQuantity` as
+      `integer` while `quantity`/`receivedQuantity` are `numeric(12,3)`, so
+      decimal rejections truncate. Needs a column-type migration (PG + SQLite).
+- [ ] **Purchasing PO-total float accumulation.** `pr-send-service.ts` sums
+      `qty * unitCost` in JS floats; over many line items this can drift by
+      cents. Decide on integer-cents / rounding / DB-side SUM per the precision
+      requirements.
+
 ## C. Cosmetic
 
 - [ ] Review-branch commits show **"Unverified"** — the SSH commit-signing key
