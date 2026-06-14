@@ -2,17 +2,18 @@ import type { Express, RequestHandler } from "express";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { authenticatedRequest } from "../../middleware/auth";
-import { analyticsInsightsAdapter } from "../../repositories.js";
-import { dbAnalyticsStorage } from "../../db/analytics/index.js";
+import type { IInsightsAnalyticsPort } from "../../composition/insights-analytics-data";
 
 interface InsightsRouteDependencies {
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   reportGenerationRateLimit: RequestHandler;
+  /** Injected analytics accessor (cross-domain; wired in composition). */
+  analytics: IInsightsAnalyticsPort;
 }
 
 export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDependencies): void {
-  const { generalApiRateLimit, reportGenerationRateLimit } = deps;
+  const { generalApiRateLimit, reportGenerationRateLimit, analytics } = deps;
 
   logger.info("InsightsV2Routes", "Registering insights V2 API endpoints");
 
@@ -21,7 +22,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     generalApiRateLimit,
     withErrorHandling("fetch insight snapshots", async (req, res) => {
       const { orgId, scope } = req.query;
-      const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
+      const snapshots = await analytics.getInsightSnapshots(
         orgId as string | undefined,
         scope as string | undefined
       );
@@ -34,7 +35,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     generalApiRateLimit,
     withErrorHandling("fetch latest insight snapshot", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId, scope = "fleet" } = req.query;
-      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(
+      const snapshot = await analytics.getLatestInsightSnapshot(
         orgId as string,
         scope as string
       );
@@ -82,7 +83,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     generalApiRateLimit,
     withErrorHandling("fetch insight reports", async (req, res) => {
       const { orgId, scope } = req.query;
-      const reports = await analyticsInsightsAdapter.getInsightReports(
+      const reports = await analytics.getInsightReports(
         orgId as string | undefined,
         scope as string | undefined
       );

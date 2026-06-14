@@ -4,7 +4,7 @@ import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
+import type { IMlPipelineAnalyticsPort } from "../../composition/ml-pipeline-analytics-data";
 
 const acousticAnalyzeSchema = z.object({
   acousticData: z.array(z.number()),
@@ -60,10 +60,12 @@ type AuthenticatedRequest = Request & {
 
 interface MlPipelineRoutesConfig {
   generalApiRateLimit: RateLimitRequestHandler;
+  /** Injected ML/RUL model accessor (cross-domain; wired in composition). */
+  analytics: IMlPipelineAnalyticsPort;
 }
 
 export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesConfig): void {
-  const { generalApiRateLimit } = config;
+  const { generalApiRateLimit, analytics } = config;
 
   logger.info("MLPipelineRoutes", "Registering ML pipeline API endpoints");
 
@@ -377,7 +379,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const cacheStats = registry.getCacheStats?.() ?? { size: 0, hits: 0, misses: 0 };
       const cachedModels = registry.listCachedModels?.() ?? [];
 
-      const mlModels = await dbMlAnalyticsStorage.getMlModels(orgId);
+      const mlModels = await analytics.getMlModels(orgId);
       const modelCounts = {
         lstm: mlModels.filter((m) => m.type === "lstm").length,
         randomForest: mlModels.filter((m) => m.type === "random_forest").length,
@@ -424,7 +426,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
     withErrorHandling("get RUL models", async (req: AuthenticatedRequest, res: Response) => {
       const query = rulModelsQuerySchema.parse(req.query);
       const orgId = query.orgId ?? req.orgId!;
-      const models = await dbMlAnalyticsStorage.getRulModels(orgId);
+      const models = await analytics.getRulModels(orgId);
       return res.json(models);
     })
   );
@@ -439,7 +441,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const { fitWeibullComprehensive } = await import("../../rul");
       const fitResult = fitWeibullComprehensive(failureTimes, modelId, componentClass);
 
-      const model = await dbMlAnalyticsStorage.createRulModel({
+      const model = await analytics.createRulModel({
         orgId,
         modelId: fitResult.modelId,
         componentClass: fitResult.componentClass,
@@ -465,7 +467,7 @@ export function registerMlPipelineRoutes(app: Express, config: MlPipelineRoutesC
       const quantile = parsedBody.quantile ?? 0.5;
       const orgId = req.orgId!;
 
-      const model = await dbMlAnalyticsStorage.getRulModel(modelId, orgId);
+      const model = await analytics.getRulModel(modelId, orgId);
       if (!model) {
         return sendNotFound(res, "RUL model");
       }

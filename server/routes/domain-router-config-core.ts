@@ -51,6 +51,8 @@ import {
   sensorThresholdOptimizationProvider,
   sensorTelemetryHistoryProvider,
 } from "../composition/sensor-management-external-data";
+import { insightsAnalyticsProvider } from "../composition/insights-analytics-data";
+import { mlPipelineAnalyticsProvider } from "../composition/ml-pipeline-analytics-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -290,7 +292,12 @@ export const coreDomainRouters: DomainRouterConfig[] = [
     name: "InsightsV2",
     importPath: "../domains/insights/index.js",
     functionName: "registerInsightsV2Routes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit, reportGenerationRateLimit }),
+    getDeps: () => ({
+      requireOrgId,
+      generalApiRateLimit,
+      reportGenerationRateLimit,
+      analytics: insightsAnalyticsProvider,
+    }),
   },
 
   // LLM & ML Pipeline
@@ -304,7 +311,7 @@ export const coreDomainRouters: DomainRouterConfig[] = [
     name: "MLPipeline",
     importPath: "../domains/ml-pipeline/index.js",
     functionName: "registerMlPipelineRoutes",
-    getDeps: () => ({ generalApiRateLimit }),
+    getDeps: () => ({ generalApiRateLimit, analytics: mlPipelineAnalyticsProvider }),
   },
 
   // Crew Extensions registered earlier (before Scheduling) for route priority
