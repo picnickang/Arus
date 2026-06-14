@@ -1,11 +1,11 @@
 {
   "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
-  "generatedAt": "2026-06-14T11:12:42.536Z",
+  "generatedAt": "2026-06-14T13:40:06.290Z",
   "totals": {
     "dynamicImports": 399,
-    "routeStorageImports": 99,
-    "crossDomainStorage": 76,
-    "total": 574
+    "routeStorageImports": 97,
+    "crossDomainStorage": 75,
+    "total": 571
   },
   "samples": {
     "dynamicImports": [

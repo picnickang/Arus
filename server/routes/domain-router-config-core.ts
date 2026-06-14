@@ -44,6 +44,7 @@ import {
 import type { DomainRouterConfig } from "./domain-router-config-types";
 import { alertCrewDataProvider } from "../composition/alert-crew-data";
 import { syncInventoryProvider } from "../composition/sync-inventory-data";
+import { schedulingMaintenanceProvider } from "../composition/scheduling-maintenance-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -234,7 +235,12 @@ export const coreDomainRouters: DomainRouterConfig[] = [
     name: "Scheduling",
     importPath: "../domains/scheduling/index.js",
     functionName: "registerSchedulingRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }),
+    getDeps: () => ({
+      requireOrgId,
+      generalApiRateLimit,
+      writeOperationRateLimit,
+      maintenance: schedulingMaintenanceProvider,
+    }),
   },
 
   // Weather & External

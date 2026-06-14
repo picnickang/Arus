@@ -102,9 +102,9 @@
       "reason": "aggregate endpoint section passthrough \u2014 /api/crew/unified reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6)"
     },
     {
-      "file": "server/domains/scheduling/routes.ts",
+      "file": "server/domains/scheduling/interfaces/routes.ts",
       "pattern": "z.unknown",
-      "reason": "aggregate endpoint section passthrough \u2014 /api/optimization/dashboard reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6)"
+      "reason": "aggregate endpoint section passthrough \u2014 /api/optimization/dashboard reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6); moved to interfaces/ in the hexagonal conversion"
     },
     {
       "file": "client/src/components/sensors/useSensorTemplateForm.ts",

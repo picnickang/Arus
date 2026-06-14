@@ -1,20 +1,23 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
-import { validateResponse } from "../../lib/api-helpers";
-import { loadSections } from "../../lib/aggregate-helpers";
-import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
-import type { MaintenanceSchedule } from "@shared/schema";
-import { dbOptimizerStorage } from "../../db/optimizer/index.js";
-import { optimizationDirectory } from "../../composition/optimization-directory.js";
-import { authenticatedRequest } from "../../middleware/auth";
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
+import { validateResponse } from "../../../lib/api-helpers";
+import { authenticatedRequest } from "../../../middleware/auth";
+import { optimizationDirectory } from "../../../composition/optimization-directory.js";
+import { SchedulingService } from "../application";
+import { optimizerRepository } from "../infrastructure";
+import type { ISchedulingMaintenancePort } from "../domain/ports";
+import type { InsertMaintenanceSchedule } from "../domain/types";
 import { registerSchedulingSettingsRoutes } from "./scheduling-settings-routes";
+import type { WidenPartial } from "../../../lib/widen-partial";
 
 interface SchedulingConfig {
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   writeOperationRateLimit: RequestHandler;
+  /** Injected cross-domain maintenance accessor (wired in composition). */
+  maintenance: ISchedulingMaintenancePort;
 }
 
 const scheduleListQuerySchema = z.object({
@@ -80,12 +83,9 @@ function orgIdFromRequest(req: Request): string {
   return authenticatedRequest(req).orgId;
 }
 
-function scheduleField(schedule: MaintenanceSchedule, field: string): unknown {
-  return Reflect.get(schedule, field);
-}
-
 export function registerSchedulingRoutes(app: Express, config: SchedulingConfig) {
-  const { requireOrgId, writeOperationRateLimit } = config;
+  const { requireOrgId, writeOperationRateLimit, maintenance } = config;
+  const service = new SchedulingService(maintenance, optimizerRepository, optimizationDirectory);
 
   app.get(
     "/api/schedule",
@@ -95,7 +95,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const { vesselId, equipmentId, status, dateFrom, dateTo } = scheduleListQuerySchema.parse(
         req.query
       );
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, orgId, {
+      const schedules = await service.listSchedules(orgId, {
+        equipmentId,
         vesselId,
         status,
         startDate: dateFrom ? new Date(dateFrom) : undefined,
@@ -111,37 +112,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("detect conflicts", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { dateFrom, dateTo, vesselId } = scheduleConflictsQuerySchema.parse(req.query);
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
+      const conflicts = await service.detectConflicts(orgId, {
         vesselId,
         startDate: dateFrom ? new Date(dateFrom) : undefined,
         endDate: dateTo ? new Date(dateTo) : undefined,
       });
-
-      const conflicts: Array<{
-        schedule1: MaintenanceSchedule;
-        schedule2: MaintenanceSchedule;
-        conflictType: string;
-      }> = [];
-      for (let i = 0; i < schedules.length; i++) {
-        for (let j = i + 1; j < schedules.length; j++) {
-          const s1 = schedules[i];
-          const s2 = schedules[j];
-          if (!s1 || !s2) {
-            continue;
-          }
-          if (
-            s1.scheduledDate === s2.scheduledDate &&
-            scheduleField(s1, "assignedCrewId") === scheduleField(s2, "assignedCrewId")
-          ) {
-            conflicts.push({
-              schedule1: s1,
-              schedule2: s2,
-              conflictType: "crew_overlap",
-            });
-          }
-        }
-      }
-
       res.json(conflicts);
     })
   );
@@ -152,27 +127,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("fetch calendar data", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { month, year, vesselId } = calendarQuerySchema.parse(req.query);
-      const targetMonth = month ?? new Date().getMonth();
-      const targetYear = year ?? new Date().getFullYear();
-
-      const startDate = new Date(targetYear, targetMonth, 1);
-      const endDate = new Date(targetYear, targetMonth + 1, 0);
-
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId,
-        startDate,
-        endDate,
-      });
-
-      const calendarData: Record<string, MaintenanceSchedule[]> = {};
-      schedules.forEach((schedule) => {
-        const dateKey = new Date(schedule.scheduledDate).toISOString().split("T")[0] ?? "";
-        if (!calendarData[dateKey]) {
-          calendarData[dateKey] = [];
-        }
-        calendarData[dateKey]?.push(schedule);
-      });
-
+      const calendarData = await service.getCalendar(orgId, { vesselId, month, year });
       res.json(calendarData);
     })
   );
@@ -183,39 +138,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("fetch schedule statistics", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { vesselId, months } = statsQuerySchema.parse(req.query);
-      const monthsNum = months ?? 3;
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(cutoffDate.getMonth() - monthsNum);
-
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId,
-        startDate: cutoffDate,
-      });
-
-      const isPriority = (s: MaintenanceSchedule, name: string) =>
-        String(scheduleField(s, "priority") ?? "") === name;
-      const stats = {
-        total: schedules.length,
-        completed: schedules.filter((s) => scheduleField(s, "status") === "completed").length,
-        pending: schedules.filter((s) => scheduleField(s, "status") === "pending").length,
-        overdue: schedules.filter((s) => {
-          const dueDate = new Date(s.scheduledDate);
-          return scheduleField(s, "status") !== "completed" && dueDate < new Date();
-        }).length,
-        byPriority: {
-          critical: schedules.filter((s) => isPriority(s, "critical")).length,
-          high: schedules.filter((s) => isPriority(s, "high")).length,
-          medium: schedules.filter((s) => isPriority(s, "medium")).length,
-          low: schedules.filter((s) => isPriority(s, "low")).length,
-        },
-        completionRate:
-          schedules.length > 0
-            ? (schedules.filter((s) => scheduleField(s, "status") === "completed").length /
-                schedules.length) *
-              100
-            : 0,
-      };
-
+      const stats = await service.getStats(orgId, { vesselId, months });
       res.json(stats);
     })
   );
@@ -226,23 +149,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("fetch upcoming maintenance", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { days, vesselId, limit } = upcomingQuerySchema.parse(req.query);
-      const daysNum = days ?? 30;
-      const limitNum = limit ?? 50;
-
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + daysNum);
-
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        vesselId,
-        status: "pending",
-        startDate: new Date(),
-        endDate,
-      });
-
-      const upcoming = schedules
-        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
-        .slice(0, limitNum);
-
+      const upcoming = await service.getUpcoming(orgId, { vesselId, days, limit });
       res.json(upcoming);
     })
   );
@@ -253,7 +160,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("fetch schedule", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { id } = idParamSchema.parse(req.params);
-      const schedule = await dbMaintenanceStorage.getMaintenanceSchedule(id, orgId);
+      const schedule = await service.getSchedule(id, orgId);
       if (!schedule) {
         return sendNotFound(res, "Schedule");
       }
@@ -268,10 +175,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("create schedule", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const body = scheduleBodySchema.parse(req.body);
-      const scheduleData = { ...body, orgId } as Parameters<
-        typeof dbMaintenanceStorage.createMaintenanceSchedule
-      >[0];
-      const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(scheduleData);
+      const schedule = await service.createSchedule({
+        ...body,
+        orgId,
+      } as InsertMaintenanceSchedule);
       sendCreated(res, schedule);
     })
   );
@@ -284,9 +191,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const orgId = orgIdFromRequest(req);
       const { id } = idParamSchema.parse(req.params);
       const body = scheduleBodySchema.parse(req.body);
-      const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(
+      const schedule = await service.updateSchedule(
         id,
-        body as Parameters<typeof dbMaintenanceStorage.updateMaintenanceSchedule>[1],
+        body as WidenPartial<InsertMaintenanceSchedule>,
         orgId
       );
       res.json(schedule);
@@ -300,7 +207,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("delete schedule", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { id } = idParamSchema.parse(req.params);
-      await dbMaintenanceStorage.deleteMaintenanceSchedule(id, orgId);
+      await service.deleteSchedule(id, orgId);
       sendDeleted(res);
     })
   );
@@ -312,12 +219,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("create bulk schedules", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { schedules } = bulkSchedulesBodySchema.parse(req.body);
-      const results = await Promise.all(
-        schedules.map((s) =>
-          dbMaintenanceStorage.createMaintenanceSchedule({ ...s, orgId } as Parameters<
-            typeof dbMaintenanceStorage.createMaintenanceSchedule
-          >[0])
-        )
+      const results = await service.createBulkSchedules(
+        schedules.map((s) => ({ ...s, orgId })) as InsertMaintenanceSchedule[]
       );
       sendCreated(res, results);
     })
@@ -328,33 +231,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch optimization dashboard", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
-
-      // Aggregate for useOptimizationData: collapses the page's parallel
-      // configurations/results/trend-insights/equipment/vessels fetches into
-      // one request, reusing exactly the storage calls of the individual
-      // routes above/below. trendInsights is reserved — the per-resource
-      // endpoint never existed and the client always fell back to [].
-      const { sections, sectionErrors } = await loadSections(
-        {
-          configurations: () => dbOptimizerStorage.getOptimizerConfigurations(orgId),
-          results: () => dbOptimizerStorage.getOptimizationResults(orgId),
-          equipment: () => optimizationDirectory.listEquipmentRegistry(orgId),
-          vessels: () => optimizationDirectory.listVessels(orgId),
-        },
-        "GET /api/optimization/dashboard"
-      );
-
+      const dashboard = await service.getOptimizationDashboard(orgId);
       res.json(
         validateResponse(
           optimizationDashboardResponseSchema,
-          {
-            configurations: sections.configurations ?? [],
-            results: sections.results ?? [],
-            trendInsights: [],
-            equipment: sections.equipment ?? [],
-            vessels: sections.vessels ?? [],
-            ...(Object.keys(sectionErrors).length > 0 ? { sectionErrors } : {}),
-          },
+          dashboard,
           "GET /api/optimization/dashboard"
         )
       );
@@ -366,7 +247,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch optimization configurations", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
-      const configs = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
+      const configs = await service.listOptimizerConfigurations(orgId);
       res.json(configs);
     })
   );
@@ -378,10 +259,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("create optimization configuration", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const body = scheduleBodySchema.parse(req.body);
-      const config = await dbOptimizerStorage.createOptimizerConfiguration({
+      const config = await service.createOptimizerConfiguration({
         ...body,
         orgId,
-      } as Parameters<typeof dbOptimizerStorage.createOptimizerConfiguration>[0]);
+      } as Parameters<typeof service.createOptimizerConfiguration>[0]);
       sendCreated(res, config);
     })
   );
@@ -392,7 +273,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const { dateFrom, dateTo } = optimizationResultsQuerySchema.parse(req.query);
-      const results = await dbOptimizerStorage.getOptimizationResults(
+      const results = await service.listOptimizationResults(
         orgId,
         dateFrom ? new Date(dateFrom) : undefined,
         dateTo ? new Date(dateTo) : undefined
@@ -408,10 +289,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("create optimization result", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
       const body = scheduleBodySchema.parse(req.body);
-      const result = await dbOptimizerStorage.createOptimizationResult({
+      const result = await service.createOptimizationResult({
         ...body,
         orgId,
-      } as Parameters<typeof dbOptimizerStorage.createOptimizationResult>[0]);
+      } as Parameters<typeof service.createOptimizationResult>[0]);
       sendCreated(res, result);
     })
   );
@@ -423,31 +304,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     withErrorHandling("run optimization", async (req: Request, res: Response) => {
       const { configId, targetDate } = runOptimizationBodySchema.parse(req.body);
       const orgId = orgIdFromRequest(req);
-
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, {
-        startDate: new Date(),
-        endDate: targetDate ? new Date(targetDate) : undefined,
-      });
-
-      const optimizedSchedules = schedules.map((s, index: number) => {
-        return {
-          ...s,
-          optimizedScore: (index % 10) * 10 + 5,
-          suggestedDate: s.scheduledDate,
-          suggestedCrew: scheduleField(s, "assignedCrewId"),
-        };
-      });
-
-      const result = await dbOptimizerStorage.createOptimizationResult({
-        configurationId: configId,
-        orgId,
-        inputSchedules: schedules.length,
-        outputSchedules: optimizedSchedules.length,
-        improvementScore: 15.5,
-        runStatus: "completed",
-        results: optimizedSchedules,
-      } as Parameters<typeof dbOptimizerStorage.createOptimizationResult>[0]);
-
+      const result = await service.runOptimization(orgId, configId, targetDate);
       res.json(result);
     })
   );

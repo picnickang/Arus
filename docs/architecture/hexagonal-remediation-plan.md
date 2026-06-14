@@ -178,7 +178,7 @@ consumers). Each phase is independently shippable.
 |---|---|---|
 | **0** | Governance scaffolding + this plan (landed) | Ratchets in place |
 | **1** | **Reference conversion:** `alerts` core (landed); **1b** crew-evaluator decoupling (landed); settings/email reorg + evaluator relocation remain | Canonical template; refine recipe/ADR |
-| **2** | High-traffic flat domains: `notifications`, `condition-monitoring`, `compliance` full (landed); `logbook` corrections slice (landed); `sync` inventory-decoupled via composition seam (landed; full layering deferred); `scheduling` remains | Largest leak concentration removed |
+| **2** | High-traffic flat domains (landed): `notifications`, `condition-monitoring`, `compliance`, `scheduling` full; `logbook` corrections slice full (deck/engine flat support); `sync` inventory-decoupled via composition seam (flat; full layering deferred) | Largest leak concentration removed |
 | **3** | Telemetry/sensing: `telemetry` (partial→full), `sensors`, `sensor-management`, `iot-processing`, `devices` | Highest-volume context layered |
 | **4** | ML/analytics: `ml-analytics`, `ml-pipeline`, `pdm-platform`, `insights`, flat `equipment` family | Predictive path layered |
 | **5** | Remaining flat tail + partials: `permissions`, `settings`, `system-admin`, `me-portal`, `workflow`, long tail; resolve the 5 cross-domain import allowlist entries | `flat`/`partial` → near zero |

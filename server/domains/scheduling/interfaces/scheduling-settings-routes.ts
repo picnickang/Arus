@@ -1,9 +1,9 @@
 import type { Express, Request, RequestHandler, Response } from "express";
 import { z } from "zod";
-import { withErrorHandling } from "../../lib/route-utils";
-import { schedulingSettingsService } from "../../services/scheduling-settings/service";
-import { logger } from "../../utils/logger";
-import { authenticatedRequest } from "../../middleware/auth";
+import { withErrorHandling } from "../../../lib/route-utils";
+import { schedulingSettingsService } from "../../../services/scheduling-settings/service";
+import { logger } from "../../../utils/logger";
+import { authenticatedRequest } from "../../../middleware/auth";
 import {
   aiWeightsSchema,
   notificationSettingsSchema,
