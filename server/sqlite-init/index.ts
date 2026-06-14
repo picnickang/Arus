@@ -30,6 +30,7 @@ import {
   runCrewCompatibilityMigration,
   runErrorLogsCompatibilityMigration,
   runPdmScoreLogsCompatibilityMigration,
+  runAnomalyDetectionsCompatibilityMigration,
   runSystemSettingsCompatibilityMigration,
   runUsersAuthCompatibilityMigration,
   safeAddColumn,
@@ -79,6 +80,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
   await runAdminSessionsCompatibilityMigration(libsqlClient);
   await runErrorLogsCompatibilityMigration(libsqlClient);
   await runPdmScoreLogsCompatibilityMigration(libsqlClient);
+  await runAnomalyDetectionsCompatibilityMigration(libsqlClient);
   await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
@@ -103,6 +105,7 @@ export async function applyInventoryMigrations(): Promise<void> {
   await runAdminSessionsCompatibilityMigration(libsqlClient);
   await runErrorLogsCompatibilityMigration(libsqlClient);
   await runPdmScoreLogsCompatibilityMigration(libsqlClient);
+  await runAnomalyDetectionsCompatibilityMigration(libsqlClient);
   await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);

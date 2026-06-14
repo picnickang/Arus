@@ -144,16 +144,26 @@ describe("multi-sensor correlated degradation", () => {
 describe("embedded ML-table round-trips (vessel-mode persistence)", () => {
   it("persists and reads back an anomaly_detections row", async () => {
     const r = detectStatisticalAnomaly(110, BASELINE);
-    const id = randomUUID();
     await client.execute({
       sql: `INSERT INTO anomaly_detections
-        (id, org_id, equipment_id, sensor_type, anomaly_type, severity, detected_value, z_score, detected_at, resolved)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-      args: [id, ORG_ID, EQUIP_ID, "temperature", r.anomalyType, r.severity, 110, 30, NOW_S],
+        (org_id, equipment_id, sensor_type, detection_timestamp, anomaly_score, anomaly_type, severity, detected_value, expected_value, deviation)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        ORG_ID,
+        EQUIP_ID,
+        "temperature",
+        NOW_S,
+        r.anomalyScore,
+        r.anomalyType,
+        r.severity,
+        110,
+        BASELINE.mean,
+        110 - BASELINE.mean,
+      ],
     });
     const back = await client.execute({
-      sql: "SELECT severity, anomaly_type, detected_value, z_score FROM anomaly_detections WHERE id = ?",
-      args: [id],
+      sql: "SELECT severity, anomaly_type, detected_value, anomaly_score FROM anomaly_detections WHERE equipment_id = ?",
+      args: [EQUIP_ID],
     });
     expect(back.rows).toHaveLength(1);
     expect(back.rows[0]!["severity"]).toBe("critical");

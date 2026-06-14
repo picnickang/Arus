@@ -372,3 +372,30 @@ export async function runPdmScoreLogsCompatibilityMigration(client: LibsqlClient
     logger.info("✓ Recreated pdm_score_logs with the canonical shape");
   }
 }
+
+export async function runAnomalyDetectionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "anomaly_detections");
+  if (!cols.length) {
+    return;
+  }
+
+  // Legacy vessel shape (detected_at/z_score/notes) diverged from BOTH the PG
+  // columns the ML repos write (detection_timestamp/anomaly_score/detected_value/
+  // contributing_factors/…) and the SQLite drizzle model. The vessel table is
+  // unpopulated today (those writes never matched the legacy SQLite shape, so
+  // they failed), so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("z_score") ||
+    cols.includes("detected_at") ||
+    !cols.includes("detection_timestamp")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS anomaly_detections`);
+    await client.execute(
+      `CREATE TABLE anomaly_detections (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, sensor_type TEXT NOT NULL, detection_timestamp INTEGER, anomaly_score REAL NOT NULL, anomaly_type TEXT, severity TEXT NOT NULL, detected_value REAL, expected_value REAL, deviation REAL, model_id TEXT, contributing_factors TEXT, recommended_actions TEXT, acknowledged_by TEXT, acknowledged_at INTEGER, resolved_by_work_order_id TEXT, actual_failure_occurred INTEGER, outcome_label TEXT, outcome_verified_at INTEGER, outcome_verified_by TEXT, metadata TEXT, created_at INTEGER, updated_at INTEGER)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_ad_equipment_time ON anomaly_detections(equipment_id, detection_timestamp)`
+    );
+    logger.info("✓ Recreated anomaly_detections with the canonical shape");
+  }
+}
