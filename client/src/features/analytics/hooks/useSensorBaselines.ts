@@ -14,6 +14,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -31,6 +32,27 @@ export interface SensorBaselineStat {
   bandHigh: number;
 }
 
+/**
+ * Runtime guard for the GET /api/telemetry/baseline wire response. Mirrors
+ * SensorBaselineStat; the server emits every field as a JS number via Number(),
+ * so a strict numeric schema does not reject valid payloads.
+ */
+const sensorBaselineResponseSchema = z.object({
+  baselines: z.array(
+    z.object({
+      sensorType: z.string(),
+      p50: z.number(),
+      avg: z.number(),
+      stddev: z.number(),
+      min: z.number(),
+      max: z.number(),
+      sampleCount: z.number(),
+      bandLow: z.number(),
+      bandHigh: z.number(),
+    })
+  ),
+});
+
 export type SensorBaselineBands = Record<
   string,
   { p50: number; bandLow: number; bandHigh: number }
@@ -45,10 +67,12 @@ export function useSensorBaselines(equipmentId: string): SensorBaselineBands {
       try {
         // apiRequest attaches the in-memory session token — a raw fetch()
         // here would be unauthenticated and 401 silently.
-        return await apiRequest<{ baselines: SensorBaselineStat[] }>(
+        const raw = await apiRequest<unknown>(
           "GET",
           `/api/telemetry/baseline/${equipmentId}?days=30`
         );
+        const parsed = sensorBaselineResponseSchema.safeParse(raw);
+        return parsed.success ? parsed.data : { baselines: [] };
       } catch {
         return { baselines: [] };
       }
