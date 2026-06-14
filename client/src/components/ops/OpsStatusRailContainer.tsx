@@ -7,6 +7,16 @@ import { queryClient } from "@/lib/queryClient";
 
 import OpsStatusRail, { type OpsRailRisk } from "./OpsStatusRail";
 
+/** Safely read a risk's href from the opaque action payload (no cast). */
+function readRiskHref(payload: unknown): string | undefined {
+  return payload !== null &&
+    typeof payload === "object" &&
+    "href" in payload &&
+    typeof payload.href === "string"
+    ? payload.href
+    : undefined;
+}
+
 /**
  * Wires the presentational OpsStatusRail to live ops data, reusing existing
  * sources (no new data layer): the attention workflow for risks + handover,
@@ -69,7 +79,7 @@ export function OpsStatusRailContainer() {
   const handleAction = (action: string, payload?: unknown) => {
     switch (action) {
       case "open-risk": {
-        const href = (payload as OpsRailRisk | undefined)?.href;
+        const href = readRiskHref(payload);
         setLocation(href ?? "/attention-inbox");
         break;
       }
