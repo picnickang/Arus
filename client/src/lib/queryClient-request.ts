@@ -395,7 +395,11 @@ export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFu
 
     inspectQuotaWarning(res);
     await throwIfResNotOk(res);
-    const result: unknown = await res.json();
+    // Parse the body explicitly at the wire boundary (mirrors apiRequest /
+    // apiFormDataRequest) instead of res.json(): keeps the parse adjacent to the
+    // fetch and tolerates an empty 200 body by yielding null rather than throwing.
+    const text = await res.text();
+    const result: unknown = text ? JSON.parse(text) : null;
     return unwrapEnvelope<T>(result, url);
   };
 }
