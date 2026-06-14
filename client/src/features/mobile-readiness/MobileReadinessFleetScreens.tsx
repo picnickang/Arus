@@ -81,7 +81,7 @@ export function MobileFleetPage() {
             </div>
             <span className="text-xs font-semibold text-slate-500">Sort: Risk</span>
           </div>
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {fleet.vessels.map((vessel) => (
               <Link
                 href="/vessel-intelligence/mv-atlas/overview"
