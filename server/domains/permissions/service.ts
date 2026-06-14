@@ -5,22 +5,22 @@
  * Compiles user permissions into a matrix for fast lookups.
  */
 
-import { db } from "../../db";
-import { eq, and, or, inArray, type SQL } from "drizzle-orm";
-import {
-  permissionGrants,
-  userRoleAssignments,
-  roles,
-  type CompiledPermissions,
-  type PermissionCheckResult,
+import type {
+  CompiledPermissions,
+  PermissionCheckResult,
 } from "../../../shared/schema/permissions";
-import { users } from "../../../shared/schema";
 import {
   resolveEffectiveHubAdmin,
   resolveEffectiveHubAccess,
   type RoleHubFields,
 } from "../../../shared/role-dashboard";
 import { RESOURCES, ACTIONS, type ActionCode } from "../../config/permission-registry";
+import {
+  getActiveUserRoleIds,
+  getPermissionGrantsByRoleIds,
+  getUserHubFields,
+  getRoleHubFieldsForUser,
+} from "./infrastructure/repository-access-queries";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const permissionCache = new Map<string, { data: CompiledPermissions; expiresAt: number }>();
@@ -30,18 +30,7 @@ function getCacheKey(userId: string, orgId: string): string {
 }
 
 export async function getUserRoles(userId: string, orgId: string): Promise<string[]> {
-  const assignments = await db
-    .select({ roleId: userRoleAssignments.roleId })
-    .from(userRoleAssignments)
-    .where(
-      and(
-        eq(userRoleAssignments.userId, userId),
-        eq(userRoleAssignments.orgId, orgId),
-        eq(userRoleAssignments.isActive, true)
-      )
-    );
-
-  return assignments.map((a) => a.roleId);
+  return getActiveUserRoleIds(userId, orgId);
 }
 
 export async function compileUserPermissions(
@@ -72,15 +61,7 @@ export async function compileUserPermissions(
   // permission_resources/permission_actions tables do not exist in PostgreSQL;
   // resource_code and action_code are stored as text directly on
   // permission_grants and validated against the static registry at use time.
-  const grants = await db
-    .select({
-      resourceCode: permissionGrants.resourceCode,
-      actionCode: permissionGrants.actionCode,
-      isGranted: permissionGrants.isGranted,
-      condition: permissionGrants.condition,
-    })
-    .from(permissionGrants)
-    .where(inArray(permissionGrants.roleId, roleIds));
+  const grants = await getPermissionGrantsByRoleIds(roleIds);
 
   const grantMatrix: CompiledPermissions["grants"] = {};
 
@@ -274,11 +255,7 @@ export async function getEffectiveHubAccess(
   userId: string,
   orgId: string
 ): Promise<{ hubAdmin: boolean; hubAccess: string[] | null }> {
-  const [userRow] = await db
-    .select({ role: users.role, hubAdmin: users.hubAdmin, hubAccess: users.hubAccess })
-    .from(users)
-    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
-    .limit(1);
+  const userRow = await getUserHubFields(userId, orgId);
 
   const primaryRoleName = userRow?.role ?? null;
   // `getUserRoles` returns role IDs (user_role_assignments.roleId), NOT names —
@@ -286,19 +263,7 @@ export async function getEffectiveHubAccess(
   // (`users.role`) is a role NAME and is matched on `roles.name`.
   const assignedRoleIds = await getUserRoles(userId, orgId);
 
-  const orConditions: SQL[] = [];
-  if (assignedRoleIds.length) {
-    orConditions.push(inArray(roles.id, assignedRoleIds));
-  }
-  if (primaryRoleName) {
-    orConditions.push(eq(roles.name, primaryRoleName));
-  }
-  const roleRows = orConditions.length
-    ? await db
-        .select({ name: roles.name, hubAdmin: roles.hubAdmin, hubAccess: roles.hubAccess })
-        .from(roles)
-        .where(and(eq(roles.orgId, orgId), or(...orConditions)))
-    : [];
+  const roleRows = await getRoleHubFieldsForUser(orgId, assignedRoleIds, primaryRoleName);
 
   const fieldsByName = new Map<string, RoleHubFields>();
   for (const row of roleRows) {

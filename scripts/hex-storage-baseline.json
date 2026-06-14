@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-10T15:48:42.179Z",
-  "count": 141,
+  "count": 139,
   "notes": "Hexagonal storage boundary burn-down baseline. Each entry is a file that imports from server/db/* or server/db-config outside the allowed layers. Goal: shrink this list to zero. NEVER add new entries \u2014 refactor instead.",
   "files": [
     "server/adaptive-training-window/data-range.ts",
@@ -60,8 +60,6 @@
     "server/domains/pdm-platform/prediction-governance/adapter.ts",
     "server/domains/pdm-platform/training-pipeline/adapter.ts",
     "server/domains/pdm-platform/twin-updates/adapter.ts",
-    "server/domains/permissions/repository.ts",
-    "server/domains/permissions/service.ts",
     "server/domains/rms/routes.ts",
     "server/domains/stcw-rest/routes/import.ts",
     "server/domains/surveys/routes.ts",

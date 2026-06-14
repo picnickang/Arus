@@ -1,7 +1,71 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or, inArray, type SQL } from "drizzle-orm";
 
 import { db } from "../../../db";
 import { crew, organizations, users, roles, userRoleAssignments } from "@shared/schema-runtime";
+// permissionGrants is not part of the dual-mode runtime tables barrel; import the
+// table value from the canonical schema (this file is allowlisted in
+// scripts/check-schema-imports.mjs alongside the other permissions data files).
+import { permissionGrants } from "@shared/schema/permissions";
+
+/** Active role ids assigned to a user (authorization-service read). */
+export async function getActiveUserRoleIds(userId: string, orgId: string): Promise<string[]> {
+  const assignments = await db
+    .select({ roleId: userRoleAssignments.roleId })
+    .from(userRoleAssignments)
+    .where(
+      and(
+        eq(userRoleAssignments.userId, userId),
+        eq(userRoleAssignments.orgId, orgId),
+        eq(userRoleAssignments.isActive, true)
+      )
+    );
+  return assignments.map((a) => a.roleId);
+}
+
+/** Permission grants for a set of role ids (resource/action codes + condition). */
+export async function getPermissionGrantsByRoleIds(roleIds: string[]) {
+  return db
+    .select({
+      resourceCode: permissionGrants.resourceCode,
+      actionCode: permissionGrants.actionCode,
+      isGranted: permissionGrants.isGranted,
+      condition: permissionGrants.condition,
+    })
+    .from(permissionGrants)
+    .where(inArray(permissionGrants.roleId, roleIds));
+}
+
+/** A user's primary-role name + hub fields (for effective-hub resolution). */
+export async function getUserHubFields(userId: string, orgId: string) {
+  const [row] = await db
+    .select({ role: users.role, hubAdmin: users.hubAdmin, hubAccess: users.hubAccess })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+  return row;
+}
+
+/** Hub fields for a user's assigned role ids and/or primary role name. */
+export async function getRoleHubFieldsForUser(
+  orgId: string,
+  assignedRoleIds: string[],
+  primaryRoleName: string | null
+) {
+  const orConditions: SQL[] = [];
+  if (assignedRoleIds.length) {
+    orConditions.push(inArray(roles.id, assignedRoleIds));
+  }
+  if (primaryRoleName) {
+    orConditions.push(eq(roles.name, primaryRoleName));
+  }
+  if (!orConditions.length) {
+    return [];
+  }
+  return db
+    .select({ name: roles.name, hubAdmin: roles.hubAdmin, hubAccess: roles.hubAccess })
+    .from(roles)
+    .where(and(eq(roles.orgId, orgId), or(...orConditions)));
+}
 
 export async function listUsersWithRoles(orgId: string): Promise<
   Array<{
