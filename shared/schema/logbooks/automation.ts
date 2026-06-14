@@ -7,21 +7,13 @@ import {
   pgTable,
   text,
   varchar,
-  integer,
   real,
   timestamp,
-  boolean,
   jsonb,
-  unique,
   index,
   createInsertSchema,
   z,
 } from "../base";
-import { organizations } from "../core";
-import { vessels } from "../vessels";
-import { crew } from "../crew";
-import { workOrders } from "../work-orders";
-import { equipment } from "../equipment";
 
 import { deckLogHourly } from "./deck";
 

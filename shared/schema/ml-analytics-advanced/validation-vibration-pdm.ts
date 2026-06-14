@@ -23,9 +23,6 @@ import { vessels } from "../vessels";
 import { equipment } from "../equipment";
 import {
   mlModels,
-  modelVersions,
-  failurePredictions,
-  anomalyDetections,
 } from "../ml-analytics-core";
 
 // Model performance validation - tracks predictions vs actual outcomes

@@ -10,7 +10,6 @@ import {
   integer,
   real,
   timestamp,
-  boolean,
   jsonb,
   unique,
   index,

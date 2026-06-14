@@ -9,8 +9,6 @@ import {
   varchar,
   integer,
   real,
-  timestamps,
-  createdAtOnly,
   timestamp,
   boolean,
   jsonb,
@@ -24,8 +22,6 @@ import { equipment } from "../equipment";
 import {
   mlModels,
   modelVersions,
-  failurePredictions,
-  anomalyDetections,
 } from "../ml-analytics-core";
 
 // ========================================

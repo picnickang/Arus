@@ -14,13 +14,10 @@ import {
   boolean,
   jsonb,
   unique,
-  index,
 } from "../base";
 import { organizations } from "../core";
-import { vessels } from "../vessels";
 import { parts, suppliers } from "../inventory";
 import { workOrders } from "../work-orders";
-import { purchaseRequests } from "./procurement";
 
 // ============================================================================
 // ITEM-SUPPLIER RELATIONSHIPS

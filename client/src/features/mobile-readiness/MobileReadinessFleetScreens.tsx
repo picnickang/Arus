@@ -1,32 +1,21 @@
 import { Link, useLocation } from "wouter";
 import {
-  ArrowLeft,
   AlertTriangle,
   Bell,
-  Camera,
   CheckCircle2,
   ChevronRight,
   Cog,
   ClipboardList,
-  Filter,
   FileText,
   Grid2X2,
   List,
-  LogOut,
-  Mail,
-  Menu,
-  MoreVertical,
   Package,
-  Phone,
   Plus,
   RefreshCw,
-  ScanLine,
   Search,
   Share2,
   SlidersHorizontal,
   Star,
-  Truck,
-  Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -140,11 +129,12 @@ export function MobileFleetPage() {
 }
 
 export function MobileVesselDetailPage() {
-  const { fleet } = useScreens("admin");
+  const screens = useScreens("admin");
+  const { fleet } = screens;
   const [location] = useLocation();
   const detail = fleet.vesselDetail;
   if (location.includes("/3d") || location.includes("diagram")) {
-    return <MobileVesselDiagramView screens={useScreens("admin")} />;
+    return <MobileVesselDiagramView screens={screens} />;
   }
   return (
     <MobilePageShell>
@@ -201,7 +191,7 @@ export function MobileVesselDetailPage() {
               <MiniState label="Flag" value="Singapore" tone="normal" />
             </div>
           </SectionCard>
-          <VesselDiagramPanel screens={useScreens("admin")} compact />
+          <VesselDiagramPanel screens={screens} compact />
         </Content>
       </div>
     </MobilePageShell>

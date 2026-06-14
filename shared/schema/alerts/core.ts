@@ -13,7 +13,6 @@ import {
   boolean,
   jsonb,
   index,
-  unique,
   createInsertSchema,
   z,
 } from "../base";
