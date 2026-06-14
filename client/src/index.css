@@ -552,3 +552,21 @@
   :is(.border-slate-100, .border-slate-200, .border-slate-300) {
   border-color: var(--border);
 }
+
+/* --- Reduced motion (WCAG 2.1 SC 2.3.3; rough-seas / vestibular safety) ---
+ * Crew in heavy seas and motion-sensitive operators can request reduced motion
+ * at the OS level. When they do, collapse animation/transition durations to ~0
+ * and stop looping animations (spinners, pulses) so the UI presents statically.
+ * Durations are near-zero rather than 0 so transitionend/animationend handlers
+ * still fire. This only applies under the OS preference — default motion is
+ * unchanged. Outside @layer so it wins over Tailwind's animate/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
