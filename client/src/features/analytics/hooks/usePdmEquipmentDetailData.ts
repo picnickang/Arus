@@ -1,10 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSensorBaselines, useLiveTelemetryInvalidation } from "./useSensorBaselines";
+
+// Wire-shape guard for the telemetry-history rows (EquipmentTelemetry); unknown
+// extra fields are tolerated, the five the chart needs are validated.
+const pdmTelemetryReadingSchema = z.object({
+  id: z.string(),
+  ts: z.string(),
+  sensorType: z.string(),
+  value: z.number(),
+  unit: z.string(),
+});
+const pdmTelemetryReadingArraySchema = z.array(pdmTelemetryReadingSchema);
 
 export interface EquipmentDetail {
   id: string;
@@ -132,10 +144,11 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
             // apiRequest attaches the in-memory session token — a raw
             // fetch() here is unauthenticated and 401s silently, which
             // rendered this chart permanently empty.
-            return await apiRequest<PdmEquipmentTelemetryReading[]>(
+            const rows = await apiRequest<unknown>(
               "GET",
               `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`
             );
+            return pdmTelemetryReadingArraySchema.parse(rows);
           } catch {
             return [];
           }
