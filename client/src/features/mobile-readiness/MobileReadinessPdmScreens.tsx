@@ -8,9 +8,17 @@ import {
   SlidersHorizontal,
   Star,
 } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
-import { PdmEquipmentDetail } from "@/features/analytics/components/PdmEquipmentDetail";
 import type { PdmRiskCard, PdmScreen } from "./mobile-readiness-model";
+
+// App.tsx imports the mobile-readiness barrel eagerly, so import the
+// recharts-backed detail tree lazily to keep it out of the initial app bundle.
+const PdmEquipmentDetail = lazy(() =>
+  import("@/features/analytics/components/PdmEquipmentDetail").then((module) => ({
+    default: module.PdmEquipmentDetail,
+  }))
+);
 import {
   Content,
   KpiStrip,
@@ -189,7 +197,9 @@ function MobilePdmAssetCasePage({ equipmentId }: { equipmentId: string }) {
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
-        <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
+        <Suspense fallback={<div className="p-4 text-sm text-slate-500">Loading telemetry…</div>}>
+          <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
+        </Suspense>
       </div>
     </MobilePageShell>
   );
@@ -209,7 +219,9 @@ function MobilePdmTelemetryPage({ equipmentId }: { equipmentId: string }) {
           left={<PdmBackLink href={`/pdm/equipment/${equipmentId}`} />}
           right={<PdmHeaderActions />}
         />
-        <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
+        <Suspense fallback={<div className="p-4 text-sm text-slate-500">Loading telemetry…</div>}>
+          <PdmEquipmentDetail equipmentId={equipmentId} defaultTab="overview" />
+        </Suspense>
       </div>
     </MobilePageShell>
   );
