@@ -70,10 +70,14 @@ export async function rollbackPatchBackup(
 
   const manifestPath = path.join(backupPath, "manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+  const files: string[] = Array.isArray(manifest.files) ? manifest.files : [];
 
-  for (const file of manifest.files) {
-    const sourcePath = path.join(backupPath, file);
-    const destPath = path.join(appDir, file);
+  for (const file of files) {
+    // Security: contain both source and destination, mirroring
+    // createPatchBackup. The manifest is read from disk, so a tampered or
+    // malicious entry must not let rollback write outside appDir.
+    const sourcePath = validatePath(backupPath, file);
+    const destPath = validatePath(appDir, file);
 
     if (fs.existsSync(sourcePath)) {
       const destDir = path.dirname(destPath);
