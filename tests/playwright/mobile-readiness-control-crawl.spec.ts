@@ -58,7 +58,8 @@ const roleScenarios: RoleScenario[] = [
   { role: "viewer", adminCapable: false, startRoutes: ["/", "/logs"] },
 ];
 
-const documentedStateOnlyButton = /^(?:Open menu|Pull to refresh|Refresh|Legend|Zones|View section|Filters?|Overview|Machinery|Work|Alerts|Crew|Inventory|Documents|Summary|Health|Trend|Maintenance|Info|Telemetry|Events|Advanced Graph|Raw Data|Sensors|1d|7d|30d|Custom|Compare|Actions|Save Draft|Save Draft Offline|Complete Work|Add|View All|History|Logistics|Vendors|Card view|Table view|View More History|Log Out|Details|Linked|Daily|Engine|Deck|Safety|Compliance|All|Mine|My Work|Overdue|Watch|Blocked|Parts|Review|Done|Open|In Progress|Waiting|Ready|Closed|Intake|Triage|Assigned|CSV|Side elevation|Deck plan|Machinery arrangement|Fire safety|Electrical single-line|Engine Log|Deck Watch|Condition Log|Signoff)$/i;
+const documentedStateOnlyButton =
+  /^(?:Open menu|Pull to refresh|Refresh|Legend|Zones|View section|Filters?|Overview|Machinery|Work|Alerts|Crew|Inventory|Documents|Summary|Health|Trend|Maintenance|Info|Telemetry|Events|Advanced Graph|Raw Data|Sensors|1d|7d|30d|Custom|Compare|Actions|Save Draft|Save Draft Offline|Complete Work|Add|View All|History|Logistics|Vendors|Card view|Table view|View More History|Log Out|Details|Linked|Daily|Engine|Deck|Safety|Compliance|All|Mine|My Work|Overdue|Watch|Blocked|Parts|Review|Done|Open|In Progress|Waiting|Ready|Closed|Intake|Triage|Assigned|CSV|Side elevation|Deck plan|Machinery arrangement|Fire safety|Electrical single-line|Engine Log|Deck Watch|Condition Log|Signoff)$/i;
 
 function normalizedStateButtonLabel(label: string): string {
   return label
@@ -306,7 +307,8 @@ async function collectStateButtons(page: Page): Promise<StateButtonDescriptor[]>
         const textLabel = (button.textContent ?? "").trim();
         return {
           auditId,
-          label: textLabel || button.getAttribute("aria-label") || button.getAttribute("title") || "",
+          label:
+            textLabel || button.getAttribute("aria-label") || button.getAttribute("title") || "",
           testId: button.getAttribute("data-testid"),
         };
       });
@@ -356,8 +358,10 @@ test.describe("mobile readiness visible control crawl", () => {
         }
 
         const routeControls = await collectRouteControls(page);
-        expect(routeControls.length, `${scenario.role} ${startRoute} should expose route controls`)
-          .toBeGreaterThan(0);
+        expect(
+          routeControls.length,
+          `${scenario.role} ${startRoute} should expose route controls`
+        ).toBeGreaterThan(0);
 
         for (const control of routeControls) {
           await navigateWithinAuthenticatedSpa(page, startRoute);

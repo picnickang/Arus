@@ -1,4 +1,16 @@
-import { Calendar, Check, Clock, Edit, Eye, List, Plus, Search, Trash2, X, Zap } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  Clock,
+  Edit,
+  Eye,
+  List,
+  Plus,
+  Search,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-react";
 import { format, isPast } from "date-fns";
 import type { MaintenanceSchedule } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";

@@ -39,7 +39,9 @@ export function LstmTrainingSection({ training: t }: TrainingSectionProps) {
           LSTM Training
           <InfoTooltip content="LSTM (Long Short-Term Memory) - An AI that learns patterns in equipment data over time to predict failures." />
         </CardTitle>
-        <CardDescription>Teach the AI to recognize patterns in equipment data over time</CardDescription>
+        <CardDescription>
+          Teach the AI to recognize patterns in equipment data over time
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
@@ -317,9 +319,7 @@ function AcousticResults({ training: t }: TrainingSectionProps) {
             </div>
             <div>
               <span className="text-muted-foreground">Peak Amplitude:</span>
-              <span className="ml-2 font-medium">
-                {result.features.peakAmplitude?.toFixed(3)}
-              </span>
+              <span className="ml-2 font-medium">{result.features.peakAmplitude?.toFixed(3)}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Dominant Frequency:</span>

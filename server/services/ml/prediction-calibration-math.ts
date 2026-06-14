@@ -125,10 +125,7 @@ export function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMap
   };
 }
 
-export function applyIsotonicRegression(
-  rawProbability: number,
-  mapping: IsotonicMapping
-): number {
+export function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMapping): number {
   const { thresholds, values } = mapping;
 
   if (thresholds.length === 0) {

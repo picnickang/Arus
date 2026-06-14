@@ -117,10 +117,7 @@ export function applyDiagramUpdate(diagram: DiagramRecord, input: UpdateDiagramI
   }
 }
 
-export function applySectionMapUpdate(
-  map: SectionMapRecord,
-  input: UpdateSectionMapInput
-): void {
+export function applySectionMapUpdate(map: SectionMapRecord, input: UpdateSectionMapInput): void {
   if (input.name !== undefined) {
     map.name = input.name;
   }

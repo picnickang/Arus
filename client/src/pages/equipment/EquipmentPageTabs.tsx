@@ -186,7 +186,9 @@ export function EquipmentRegistryTabs({
                 {m.paginatedEquipment.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {m.hasActiveFilters ? "No equipment matches your filters" : "No equipment found"}
+                      {m.hasActiveFilters
+                        ? "No equipment matches your filters"
+                        : "No equipment found"}
                     </TableCell>
                   </TableRow>
                 ) : (

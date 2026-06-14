@@ -1,12 +1,4 @@
-import {
-  AlertTriangle,
-  ClipboardCheck,
-  Cog,
-  Gauge,
-  Package,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { AlertTriangle, ClipboardCheck, Cog, Gauge, Package, Users, Wrench } from "lucide-react";
 import { sortQueue } from "./mobile-readiness-navigation";
 import type { PdmScreen, WorkScreen } from "./mobile-readiness-model-types";
 

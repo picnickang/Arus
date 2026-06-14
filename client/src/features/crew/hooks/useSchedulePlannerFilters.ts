@@ -16,7 +16,10 @@ export function getDateRangeFromPreset(start: Date, preset: DateRangePreset): Da
   }
 }
 
-export function loadPersistedFilters(): { vesselId: string | null; preset: DateRangePreset } | null {
+export function loadPersistedFilters(): {
+  vesselId: string | null;
+  preset: DateRangePreset;
+} | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {

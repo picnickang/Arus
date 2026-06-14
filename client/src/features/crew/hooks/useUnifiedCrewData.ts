@@ -311,25 +311,24 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     formerAccessRiskCounts,
     accessStatusCounts,
   } = useCrewAccessIndexes(accessReadiness, formerAccessRisks);
-  const { filteredAndSortedCrew, getFilteredSortedCrew, activeFilterCount } =
-    useCrewRosterFilters({
-      crew,
-      debouncedSearchTerm,
-      searchTerm,
-      selectedVessel,
-      selectedRank,
-      selectedStatus,
-      selectedSkill,
-      selectedAccessStatus,
-      selectedFormerAccessRisk,
-      accessReadinessEnabled,
-      accessReadinessByCrewId,
-      formerAccessRiskByCrewId,
-      sortField,
-      sortDirection,
-      getVesselName,
-      roleLookupSortIndex: roleLookup.sortIndex,
-    });
+  const { filteredAndSortedCrew, getFilteredSortedCrew, activeFilterCount } = useCrewRosterFilters({
+    crew,
+    debouncedSearchTerm,
+    searchTerm,
+    selectedVessel,
+    selectedRank,
+    selectedStatus,
+    selectedSkill,
+    selectedAccessStatus,
+    selectedFormerAccessRisk,
+    accessReadinessEnabled,
+    accessReadinessByCrewId,
+    formerAccessRiskByCrewId,
+    sortField,
+    sortDirection,
+    getVesselName,
+    roleLookupSortIndex: roleLookup.sortIndex,
+  });
 
   const clearFilters = () => {
     setSearchTerm("");

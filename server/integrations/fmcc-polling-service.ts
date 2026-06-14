@@ -2,11 +2,7 @@ import { EventEmitter } from "node:events";
 import { trackLogService, Position } from "../services/track-log-service";
 import { dbTelemetryStorage } from "../repositories";
 import { getFMCCService } from "./index";
-import type {
-  FmccSnapshot,
-  FmccPollingConfig,
-  FmccHealthStatus,
-} from "./fmcc-types";
+import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from "./fmcc-types";
 import { buildFmccSnapshot } from "./fmcc-snapshot-builder";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Integrations:FmccPollingService");

@@ -67,9 +67,17 @@ const routeBearingControls = [
   { start: "/", testId: "today-card-chief-engineer-cert", expectedPath: "/crew-management" },
   { start: "/", testId: "today-card-fuel-filter-unavailable", expectedPath: "/logistics" },
   { start: "/", testId: "today-card-orb-overdue", expectedPath: "/logs" },
-  { start: "/fleet", testId: "fleet-vessel-card-mv-atlas", expectedPath: "/vessel-intelligence/mv-atlas/overview" },
+  {
+    start: "/fleet",
+    testId: "fleet-vessel-card-mv-atlas",
+    expectedPath: "/vessel-intelligence/mv-atlas/overview",
+  },
   { start: "/work-orders", testId: "work-card-so-4481", expectedPath: "/work-orders/so-4481" },
-  { start: "/pdm-platform", testId: "pdm-risk-port-generator", expectedPath: "/pdm/equipment/port-generator" },
+  {
+    start: "/pdm-platform",
+    testId: "pdm-risk-port-generator",
+    expectedPath: "/pdm/equipment/port-generator",
+  },
   {
     start: "/pdm/equipment/port-generator",
     testId: "link-pdm-telemetry-advanced",
@@ -241,13 +249,17 @@ test.describe("mobile readiness role-aware link audit", () => {
       await loginScenario(page, scenario);
 
       await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
-      await expect(page.getByText(scenario.expectedQueueLabel, { exact: true }).first()).toBeVisible();
+      await expect(
+        page.getByText(scenario.expectedQueueLabel, { exact: true }).first()
+      ).toBeVisible();
       await expect(page.getByText(scenario.expectedVisibleText)).toBeVisible();
       await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
       await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
 
       for (const label of scenario.expectedNavLabels) {
-        await expect(page.getByTestId("mobile-readiness-bottom-nav").getByText(label)).toBeVisible();
+        await expect(
+          page.getByTestId("mobile-readiness-bottom-nav").getByText(label)
+        ).toBeVisible();
       }
     });
   }
@@ -301,7 +313,10 @@ test.describe("mobile readiness role-aware link audit", () => {
         await navigateWithinAuthenticatedSpa(page, control.start);
         await expect(page.getByTestId(markerForPath(control.start))).toBeVisible();
         const target = page.getByTestId(control.testId);
-        await expect(target, `${control.testId} should be visible on ${control.start}`).toBeVisible();
+        await expect(
+          target,
+          `${control.testId} should be visible on ${control.start}`
+        ).toBeVisible();
         await target.click();
         await expectRegularUserRoute(page, control.expectedPath);
       }

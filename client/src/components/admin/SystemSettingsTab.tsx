@@ -38,15 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Mail,
-  Bell,
-  FileText,
-  ChevronRight,
-} from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Bell, FileText, ChevronRight } from "lucide-react";
 import { useSystemSettingsTabData } from "@/features/settings";
 import { useLocation } from "wouter";
 import type { AdminSystemSetting } from "@shared/schema";
