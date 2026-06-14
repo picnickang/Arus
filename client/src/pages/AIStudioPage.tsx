@@ -89,8 +89,11 @@ export default function AIStudioPage() {
     queryKey: ["/api/ml/models"],
   });
 
-  // Fetch accuracy trend data
-  const { data: accuracyData = [] } = useQuery({
+  // Fetch accuracy trend data (typed to the chart's data contract so no cast
+  // is needed at the call site).
+  const { data: accuracyData = [] } = useQuery<
+    React.ComponentProps<typeof AccuracyTrendChart>["data"]
+  >({
     queryKey: ["/api/ml/accuracy-trend", { range: accuracyTimeRange }],
   });
 
@@ -298,7 +301,7 @@ export default function AIStudioPage() {
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          data={accuracyData as object as React.ComponentProps<typeof AccuracyTrendChart>["data"]}
+          data={accuracyData}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}
           data-testid="accuracy-trend-chart"
