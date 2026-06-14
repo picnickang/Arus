@@ -3,23 +3,19 @@
  */
 
 import {
-  sql,
   pgTable,
   text,
   varchar,
   integer,
   real,
   timestamps,
-  createdAtOnly,
   timestamp,
   boolean,
   jsonb,
   serial,
   index,
-  unique,
 } from "../base";
 import { organizations } from "../core";
-import { vessels } from "../vessels";
 import { equipment } from "../equipment";
 import {
   mlModels,

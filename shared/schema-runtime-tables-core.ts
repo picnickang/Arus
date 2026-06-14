@@ -4,7 +4,6 @@
 
 import {
   cloudOnly,
-  IS_POSTGRES,
   isLocalMode,
   pgSchema,
   pickSchema,

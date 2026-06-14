@@ -1,28 +1,4 @@
-import {
-  Anchor,
-  AlertTriangle,
-  Bell,
-  BookOpen,
-  BriefcaseBusiness,
-  CalendarCheck,
-  ClipboardCheck,
-  ClipboardList,
-  Cloud,
-  Cog,
-  FileCheck2,
-  FileText,
-  Folder,
-  Gauge,
-  Home,
-  LifeBuoy,
-  Package,
-  RadioTower,
-  Settings,
-  Shield,
-  Ship,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { AlertTriangle, ClipboardCheck, Cog, Gauge, Package, Users, Wrench } from "lucide-react";
 import { sortQueue } from "./mobile-readiness-navigation";
 import type { PdmScreen, WorkScreen } from "./mobile-readiness-model-types";
 

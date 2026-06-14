@@ -169,7 +169,7 @@ describe("Tauri Windows Installer — Sidecar Compiler Pinning", () => {
 
 describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   const workflow = read(".github/workflows/tauri-build.yml");
-  const windowsWorkflow = workflow.match(/  build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
+  const windowsWorkflow = workflow.match(/ {2}build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
 
   it("runs the Windows desktop job on a real Windows runner", () => {
     expect(windowsWorkflow).toContain("build-windows-desktop:");
@@ -207,7 +207,7 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
 
   it("silently installs the setup exe into a temporary Windows smoke directory", () => {
     expect(windowsWorkflow).toContain("Smoke install ARUS Desktop setup");
-    expect(windowsWorkflow).toContain('Start-Process -FilePath $setup.FullName');
+    expect(windowsWorkflow).toContain("Start-Process -FilePath $setup.FullName");
     expect(windowsWorkflow).toContain('"/S"');
     expect(windowsWorkflow).toContain('"/D=$installDir"');
     expect(windowsWorkflow).toContain("$env:RUNNER_TEMP");

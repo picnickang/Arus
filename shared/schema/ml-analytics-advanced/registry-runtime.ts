@@ -9,8 +9,6 @@ import {
   varchar,
   integer,
   real,
-  timestamps,
-  createdAtOnly,
   timestamp,
   boolean,
   jsonb,
@@ -21,12 +19,7 @@ import {
 import { organizations } from "../core";
 import { vessels } from "../vessels";
 import { equipment } from "../equipment";
-import {
-  mlModels,
-  modelVersions,
-  failurePredictions,
-  anomalyDetections,
-} from "../ml-analytics-core";
+import { mlModels, modelVersions } from "../ml-analytics-core";
 
 // ========================================
 // Phase 3: Digital Twin Schema

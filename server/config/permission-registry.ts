@@ -6,7 +6,7 @@
  */
 
 import { ACTIONS } from "./permission-registry-parts/actions";
-import { RESOURCES, RESOURCE_CATEGORIES } from "./permission-registry-parts/resources";
+import { RESOURCES } from "./permission-registry-parts/resources";
 import type {
   ActionCode,
   ActionDefinition,

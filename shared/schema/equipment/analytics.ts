@@ -2,28 +2,9 @@
  * Equipment analytics and operating condition schema tables.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  integer,
-  real,
-  numeric,
-  timestamp,
-  boolean,
-  jsonb,
-  unique,
-  index,
-  uuidPrimaryKey,
-  timestamps,
-  tenantColumn,
-  versionTracking,
-} from "../base";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { sql, pgTable, text, varchar, integer, real, timestamp, boolean, index } from "../base";
 import { organizations } from "../core";
-import { vessels } from "../vessels";
-import { suppliers, parts } from "../inventory";
+import { parts } from "../inventory";
 import { workOrders } from "../work-orders";
 import { equipment } from "./core";
 
