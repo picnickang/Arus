@@ -132,6 +132,7 @@
     "@libsql/client": "^0.15.15",
     "@neondatabase/serverless": "^0.10.4",
     "@octokit/rest": "^22.0.0",
+    "@oicl/openbridge-webcomponents": "^1.0.1",
     "@oicl/openbridge-webcomponents-react": "^1.0.1",
     "@opentelemetry/auto-instrumentations-node": "^0.76.0",
     "@opentelemetry/context-zone": "^2.7.1",

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "@oicl/openbridge-webcomponents/dist/openbridge.css";
 import { initWebVitals } from "./lib/web-vitals";
 import { initSentry } from "./lib/sentry";
 import { initBrowserOtel } from "./lib/otel";

@@ -117,6 +117,10 @@ test.describe("Bridge conditions @mobile @visual", () => {
     expect(luminance, `rail background ${bg} should be dark (night-vision) in the bridge theme`).toBeLessThan(60);
     // The risk chip renders the OpenBridge IEC alert symbol (M2 Phase A icon adoption).
     await expect(rail.locator("obi-alert-category-a")).toBeVisible();
+    // Brilliance: the bridge theme maps to the OpenBridge "night" palette (M2 Phase B).
+    await expect(page.locator("html")).toHaveAttribute("data-obc-theme", "night");
+    // The top-bar search control is now an OpenBridge icon button (M2 Phase B chrome).
+    await expect(page.locator("obc-icon-button[data-testid='button-global-search']")).toBeVisible();
   });
 
   test("rail action targets are >=44px for gloved use", async ({ page }) => {
