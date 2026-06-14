@@ -52,9 +52,9 @@
       "reason": "pre-existing \u2014 agent finding-records route; tighten in #165 (server/domains)"
     },
     {
-      "file": "server/domains/logbook/correction-routes.ts",
+      "file": "server/domains/logbook/interfaces/correction-routes.ts",
       "pattern": "z.unknown",
-      "reason": "pre-existing \u2014 logbook correction payload; tighten in #165 (server/domains)"
+      "reason": "pre-existing \u2014 logbook correction payload (moved to interfaces/ in the hexagonal conversion); tighten in #165 (server/domains)"
     },
     {
       "file": "server/domains/pdm-platform/training-pipeline/routes.ts",
