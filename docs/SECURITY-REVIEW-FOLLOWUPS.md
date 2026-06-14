@@ -80,8 +80,21 @@ before a second tenant is onboarded.
       arg is passed — exceljs uses random v4 IDs, so not reachable). The
       remaining HIGH `minimatch`/etc. advisories are pre-existing and unrelated.
 - [ ] **`@dsnp/parquetjs` → alternative, or drop (HIGH via `thrift`)** —
-      7 files = the telemetry-warehouse-export feature. No drop-in replacement;
-      evaluate whether parquet export is still needed.
+      the telemetry-warehouse-export feature (Task #95: a daily scheduled job
+      writing telemetry rollups to Parquet in object storage, gated on
+      `PRIVATE_OBJECT_DIR`). **Assessment (2026-06):** unlike `xlsx`, the
+      `thrift` advisory sits on a **write-only path over trusted internal data**
+      (rollups the system itself produced), not on parsing untrusted input — so
+      practical exploitability here is low/nil. There is **no maintained
+      drop-in Parquet *writer*** in JS. This is therefore a product/data-contract
+      decision, not a clean code swap:
+        (a) keep Parquet and accept/annotate the transitive `thrift` advisory
+            (recommended given the low practical risk), or
+        (b) drop the warehouse-export feature if downstream analytics no longer
+            consume it, or
+        (c) switch the export format to CSV/JSON (changes the warehouse contract
+            for whatever reads these files).
+      Needs an owner decision before any code change.
 - [ ] **`eng.traineddata` → Git-LFS** — large binary used by the OCR extractor,
       currently tracked. `git-lfs` was unavailable in the review env.
 - [ ] **TensorFlow.js / ONNX advisory chain (HIGH)** — `tar`,
