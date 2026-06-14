@@ -23,6 +23,7 @@ import { eq, gt } from "drizzle-orm";
 import { requestIdempotency } from "../../shared/schema";
 import { requestIdempotencySqlite } from "../../shared/sqlite-schema/sync";
 import {
+  buildIdempotencyClaimValues,
   buildIdempotencyInsertValues,
   type IdempotencyStoreEntry,
 } from "../../server/storage/idempotency-repository";
@@ -153,5 +154,58 @@ describe("idempotency durable store — dual-driver parity", () => {
     for (const key of Object.keys(buildIdempotencyInsertValues(sampleEntry(), false))) {
       expect(pgKeys).toContain(key);
     }
+    // Pending-claim values share the same driver-conditional surface, so they
+    // must satisfy the sqlite NOT NULL columns too — a drift here would make
+    // claimKey throw on vessels and silently disable the durable reservation.
+    for (const key of Object.keys(buildIdempotencyClaimValues(sampleEntry(), true))) {
+      expect(sqliteKeys).toContain(key);
+    }
+    for (const key of Object.keys(buildIdempotencyClaimValues(sampleEntry(), false))) {
+      expect(pgKeys).toContain(key);
+    }
+  });
+
+  it("a local-mode pending claim round-trips on real sqlite (NULL response, not yet complete)", async () => {
+    const claimEntry = sampleEntry({
+      fullKey: "claim-key",
+      idempotencyKey: "k-claim",
+      requestHash: "h-claim",
+    });
+    const values = buildIdempotencyClaimValues(claimEntry, true);
+    // NOT NULL sqlite columns must be present, and the response stays NULL.
+    expect(values["orgId"]).toBe("org-1");
+    expect(values["idempotencyKey"]).toBe("k-claim");
+    expect(values["requestHash"]).toBe("h-claim");
+    expect(values["responseStatus"]).toBeNull();
+    expect(values["responseBody"]).toBeNull();
+
+    await sqliteDb
+      .insert(requestIdempotencySqlite)
+      .values(values as typeof requestIdempotencySqlite.$inferInsert);
+
+    const rows = await sqliteDb
+      .select()
+      .from(requestIdempotencySqlite)
+      .where(eq(requestIdempotencySqlite.key, "claim-key"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.responseStatus).toBeNull();
+    expect(rows[0]!.responseBody).toBeNull();
+
+    // A second claim for the same key conflicts (insert-or-nothing → 0 rows),
+    // which is how claimKey detects a lost race.
+    const inserted = await sqliteDb
+      .insert(requestIdempotencySqlite)
+      .values(values as typeof requestIdempotencySqlite.$inferInsert)
+      .onConflictDoNothing({ target: requestIdempotencySqlite.key })
+      .returning({ key: requestIdempotencySqlite.key });
+    expect(inserted).toHaveLength(0);
+  });
+
+  it("cloud-mode claim values omit the sqlite-only columns", () => {
+    const cloudValues = buildIdempotencyClaimValues(sampleEntry({ fullKey: "cloud-claim" }), false);
+    expect(cloudValues).not.toHaveProperty("orgId");
+    expect(cloudValues).not.toHaveProperty("idempotencyKey");
+    expect(cloudValues).not.toHaveProperty("requestHash");
+    expect(cloudValues["responseStatus"]).toBeNull();
   });
 });

@@ -194,19 +194,27 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       wins" stays a no-op so a stale snapshot can't revert newer state. Pinned by
       `tests/unit/offline-conflict-resolution.test.ts`.
 
-- [ ] **Idempotency: cross-replica concurrent double-submit (B2 residual).**
-      The middleware (`server/middleware/idempotency.ts`) now holds an in-process
-      `inFlightKeys` reservation, so two concurrent requests for the same key in
-      one process can no longer both run the mutation (the second gets a
-      retryable `425 IDEMPOTENCY_IN_PROGRESS`). The remaining window is
-      *across replicas*: the L1/L2 caches only populate on first completion, so a
-      truly simultaneous duplicate hitting a second process is not yet deduped.
-      Close with a durable reservation (insert a pending row keyed by `fullKey`
-      with `ON CONFLICT DO NOTHING` at claim time; upsert the response on
-      completion; delete on failure) — the `request_idempotency` table already
-      has nullable `response_status`/`response_body`, so no schema change is
-      needed. Pinned by the concurrency case in
-      `tests/unit/idempotency-middleware.test.ts`.
+- [x] **Idempotency: cross-replica concurrent double-submit closed (B2 residual).**
+      The in-process `inFlightKeys` reservation only deduped same-process
+      concurrency; a simultaneous duplicate hitting a second cloud replica (the
+      L1/L2 caches populate only on first completion) could still both run the
+      mutation. `idempotencyMiddleware` (`server/middleware/idempotency.ts`) now
+      takes a **durable claim** after the L2 miss: `claimKey`
+      (`server/storage/idempotency-repository.ts`) inserts a pending row keyed by
+      `fullKey` with `ON CONFLICT DO NOTHING … RETURNING`, so exactly one replica
+      wins. A loser re-checks the store (the winner may have completed in the
+      interim) and otherwise returns the retryable `425 IDEMPOTENCY_IN_PROGRESS`.
+      Completion upserts the row to the stored response (`storeResponse` switched
+      from insert-or-nothing to `onConflictDoUpdate`); a handler error / non-2xx /
+      client abort releases the claim (`releaseClaim`, scoped to still-pending
+      rows) so a retry can re-claim at once. A hard crash leaves the pending row
+      until its `CLAIM_TTL_MS` (15 min, above any HTTP handler) lapses and the
+      existing reaper sweeps it. No schema change — `request_idempotency` already
+      has nullable `response_status`/`response_body` (claim values reuse the same
+      driver-conditional shape as `storeResponse`, incl. the sqlite NOT NULL
+      columns). Pinned by the cross-replica cases in
+      `tests/unit/idempotency-middleware.test.ts` and the claim round-trip /
+      drift pins in `tests/unit/idempotency-dual-driver.test.ts`.
 
 - [x] **Scheduler re-entrancy closed + guarded (B3).** `setInterval(async …)`
       does not wait for the prior tick, so a refresh/expiry that runs longer than
