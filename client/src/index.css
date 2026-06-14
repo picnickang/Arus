@@ -519,3 +519,36 @@
     }
   }
 }
+
+/* --- Night-dimming retrofit for the mobile-readiness screens ---
+ * These screens hardcode a light brand/slate palette (~400 call-sites). The
+ * dark AND bridge (night-vision) themes both carry the `.dark` class, so this
+ * remaps that palette to theme tokens within the mobile shell + bottom nav, so
+ * the screens dim for night without rewriting every call-site. Light/daylight
+ * keep the intended light look. Tokens are full hsl() colors → use var()
+ * directly. Placed outside @layer so it wins over Tailwind's utility classes. */
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"]) {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"]) .bg-white {
+  background-color: var(--card);
+}
+.dark [data-testid="mobile-readiness-shell"] .bg-brand-mist {
+  background-color: var(--background);
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.bg-slate-50, .bg-slate-100, .bg-slate-200) {
+  background-color: var(--muted);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--muted-foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.border-slate-100, .border-slate-200, .border-slate-300) {
+  border-color: var(--border);
+}
