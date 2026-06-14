@@ -10,6 +10,18 @@
 
 The ARUS monolith contains **22+ Drizzle schema files** declaring **~160 PostgreSQL tables**. This document maps tables to one of **8 bounded contexts** (derived from a manual schema audit), catalogues cross-boundary foreign-key references found via `.references()` declarations, identifies a notable schema duplication in Inventory, and proposes a phased extraction order for a future microservices migration.
 
+> **Note — bounded contexts vs. runtime domains.** The **8 bounded contexts** here are a
+> coarse, schema-level grouping for the *future microservices* roadmap. They are **not**
+> the same as the ~62 runtime domains under `server/domains/<name>/`, which are a much
+> finer-grained code organization following the 4-layer hexagonal model (see
+> `docs/architecture/backend-modules.md` and `CLAUDE.md`). Each bounded context maps to
+> *many* runtime domains — e.g. **BC-2 Asset & Maintenance** spans the `equipment`,
+> `equipment-intelligence`, `maintenance`, `work-orders`, `condition-monitoring`, `dtc`,
+> and `cost-savings` domains; **BC-4 Crew & Compliance** spans `crew`, `crew-admin`,
+> `crew-tasks`, `crew-extensions`, `compliance`, `logbook`, and `stcw-rest`. Use bounded
+> contexts for service-extraction planning; use the hexagonal domain layering
+> (`docs/adr/003-domain-layering-policy.md`) for day-to-day code structure.
+
 ---
 
 ## 2. Bounded Contexts

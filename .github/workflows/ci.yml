@@ -45,6 +45,9 @@ jobs:
       - name: Hexagonal storage boundary (db imports outside infrastructure)
         run: npm run check:hex-storage
 
+      - name: Domain layering conformance (4-layer burn-down)
+        run: npm run check:domain-conformance
+
       - name: Dual-schema parity (PG vs SQLite)
         run: node scripts/validate-dual-schema.mjs
 
