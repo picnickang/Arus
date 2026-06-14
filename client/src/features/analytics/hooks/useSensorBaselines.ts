@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo } from "react";
+import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -31,6 +32,22 @@ export interface SensorBaselineStat {
   bandHigh: number;
 }
 
+const sensorBaselineResponseSchema = z.object({
+  baselines: z.array(
+    z.object({
+      sensorType: z.string(),
+      p50: z.number(),
+      avg: z.number(),
+      stddev: z.number(),
+      min: z.number(),
+      max: z.number(),
+      sampleCount: z.number(),
+      bandLow: z.number(),
+      bandHigh: z.number(),
+    })
+  ),
+});
+
 export type SensorBaselineBands = Record<
   string,
   { p50: number; bandLow: number; bandHigh: number }
@@ -45,10 +62,11 @@ export function useSensorBaselines(equipmentId: string): SensorBaselineBands {
       try {
         // apiRequest attaches the in-memory session token — a raw fetch()
         // here would be unauthenticated and 401 silently.
-        return await apiRequest<{ baselines: SensorBaselineStat[] }>(
+        const response = await apiRequest<{ baselines: SensorBaselineStat[] }>(
           "GET",
           `/api/telemetry/baseline/${equipmentId}?days=30`
         );
+        return sensorBaselineResponseSchema.parse(response);
       } catch {
         return { baselines: [] };
       }
