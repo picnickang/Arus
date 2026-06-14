@@ -7,18 +7,10 @@ import type {
   WorkOrderPart,
   WorkOrderTask,
   WorkOrderChecklist,
-  WorkOrderWorklog,
   WorkOrderCompletion,
 } from "@shared/schema";
 
-export type {
-  WorkOrder,
-  WorkOrderPart,
-  WorkOrderTask,
-  WorkOrderChecklist,
-  WorkOrderWorklog,
-  WorkOrderCompletion,
-};
+export type { WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderCompletion };
 
 export interface WorkOrderFilters {
   vesselId?: string;

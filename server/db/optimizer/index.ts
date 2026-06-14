@@ -17,7 +17,6 @@
  * Optimizer Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DbOptimizerStorage } from "./db-optimizer.js";
 
 import { createLogger } from "../../lib/structured-logger";
