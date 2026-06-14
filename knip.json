@@ -133,7 +133,10 @@
     "**/tools/**",
     "**/reports/**",
     "**/*.test.ts",
-    "**/tests/**"
+    "**/*.spec.ts",
+    "**/tests/**",
+    "client/src/components/ops/ActionCard.tsx",
+    "client/src/components/ops/OpsStatusRail.tsx"
   ],
   "ignoreDependencies": [
     "@types/*",
