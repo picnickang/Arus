@@ -24,6 +24,7 @@ import {
   queueNotification,
   processQueueItem,
   processDigestQueue,
+  processPendingNotifications,
   retryFailedNotifications,
 } from "./queue-processor.js";
 import {
@@ -31,6 +32,16 @@ import {
   sendDocumentExpiryNotification,
   sendCrewComplianceNotification,
 } from "./crew-notifications.js";
+import { alertSettingsService } from "../../domains/alerts/settings-service.js";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 class EmailNotificationService {
   private getRecipients(setting: NotificationSetting): string[] {
@@ -74,15 +85,17 @@ class EmailNotificationService {
       return;
     }
 
+    const subject = buildComplianceSubject(finding, vesselName);
+    const { text, html } = buildComplianceBody(finding, vesselName);
+
+    // Digest-mode settings defer (and dedup by batching); immediate settings are
+    // gated by a per-finding cooldown so a repeated finding doesn't re-email.
+    const immediateRecipients: string[][] = [];
     for (const setting of applicableSettings) {
       const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
       }
-
-      const subject = buildComplianceSubject(finding, vesselName);
-      const { text, html } = buildComplianceBody(finding, vesselName);
-
       if (setting.digestMode) {
         await queueNotification({
           orgId,
@@ -97,6 +110,34 @@ class EmailNotificationService {
           scheduledFor: this.getNextDigestTime(setting.digestSchedule),
         });
       } else {
+        immediateRecipients.push(recipients);
+      }
+    }
+
+    if (immediateRecipients.length === 0) {
+      return;
+    }
+
+    const orgSettings = await alertSettingsService.getSettings(orgId);
+    const cooldownMs = (orgSettings.alertCooldownMinutes ?? 30) * 60_000;
+    const claim = await alertSettingsService.claimAlertSlot(
+      orgId,
+      "compliance",
+      finding.id,
+      cooldownMs,
+      finding.vesselId ?? undefined,
+      finding.id
+    );
+    if (!claim.claimed) {
+      logger.info(
+        `[EmailNotificationService] Compliance finding ${finding.id} suppressed by cooldown: ${claim.reason ?? "active"}`
+      );
+      return;
+    }
+
+    let anySuccess = false;
+    try {
+      for (const recipients of immediateRecipients) {
         const queueItem = await queueNotification({
           orgId,
           notificationType: "compliance",
@@ -108,7 +149,18 @@ class EmailNotificationService {
           relatedEntityId: finding.id,
           status: "pending",
         });
-        await processQueueItem(queueItem);
+        const result = await processQueueItem(queueItem);
+        if (result.success) {
+          anySuccess = true;
+        }
+      }
+    } finally {
+      if (claim.cooldownId) {
+        if (anySuccess) {
+          await alertSettingsService.recordAlertEmailSent(claim.cooldownId);
+        } else if (claim.snapshot) {
+          await alertSettingsService.revertAlertSlot(claim.cooldownId, claim.snapshot);
+        }
       }
     }
   }
@@ -193,8 +245,48 @@ class EmailNotificationService {
     }
   }
 
+  /**
+   * Queue a one-off test notification AND attempt delivery immediately.
+   *
+   * Mirrors the non-digest send paths (queue then processQueueItem on the same
+   * row). This exists because the HTTP test endpoint previously queued a
+   * "pending" row and then called retryFailedNotifications(1), which only ever
+   * reprocesses rows already in "failed" status — so the freshly-queued test
+   * row was never attempted. Returns the queue row id so callers can inspect
+   * the outcome.
+   */
+  async sendTestNotification(input: {
+    orgId: string;
+    email: string;
+    subject?: string | undefined;
+    message?: string | undefined;
+  }): Promise<{ id: string; queued: true }> {
+    const subject = input.subject || "ARUS Marine Test Notification";
+    const body = input.message || "This is a test notification from ARUS Marine.";
+    const item = await queueNotification({
+      orgId: input.orgId,
+      notificationType: "test",
+      subject,
+      body,
+      bodyHtml: `<div style="font-family: Arial, sans-serif;"><h2>Test Notification</h2><p>${escapeHtml(body)}</p></div>`,
+      recipients: [input.email],
+      status: "pending",
+    });
+    await processQueueItem(item);
+    return { id: item.id, queued: true };
+  }
+
   async processDigestQueue(): Promise<number> {
     return processDigestQueue();
+  }
+
+  /**
+   * Drain immediate pending notifications (e.g. RMS alerts queued directly with
+   * no scheduledFor). Without this they are never sent — processDigestQueue only
+   * handles rows whose scheduledFor has elapsed.
+   */
+  async processPendingNotifications(): Promise<number> {
+    return processPendingNotifications();
   }
 
   async retryFailedNotifications(maxAttempts: number = 3): Promise<number> {
@@ -235,6 +327,10 @@ class EmailNotificationService {
 
   getStatus(): { enabled: boolean; provider: string } {
     return emailSender.getStatus();
+  }
+
+  async getStatusForOrg(orgId: string): Promise<{ enabled: boolean; provider: string }> {
+    return emailSender.getStatusForOrg(orgId);
   }
 }
 

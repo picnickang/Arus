@@ -39,8 +39,56 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
 
   setupTwinRefreshSchedule();
   setupPredictionExpirySchedule();
+  setupEmailDigestSchedule();
 
   logger.info("✓ Schedulers configured");
+}
+
+/**
+ * Periodically drain the notification_queue digest items.
+ *
+ * processDigestQueue() sends any pending rows whose scheduledFor has elapsed
+ * (digest-mode compliance notifications are queued for the next 08:00). Without
+ * this poller those rows accumulate indefinitely — nothing else triggers them
+ * outside the manual POST /api/notifications/email/process-digest endpoint.
+ *
+ * CLOUD-only: initializeSchedulers early-returns in embedded/VESSEL mode, and
+ * notification_queue is a cloud-only table. Honors DISABLE_EMAIL_WORKER (the
+ * shared "no email background processing" switch) plus a dedicated
+ * DISABLE_EMAIL_DIGEST_SCHEDULER for operators who want the purchasing email
+ * worker on but the digest poller off.
+ */
+export function setupEmailDigestSchedule(): void {
+  if (
+    process.env["DISABLE_EMAIL_WORKER"] === "true" ||
+    process.env["DISABLE_EMAIL_DIGEST_SCHEDULER"] === "true"
+  ) {
+    logger.info("ℹ️  Email digest scheduler disabled");
+    return;
+  }
+
+  const INTERVAL_MS = Number.parseInt(
+    process.env["EMAIL_DIGEST_INTERVAL_MS"] ?? `${15 * 60 * 1000}`,
+    10
+  );
+
+  setInterval(async () => {
+    try {
+      const { emailNotificationService } = await import(
+        "../services/email-notification-service.js"
+      );
+      const sent = await emailNotificationService.processPendingNotifications();
+      const digested = await emailNotificationService.processDigestQueue();
+      if (sent + digested > 0) {
+        logger.info(`[EmailDigest] Sent ${sent} pending, processed ${digested} digest item(s)`);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("[EmailDigest] Scheduled digest run failed:", undefined, message);
+    }
+  }, INTERVAL_MS);
+
+  logger.info(`✅ Email digest schedule configured (every ${INTERVAL_MS / 60000} minutes)`);
 }
 
 function setupTwinRefreshSchedule(): void {

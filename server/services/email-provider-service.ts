@@ -1,14 +1,17 @@
 /**
  * Multi-Provider Email Service
  *
- * Supports SendGrid, SMTP, and AWS SES for sending emails.
- * Uses per-organization settings from the database with encrypted credentials.
+ * Supports SendGrid and SMTP for sending emails.
+ *
+ * This is a pure transport: credentials in EmailConfig are expected to be
+ * PLAINTEXT. Callers that persist encrypted credentials (see
+ * alertSettingsService.buildEmailConfig) decrypt them before building the
+ * config; the env-keyed sender passes its plaintext key directly.
  */
 
 import { createTransport, Transporter } from "nodemailer";
-import { decryptSecret } from "../lib/crypto-service";
 
-export type EmailProvider = "sendgrid" | "smtp" | "ses";
+export type EmailProvider = "sendgrid" | "smtp";
 
 export interface EmailConfig {
   provider: EmailProvider;
@@ -18,9 +21,6 @@ export interface EmailConfig {
   smtpUser?: string | undefined;
   smtpPassword?: string | undefined;
   smtpUseTls?: boolean | undefined;
-  sesAccessKeyId?: string | undefined;
-  sesSecretAccessKey?: string | undefined;
-  sesRegion?: string | undefined;
   fromEmail: string;
   fromName?: string | undefined;
 }
@@ -33,6 +33,7 @@ export interface EmailPayload {
   text: string;
   html?: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>;
 }
 
 export interface SendResult {
@@ -71,7 +72,6 @@ class EmailProviderService {
   > = {
     sendgrid: (config, payload) => this.sendViaSendGrid(config, payload),
     smtp: (config, payload) => this.sendViaSmtp(config, payload),
-    ses: (config, payload) => this.sendViaSes(config, payload),
   };
 
   async sendEmail(config: EmailConfig, payload: EmailPayload): Promise<SendResult> {
@@ -87,8 +87,6 @@ class EmailProviderService {
     if (!apiKey) {
       return { success: false, error: "SendGrid API key not configured" };
     }
-
-    const decryptedKey = decryptSecret(apiKey);
 
     try {
       const personalizations: {
@@ -111,7 +109,7 @@ class EmailProviderService {
       const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${decryptedKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -126,6 +124,12 @@ class EmailProviderService {
             { type: "text/plain", value: payload.text },
             ...(payload.html ? [{ type: "text/html", value: payload.html }] : []),
           ],
+          attachments: payload.attachments?.map((a) => ({
+            content: a.content.toString("base64"),
+            filename: a.filename,
+            type: a.contentType,
+            disposition: "attachment",
+          })),
         }),
       });
 
@@ -167,17 +171,15 @@ class EmailProviderService {
     let transporter = this.smtpTransporters.get(transporterKey);
 
     if (!transporter) {
-      const decryptedPassword = smtpPassword ? decryptSecret(smtpPassword) : undefined;
-
       transporter = createTransport({
         host: smtpHost,
         port: smtpPort || 587,
         secure: smtpUseTls !== false && smtpPort === 465,
         auth:
-          smtpUser && decryptedPassword
+          smtpUser && smtpPassword
             ? {
                 user: smtpUser,
-                pass: decryptedPassword,
+                pass: smtpPassword,
               }
             : undefined,
         tls:
@@ -201,6 +203,11 @@ class EmailProviderService {
         subject: payload.subject,
         text: payload.text,
         html: payload.html,
+        attachments: payload.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
       });
 
       log("info", "Email sent via SMTP", {
@@ -227,63 +234,6 @@ class EmailProviderService {
     }
   }
 
-  private async sendViaSes(config: EmailConfig, payload: EmailPayload): Promise<SendResult> {
-    const { sesAccessKeyId, sesSecretAccessKey, sesRegion } = config;
-
-    if (!sesAccessKeyId || !sesSecretAccessKey) {
-      return { success: false, error: "AWS SES credentials not configured" };
-    }
-
-    const decryptedAccessKey = decryptSecret(sesAccessKeyId);
-    const decryptedSecretKey = decryptSecret(sesSecretAccessKey);
-    const region = sesRegion || "us-east-1";
-
-    try {
-      // NOSONAR: S5332 - secure:false is correct for port 587 (STARTTLS)
-      // AWS SES SMTP uses STARTTLS which upgrades the connection after initial handshake
-      const transporter = createTransport({
-        host: `email-smtp.${region}.amazonaws.com`,
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        auth: {
-          user: decryptedAccessKey,
-          pass: decryptedSecretKey,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: config.fromName ? `"${config.fromName}" <${config.fromEmail}>` : config.fromEmail,
-        to: payload.to.join(", "),
-        cc: payload.cc?.join(", "),
-        bcc: payload.bcc?.join(", "),
-        replyTo: payload.replyTo,
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-      });
-
-      log("info", "Email sent via SES", {
-        messageId: info.messageId,
-        recipients: payload.to.length,
-      });
-      return { success: true, messageId: info.messageId, provider: "ses" };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      const isRetriable =
-        errorMessage.includes("ECONNREFUSED") ||
-        errorMessage.includes("ETIMEDOUT") ||
-        errorMessage.includes("throttl");
-      log("error", "SES error", { error: errorMessage, retriable: isRetriable });
-      return {
-        success: false,
-        error: errorMessage,
-        retriable: isRetriable,
-        provider: "ses",
-      };
-    }
-  }
-
   async testConnection(config: EmailConfig): Promise<{ success: boolean; error?: string }> {
     const { provider } = config;
 
@@ -293,10 +243,9 @@ class EmailProviderService {
         if (!apiKey) {
           return { success: false, error: "SendGrid API key not configured" };
         }
-        const decryptedKey = decryptSecret(apiKey);
         try {
           const response = await fetch("https://api.sendgrid.com/v3/user/profile", {
-            headers: { Authorization: `Bearer ${decryptedKey}` },
+            headers: { Authorization: `Bearer ${apiKey}` },
           });
           if (response.ok) {
             return { success: true };
@@ -316,54 +265,18 @@ class EmailProviderService {
           return { success: false, error: "SMTP host not configured" };
         }
 
-        const decryptedPassword = smtpPassword ? decryptSecret(smtpPassword) : undefined;
-
         try {
           const transporter = createTransport({
             host: smtpHost,
             port: smtpPort || 587,
             secure: smtpUseTls !== false && smtpPort === 465,
             auth:
-              smtpUser && decryptedPassword
+              smtpUser && smtpPassword
                 ? {
                     user: smtpUser,
-                    pass: decryptedPassword,
+                    pass: smtpPassword,
                   }
                 : undefined,
-          });
-
-          await transporter.verify();
-          return { success: true };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Connection failed",
-          };
-        }
-      }
-
-      case "ses": {
-        const { sesAccessKeyId, sesSecretAccessKey, sesRegion } = config;
-        if (!sesAccessKeyId || !sesSecretAccessKey) {
-          return { success: false, error: "AWS SES credentials not configured" };
-        }
-
-        const decryptedAccessKey = decryptSecret(sesAccessKeyId);
-        const decryptedSecretKey = decryptSecret(sesSecretAccessKey);
-        const region = sesRegion || "us-east-1";
-
-        try {
-          // NOSONAR: S5332 - secure:false is correct for port 587 (STARTTLS)
-          // AWS SES SMTP uses STARTTLS which upgrades the connection after initial handshake
-          const transporter = createTransport({
-            host: `email-smtp.${region}.amazonaws.com`,
-            port: 587,
-            secure: false,
-            requireTLS: true,
-            auth: {
-              user: decryptedAccessKey,
-              pass: decryptedSecretKey,
-            },
           });
 
           await transporter.verify();
