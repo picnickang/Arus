@@ -43,6 +43,7 @@ import {
 
 import type { DomainRouterConfig } from "./domain-router-config-types";
 import { alertCrewDataProvider } from "../composition/alert-crew-data";
+import { syncInventoryProvider } from "../composition/sync-inventory-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -218,6 +219,7 @@ export const coreDomainRouters: DomainRouterConfig[] = [
       getSyncMetrics,
       processPendingEvents,
       recordAndPublish,
+      inventory: syncInventoryProvider,
     }),
   },
   // NOTE: CrewExtensions MUST be registered BEFORE Scheduling to ensure

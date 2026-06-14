@@ -3,7 +3,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import { dbInventoryStorage } from "../../db/inventory/index.js";
+import type { ISyncInventoryPort } from "../../composition/sync-inventory-data";
 
 interface SyncRoutesConfig {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -16,6 +16,8 @@ interface SyncRoutesConfig {
     type: string,
     data: unknown
   ) => Promise<void>;
+  /** Injected inventory accessor (cross-domain; wired in composition). */
+  inventory: ISyncInventoryPort;
 }
 
 export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void {
@@ -25,6 +27,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     getSyncMetrics,
     processPendingEvents,
     recordAndPublish,
+    inventory,
   } = config;
 
   app.get(
@@ -56,12 +59,12 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       results.eventsProcessed = await processPendingEvents();
 
       try {
-        const allParts = await dbInventoryStorage.getParts();
+        const allParts = await inventory.getParts();
         results.partsChecked = allParts.length;
 
         for (const part of allParts) {
           try {
-            await dbInventoryStorage.syncPartCostToStock(part.id);
+            await inventory.syncPartCostToStock(part.id);
             results.costSync++;
           } catch (syncError: unknown) {
             const msg = syncError instanceof Error ? syncError.message : String(syncError);
