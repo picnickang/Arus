@@ -120,6 +120,42 @@ Using `alerts` as the worked example:
 `npm run check` green · `npm run check:guards` green · baselines strictly lower ·
 behavior covered by existing integration tests.
 
+## 3a. Phase 1 status — `alerts` (landed)
+
+The **alerts core** (configurations, notifications, suppressions, comments,
+escalation, clear-all) is fully converted to the 4-layer structure and is the
+canonical worked example of the recipe above:
+
+- `domain/` — `types.ts` (entity/command aliases over `@shared/schema` + the
+  `AlertsWsBroadcaster` transport contract), `events.ts` (entity-type/operation
+  value space), `ports.ts` (`IAlertRepository`, `IAlertEventPublisher`,
+  `IAlertRealtimeNotifier`, `IWorkOrderEscalator`).
+- `infrastructure/` — `alert-repository-adapter.ts` (wraps `dbAlertStorage`; the
+  only alerts layer touching `server/repositories`), `event-publisher-adapter.ts`
+  (wraps `recordAndPublish`, MQTT reliable-sync, ack metrics), and
+  `work-order-escalation-adapter.ts` (lazy `workOrderService` delegate — replaces
+  the route's old `await import("../../repositories")`, which the repos-imports
+  guard now forbids in `interfaces/`).
+- `application/` — `AlertsApplicationService` (constructor DI of the four ports)
+  + `index.ts` composition root exporting the wired `alertsAppService`.
+- `interfaces/` — `routes.ts` calling the app service; **exact public route paths
+  preserved**. Escalation's work-order WebSocket broadcast is passed as an
+  `onWorkOrderCreated` callback so `interfaces/` stays off `server/repositories`.
+- Old flat `repository.ts`/`service.ts`/`routes.ts` removed; `index.ts` re-exports
+  the layers and keeps the pre-conversion public names as aliases.
+
+Result: `alerts` moved **flat → full** (conformance baseline regenerated:
+17 full / 7 partial / 38 flat); `check`, `check:guards`, and the public-api-paths
+audit are green.
+
+**Deferred to Phase 1b** (still flat support files under `alerts/`, unchanged):
+the crew alert **evaluators** (`evaluators/*`, `crew-alert-evaluators.ts`), the
+**alert runner** (`alert-runner.ts`), the **settings** subsystem
+(`settings-*.ts`, `settings/*`), and `email-templates-service.ts`. These carry
+the domain's remaining `server/repositories` coupling (crew/vessel/stcw/log
+storage) and need their own ports/adapters; converting them is a self-contained
+follow-up that does not block the reference template.
+
 ## 4. Phasing
 
 Ordered for dependency safety, mirroring the extraction order in
@@ -129,7 +165,7 @@ consumers). Each phase is independently shippable.
 | Phase | Scope | Outcome |
 |---|---|---|
 | **0** | Governance scaffolding + this plan (landed) | Ratchets in place |
-| **1** | **Reference conversion:** `alerts` end-to-end | Canonical template; refine recipe/ADR |
+| **1** | **Reference conversion:** `alerts` core (landed); `alerts` evaluators/runner/settings = **1b** | Canonical template; refine recipe/ADR |
 | **2** | High-traffic flat domains: `compliance`, `condition-monitoring`, `logbook`, `notifications`, `scheduling`, `sync` | Largest leak concentration removed |
 | **3** | Telemetry/sensing: `telemetry` (partial→full), `sensors`, `sensor-management`, `iot-processing`, `devices` | Highest-volume context layered |
 | **4** | ML/analytics: `ml-analytics`, `ml-pipeline`, `pdm-platform`, `insights`, flat `equipment` family | Predictive path layered |
