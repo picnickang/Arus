@@ -106,7 +106,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmFeatureStore",
-    importPath: "../domains/pdm-platform/feature-store/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "featureStoreRouter",
     mountPath: "/api/pdm/features",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -117,7 +117,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
     // swagger/paths-pdm.ts long before it was implemented — keep this
     // mount or the page crashes on Vite's HTML 404 fallback.
     name: "PdmHealth",
-    importPath: "../domains/pdm-platform/health/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "pdmHealthRouter",
     mountPath: "/api/pdm/health",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -125,7 +125,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmFleetAnalytics",
-    importPath: "../domains/pdm-platform/fleet-analytics/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "fleetAnalyticsRouter",
     mountPath: "/api/pdm/fleet",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -133,7 +133,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmModelRegistry",
-    importPath: "../domains/pdm-platform/model-registry/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "modelRegistryRouter",
     mountPath: "/api/pdm/models",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -141,7 +141,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmInference",
-    importPath: "../domains/pdm-platform/inference/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "inferenceRouter",
     mountPath: "/api/pdm/infer",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -149,7 +149,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmDecisionSupport",
-    importPath: "../domains/pdm-platform/decision-support/interfaces/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "pdmDecisionSupportRouter",
     mountPath: "/api/pdm/decision-support",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -157,7 +157,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PdmMonitoring",
-    importPath: "../domains/pdm-platform/monitoring/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "monitoringRouter",
     mountPath: "/api/pdm/drift",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -165,7 +165,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "PredictionGovernance",
-    importPath: "../domains/pdm-platform/prediction-governance/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "predictionGovernanceRouter",
     mountPath: "/api/pdm/governance",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -173,7 +173,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "TrainingPipeline",
-    importPath: "../domains/pdm-platform/training-pipeline/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "trainingPipelineRouter",
     mountPath: "/api/pdm/training",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -184,7 +184,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
 
   {
     name: "TwinDefinition",
-    importPath: "../domains/pdm-platform/digital-twin/twin-definition/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "twinDefinitionRouter",
     mountPath: "/api/pdm/twin/def",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -192,7 +192,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "TwinState",
-    importPath: "../domains/pdm-platform/digital-twin/twin-state/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "twinStateRouter",
     mountPath: "/api/pdm/twin/state",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -200,7 +200,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "ResidualAnalysis",
-    importPath: "../domains/pdm-platform/digital-twin/residual-analysis/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "residualAnalysisRouter",
     mountPath: "/api/pdm/twin/residuals",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -208,7 +208,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "ScenarioSim",
-    importPath: "../domains/pdm-platform/digital-twin/scenario-sim/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "scenarioSimRouter",
     mountPath: "/api/pdm/twin/scenarios",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -216,7 +216,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "Replay",
-    importPath: "../domains/pdm-platform/digital-twin/replay/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "replayRouter",
     mountPath: "/api/pdm/twin/replay",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
@@ -224,7 +224,7 @@ export const mountedDomainRouters: DomainRouterConfig[] = [
   },
   {
     name: "TwinUpdates",
-    importPath: "../domains/pdm-platform/twin-updates/routes.js",
+    importPath: "../domains/pdm-platform/interfaces/index.js",
     functionName: "twinUpdatesRouter",
     mountPath: "/api/pdm/twin/updates",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
