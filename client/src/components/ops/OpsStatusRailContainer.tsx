@@ -23,7 +23,11 @@ function readRiskHref(payload: unknown): string | undefined {
  * and the offline-sync snapshot for the outbox (mirrors ConnectivityBannerWithSync).
  * Rail actions navigate to the relevant surface — the rail never mutates.
  */
-export function OpsStatusRailContainer() {
+export function OpsStatusRailContainer({
+  hideWhenIdle = false,
+}: {
+  hideWhenIdle?: boolean;
+} = {}) {
   const [, setLocation] = useLocation();
   const { attentionItems, handover } = useOperationalWorkflow();
   const [outboxCount, setOutboxCount] = useState(0);
@@ -105,6 +109,7 @@ export function OpsStatusRailContainer() {
       handoverOpenItems={handover.openAttentionItems}
       isOnline={isOnline}
       onAction={handleAction}
+      hideWhenIdle={hideWhenIdle}
     />
   );
 }

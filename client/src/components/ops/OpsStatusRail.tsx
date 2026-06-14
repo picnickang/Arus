@@ -17,6 +17,13 @@ interface OpsStatusRailProps {
   isOnline?: boolean;
   onAction?: (action: string, payload?: unknown) => void;
   className?: string;
+  /**
+   * When true, render nothing unless there is something urgent to surface
+   * (a risk, a queued outbox, or an offline state). Used for the mobile mount,
+   * where the global connectivity banner already covers steady-state status and
+   * permanent chrome would waste scarce screen space.
+   */
+  hideWhenIdle?: boolean;
 }
 
 const chip = "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium";
@@ -37,8 +44,13 @@ export default function OpsStatusRail({
   isOnline = true,
   onAction,
   className,
+  hideWhenIdle = false,
 }: OpsStatusRailProps) {
   const topRisk = risks[0];
+  const idle = !topRisk && outboxCount <= 0 && isOnline;
+  if (hideWhenIdle && idle) {
+    return null;
+  }
   return (
     <div
       className={cn(

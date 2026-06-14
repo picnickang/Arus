@@ -12,6 +12,7 @@ const CORE_RELEASE_TESTS = [
   "**/mobile-readiness-link-audit.spec.ts",
   "**/mobile-readiness-visual-fidelity.spec.ts",
   "**/bridge-conditions.spec.ts",
+  "**/mobile-ops-rail.spec.ts",
   "**/axe-contrast.spec.ts",
   "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
