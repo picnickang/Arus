@@ -37,6 +37,20 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     })
   );
 
+  // Literal route declared before the `/:id` param route so it is not
+  // captured as id="active".
+  app.get(
+    "/api/admin/maintenance-windows/active",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_ACTIVE_MAINTENANCE_WINDOWS"),
+    withErrorHandling("fetch active maintenance windows", async (req: Request, res: Response) => {
+      const { orgId } = req.query;
+      const windows = await dbSystemAdminStorage.getActiveMaintenanceWindows(orgId as string);
+      res.json(windows);
+    })
+  );
+
   app.get(
     "/api/admin/maintenance-windows/:id",
     requireAdminAuth,
@@ -89,18 +103,6 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
       const { id = "" } = req.params;
       await dbSystemAdminStorage.deleteMaintenanceWindow(id);
       sendDeleted(res);
-    })
-  );
-
-  app.get(
-    "/api/admin/maintenance-windows/active",
-    requireAdminAuth,
-    generalApiRateLimit,
-    auditAdminAction("VIEW_ACTIVE_MAINTENANCE_WINDOWS"),
-    withErrorHandling("fetch active maintenance windows", async (req: Request, res: Response) => {
-      const { orgId } = req.query;
-      const windows = await dbSystemAdminStorage.getActiveMaintenanceWindows(orgId as string);
-      res.json(windows);
     })
   );
 }

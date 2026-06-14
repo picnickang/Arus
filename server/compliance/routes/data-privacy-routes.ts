@@ -248,33 +248,6 @@ router.get(
   }
 );
 
-router.get(
-  "/dsar/:id",
-  requireAdminAuth,
-  auditAdminAction("dsar_view"),
-  requireComplianceAccess,
-  async (req: Request, res: Response) => {
-    try {
-      const orgId = requestOrgId(req);
-      const { id } = req.params;
-      if (!id) {
-        return res.status(400).json({ error: "Missing id" });
-      }
-      if (!orgId) {
-        return res.status(401).json({ error: "Organization ID required" });
-      }
-      const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
-      if (!request) {
-        return res.status(404).json({ error: "DSAR request not found" });
-      }
-      return res.json({ success: true, data: request });
-    } catch (error) {
-      logger.error("[Compliance] DSAR get error:", undefined, error);
-      return res.status(500).json({ error: "Failed to retrieve DSAR request" });
-    }
-  }
-);
-
 router.post(
   "/dsar",
   requireAdminAuth,
@@ -625,6 +598,35 @@ router.get(
     } catch (error) {
       logger.error("[Compliance] DSAR statistics error:", undefined, error);
       return res.status(500).json({ error: "Failed to retrieve DSAR statistics" });
+    }
+  }
+);
+
+// `/dsar/:id` is declared after the literal `/dsar/statistics` so the literal
+// path is not captured as id="statistics".
+router.get(
+  "/dsar/:id",
+  requireAdminAuth,
+  auditAdminAction("dsar_view"),
+  requireComplianceAccess,
+  async (req: Request, res: Response) => {
+    try {
+      const orgId = requestOrgId(req);
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
+      if (!orgId) {
+        return res.status(401).json({ error: "Organization ID required" });
+      }
+      const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
+      if (!request) {
+        return res.status(404).json({ error: "DSAR request not found" });
+      }
+      return res.json({ success: true, data: request });
+    } catch (error) {
+      logger.error("[Compliance] DSAR get error:", undefined, error);
+      return res.status(500).json({ error: "Failed to retrieve DSAR request" });
     }
   }
 );
