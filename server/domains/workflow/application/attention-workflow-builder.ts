@@ -240,8 +240,7 @@ export async function buildAttentionWorkflow(
       owner: lastResolution?.owner || "Logistics",
       due: lastResolution?.eta || "Before next maintenance window",
       href: `/logistics?tab=inventory&partId=${encodeURIComponent(id)}&workflow=low-stock`,
-      severity:
-        (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "warning",
+      severity: (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "warning",
       queue: "waiting_parts",
       status: "low_stock",
       lastResolution,

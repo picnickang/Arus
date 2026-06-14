@@ -10,7 +10,13 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { FleetScreen, FleetVesselCard, MobileRole, QueueItem, TodayScreen } from "./mobile-readiness-model-types";
+import type {
+  FleetScreen,
+  FleetVesselCard,
+  MobileRole,
+  QueueItem,
+  TodayScreen,
+} from "./mobile-readiness-model-types";
 import { sortQueue } from "./mobile-readiness-navigation";
 
 const adminQueue: QueueItem[] = [

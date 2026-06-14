@@ -1,7 +1,7 @@
 import type { RoleTemplateConfig } from "./types";
 
 export const ADMIN_ROLE_TEMPLATES: RoleTemplateConfig[] = [
-{
+  {
     name: "company_admin",
     displayName: "Company Administrator",
     description: "Full access to all features and settings",
@@ -151,7 +151,7 @@ export const ADMIN_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "super_admin",
     displayName: "Super Administrator",
     description:
@@ -193,7 +193,7 @@ export const ADMIN_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "admin",
     displayName: "Administrator",
     description: "Administrative role for crew, access, settings, and operational configuration",
@@ -228,7 +228,7 @@ export const ADMIN_ROLE_TEMPLATES: RoleTemplateConfig[] = [
     ],
   },
 
-{
+  {
     name: "fleet_manager",
     displayName: "Fleet Manager",
     description: "Fleet-level operational manager with broad vessel, crew, and safety visibility",

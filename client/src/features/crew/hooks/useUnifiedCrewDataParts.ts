@@ -174,7 +174,8 @@ export function useCrewRosterFilters(input: CrewRosterFilterInput) {
     });
     if (input.accessReadinessEnabled && input.selectedAccessStatus !== "all") {
       filtered = filtered.filter(
-        (member) => input.accessReadinessByCrewId.get(member.id)?.status === input.selectedAccessStatus
+        (member) =>
+          input.accessReadinessByCrewId.get(member.id)?.status === input.selectedAccessStatus
       );
     }
     return sortCrew(
@@ -200,10 +201,7 @@ export function useCrewRosterFilters(input: CrewRosterFilterInput) {
     input.roleLookupSortIndex,
   ]);
 
-  const getFilteredSortedCrew = (
-    baseCrew: CrewListItem[],
-    options: FilteredCrewOptions = {}
-  ) => {
+  const getFilteredSortedCrew = (baseCrew: CrewListItem[], options: FilteredCrewOptions = {}) => {
     const includeStatusFilter = options.includeStatusFilter ?? true;
     const includeAccessFilter = options.includeAccessFilter ?? input.accessReadinessEnabled;
     const includeFormerAccessRiskFilter = options.includeFormerAccessRiskFilter ?? false;
@@ -217,7 +215,8 @@ export function useCrewRosterFilters(input: CrewRosterFilterInput) {
     });
     if (includeAccessFilter && input.selectedAccessStatus !== "all") {
       filtered = filtered.filter(
-        (member) => input.accessReadinessByCrewId.get(member.id)?.status === input.selectedAccessStatus
+        (member) =>
+          input.accessReadinessByCrewId.get(member.id)?.status === input.selectedAccessStatus
       );
     }
     if (includeFormerAccessRiskFilter && input.selectedFormerAccessRisk !== "all") {

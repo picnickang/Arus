@@ -197,13 +197,13 @@ export class DatabaseAnalyticsStorage {
     return getLaborRates(orgId);
   }
 
-  async createLaborRate(...args: Parameters<typeof createLaborRate>): ReturnType<typeof createLaborRate> {
+  async createLaborRate(
+    ...args: Parameters<typeof createLaborRate>
+  ): ReturnType<typeof createLaborRate> {
     return createLaborRate(...args);
   }
 
-  async getExpenses(
-    ...args: Parameters<typeof getExpenses>
-  ): ReturnType<typeof getExpenses> {
+  async getExpenses(...args: Parameters<typeof getExpenses>): ReturnType<typeof getExpenses> {
     return getExpenses(...args);
   }
 
@@ -465,10 +465,7 @@ export class DatabaseAnalyticsStorage {
   // Metrics History
   // ──────────────────────────────────────────────────────────────────────
 
-  async getMetricsHistory(
-    orgId: string,
-    days: number = 7
-  ): ReturnType<typeof getMetricsHistory> {
+  async getMetricsHistory(orgId: string, days: number = 7): ReturnType<typeof getMetricsHistory> {
     return getMetricsHistory(orgId, days);
   }
 

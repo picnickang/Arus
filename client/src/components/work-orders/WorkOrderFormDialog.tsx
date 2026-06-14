@@ -27,10 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Wrench, FileText, Clock } from "lucide-react";
 import { useDiscardGuard, DiscardConfirmDialog } from "@/hooks/useDiscardGuard";
 import type { WorkOrder } from "@shared/schema";
-import {
-  useWorkOrderFormDialogData,
-  type WorkOrderFormData,
-} from "@/features/work-orders";
+import { useWorkOrderFormDialogData, type WorkOrderFormData } from "@/features/work-orders";
 import { WorkOrderFormFields } from "./WorkOrderFormFields";
 
 interface WorkOrderFormDialogProps {

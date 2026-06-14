@@ -21,9 +21,7 @@ import {
 import { organizations } from "../core";
 import { vessels } from "../vessels";
 import { equipment } from "../equipment";
-import {
-  mlModels,
-} from "../ml-analytics-core";
+import { mlModels } from "../ml-analytics-core";
 
 // Model performance validation - tracks predictions vs actual outcomes
 export const modelPerformanceValidations = pgTable(

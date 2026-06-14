@@ -134,7 +134,9 @@ export function EquipmentPageDialogs({
       )}
       {m.selectedEquipment && (
         <SensorSetupWizard
-          equipment={m.selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]}
+          equipment={
+            m.selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]
+          }
           open={m.isSensorWizardOpen}
           onClose={() => m.setIsSensorWizardOpen(false)}
           onSuccess={() => {

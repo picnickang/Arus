@@ -137,8 +137,12 @@ class WorkOrderService {
     orgId: string,
     options?: WorkOrderCloneOptions
   ): Promise<WorkOrder> {
-    return cloneWorkOrderOperation(id, orgId, (targetOrgId) =>
-      this.generateWorkOrderNumber(targetOrgId), options);
+    return cloneWorkOrderOperation(
+      id,
+      orgId,
+      (targetOrgId) => this.generateWorkOrderNumber(targetOrgId),
+      options
+    );
   }
 
   async completeWorkOrderInTx(

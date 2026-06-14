@@ -1,5 +1,5 @@
-import { MobilePageShell } from './MobilePageShell';
-import { MobilePageHeader } from './MobileReadinessShared';
+import { MobilePageShell } from "./MobilePageShell";
+import { MobilePageHeader } from "./MobileReadinessShared";
 
 export function MobileProfilePage() {
   return (

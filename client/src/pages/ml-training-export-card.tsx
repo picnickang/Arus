@@ -178,9 +178,9 @@ export function MLTrainingExportCard({ training: t }: MLTrainingExportCardProps)
           <AlertDescription>
             <strong>Export Formats:</strong> JSON format includes all datasets (raw telemetry,
             models, predictions, anomalies, thresholds, PDM scores) - use for complete platform
-            migration or training models in external systems. CSV format contains ML models only with
-            full tier metadata - use for spreadsheet analysis in Excel, Pandas, or BI tools. Raw
-            telemetry data enables competing platforms to train their own predictive models.
+            migration or training models in external systems. CSV format contains ML models only
+            with full tier metadata - use for spreadsheet analysis in Excel, Pandas, or BI tools.
+            Raw telemetry data enables competing platforms to train their own predictive models.
           </AlertDescription>
         </Alert>
       </CardContent>

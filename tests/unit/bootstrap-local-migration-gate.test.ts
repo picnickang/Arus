@@ -7,8 +7,6 @@ describe("bootstrap local migration gate", () => {
   });
 
   it("accepts database handles with execute for PostgreSQL bootstrap migrations", () => {
-    expect(canRunPostgresBootstrapMigration({ execute: async () => ({ rows: [] }) })).toBe(
-      true
-    );
+    expect(canRunPostgresBootstrapMigration({ execute: async () => ({ rows: [] }) })).toBe(true);
   });
 });

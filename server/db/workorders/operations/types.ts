@@ -1,8 +1,4 @@
-import type {
-  InsertWorkOrderCompletion,
-  WorkOrder,
-  WorkOrderCompletion,
-} from "@shared/schema";
+import type { InsertWorkOrderCompletion, WorkOrder, WorkOrderCompletion } from "@shared/schema";
 import type { db } from "../../../db-config";
 import type { PendingMovementProjection } from "../../../db/inventory/index.js";
 
