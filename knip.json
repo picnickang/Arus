@@ -3,6 +3,9 @@
   "entry": [
     "client/src/main.tsx",
     "client/src/**/*.test.tsx",
+    "client/src/components/ops/ActionCard.tsx",
+    "client/src/components/ops/OpsStatusRail.tsx",
+    "client/src/core/runtime/opsRuntimeMachine.ts",
     "jest.client.config.mjs",
     "server/beast/index.ts",
     "server/compliance/routes.ts",
@@ -133,6 +136,8 @@
     "**/tools/**",
     "**/reports/**",
     "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
     "**/tests/**"
   ],
   "ignoreDependencies": [
@@ -159,7 +164,8 @@
     "@swc/*",
     "supertest",
     "jscpd",
-    "knip"
+    "knip",
+    "@yao-pkg/pkg"
   ],
   "rules": {
     "files": "warn",

@@ -46,12 +46,14 @@ export function CostBreakdown({
           <span className="text-muted-foreground">Internal Labor</span>
           <div className="text-right">
             <span>${totalLaborCost.toFixed(2)}</span>
-            {calculatedLaborCost !== null && calculatedLaborCost !== totalLaborCost && (
-              <span className="text-xs text-muted-foreground block">
-                Est: ${calculatedLaborCost.toFixed(2)} ({workOrder.laborHours}h x $
-                {assignedCrewRate?.toFixed(2)}/hr)
-              </span>
-            )}
+            {calculatedLaborCost !== null &&
+              calculatedLaborCost !== totalLaborCost &&
+              assignedCrewRate !== null && (
+                <span className="text-xs text-muted-foreground block">
+                  Est: ${calculatedLaborCost.toFixed(2)} ({workOrder.laborHours}h x $
+                  {assignedCrewRate.toFixed(2)}/hr)
+                </span>
+              )}
           </div>
         </div>
         {downtimeCost > 0 && (
@@ -103,11 +105,11 @@ export function TimeTracking({ workOrder }: { workOrder: WorkOrder }) {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <span className="text-muted-foreground block">Estimated Hours</span>
-          <span>{workOrder.estimatedDowntimeHours || "—"}h</span>
+          <span>{workOrder.estimatedDowntimeHours ?? "—"}h</span>
         </div>
         <div>
           <span className="text-muted-foreground block">Actual Hours</span>
-          <span>{workOrder.actualDowntimeHours || "—"}h</span>
+          <span>{workOrder.actualDowntimeHours ?? "—"}h</span>
         </div>
         <div>
           <span className="text-muted-foreground block">Created</span>
