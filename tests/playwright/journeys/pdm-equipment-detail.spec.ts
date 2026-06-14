@@ -124,8 +124,20 @@ async function stubData(
 
   await page.route("**/api/sensor-config?*", (route) =>
     jsonRoute(route, [
-      { id: "sc-1", equipmentId: EQUIP_ID, sensorType: "temperature", targetUnit: "°C", enabled: true },
-      { id: "sc-2", equipmentId: EQUIP_ID, sensorType: "vibration", targetUnit: "mm/s", enabled: false },
+      {
+        id: "sc-1",
+        equipmentId: EQUIP_ID,
+        sensorType: "temperature",
+        targetUnit: "°C",
+        enabled: true,
+      },
+      {
+        id: "sc-2",
+        equipmentId: EQUIP_ID,
+        sensorType: "vibration",
+        targetUnit: "mm/s",
+        enabled: false,
+      },
     ])
   );
 
