@@ -2,16 +2,17 @@ import { Express, Request, Response } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import {
   insertConditionMonitoringSchema,
   insertOilAnalysisSchema,
   insertOilChangeRecordSchema,
   insertWearParticleAnalysisSchema,
 } from "@shared/schema-runtime";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
-import { logger } from "../../utils/logger.js";
-import { dbConditionMonitoringStorage } from "../../db/condition-monitoring/index.js";
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
+import { logger } from "../../../utils/logger.js";
+import { conditionMonitoringService, ConditionResourceNotFoundError } from "../application";
+import type { InsertOilAnalysis, InsertWearParticleAnalysis } from "../domain/types";
 
 interface ConditionMonitoringRoutesConfig {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -44,10 +45,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil analyses", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
-      const analyses = await dbConditionMonitoringStorage.getOilAnalyses(
-        orgId,
-        equipmentId as string
-      );
+      const analyses = await conditionMonitoringService.getOilAnalyses(orgId, equipmentId as string);
       res.json(analyses);
     })
   );
@@ -59,7 +57,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const analysis = await dbConditionMonitoringStorage.getOilAnalysis(id, orgId);
+      const analysis = await conditionMonitoringService.getOilAnalysis(id, orgId);
       if (!analysis) {
         return sendNotFound(res, "Oil analysis");
       }
@@ -79,7 +77,7 @@ export function registerConditionMonitoringRoutes(
           .transform((val) => (typeof val === "string" ? new Date(val) : val)),
       });
       const validatedData = oilAnalysisSchema.parse(req.body);
-      const analysis = await dbConditionMonitoringStorage.createOilAnalysis(validatedData);
+      const analysis = await conditionMonitoringService.createOilAnalysis(validatedData);
       sendCreated(res, analysis);
     })
   );
@@ -92,9 +90,9 @@ export function registerConditionMonitoringRoutes(
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
       const body = updateBodySchema.parse(req.body);
-      const analysis = await dbConditionMonitoringStorage.updateOilAnalysis(
+      const analysis = await conditionMonitoringService.updateOilAnalysis(
         id,
-        body as Parameters<typeof dbConditionMonitoringStorage.updateOilAnalysis>[1],
+        body as Partial<InsertOilAnalysis>,
         orgId
       );
       res.json(analysis);
@@ -108,7 +106,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("delete oil analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      await dbConditionMonitoringStorage.deleteOilAnalysis(id, orgId);
+      await conditionMonitoringService.deleteOilAnalysis(id, orgId);
       sendDeleted(res);
     })
   );
@@ -122,7 +120,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch wear particle analyses", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
-      const analyses = await dbConditionMonitoringStorage.getWearParticleAnalyses(
+      const analyses = await conditionMonitoringService.getWearParticleAnalyses(
         orgId,
         equipmentId as string
       );
@@ -137,7 +135,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch wear particle analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const analysis = await dbConditionMonitoringStorage.getWearParticleAnalysis(id, orgId);
+      const analysis = await conditionMonitoringService.getWearParticleAnalysis(id, orgId);
       if (!analysis) {
         return sendNotFound(res, "Wear particle analysis");
       }
@@ -157,7 +155,7 @@ export function registerConditionMonitoringRoutes(
           .transform((val) => (typeof val === "string" ? new Date(val) : val)),
       });
       const validatedData = wearAnalysisSchema.parse(req.body);
-      const analysis = await dbConditionMonitoringStorage.createWearParticleAnalysis(validatedData);
+      const analysis = await conditionMonitoringService.createWearParticleAnalysis(validatedData);
       sendCreated(res, analysis);
     })
   );
@@ -170,9 +168,9 @@ export function registerConditionMonitoringRoutes(
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
       const body = updateBodySchema.parse(req.body);
-      const analysis = await dbConditionMonitoringStorage.updateWearParticleAnalysis(
+      const analysis = await conditionMonitoringService.updateWearParticleAnalysis(
         id,
-        body as Parameters<typeof dbConditionMonitoringStorage.updateWearParticleAnalysis>[1],
+        body as Partial<InsertWearParticleAnalysis>,
         orgId
       );
       res.json(analysis);
@@ -186,7 +184,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("delete wear particle analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      await dbConditionMonitoringStorage.deleteWearParticleAnalysis(id, orgId);
+      await conditionMonitoringService.deleteWearParticleAnalysis(id, orgId);
       sendDeleted(res);
     })
   );
@@ -200,7 +198,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch condition monitoring assessments", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
-      const assessments = await dbConditionMonitoringStorage.getConditionMonitoringRecords(
+      const assessments = await conditionMonitoringService.getConditionMonitoringRecords(
         orgId,
         equipmentId as string
       );
@@ -215,7 +213,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch condition monitoring assessment", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const assessment = await dbConditionMonitoringStorage.getConditionMonitoringRecord(id, orgId);
+      const assessment = await conditionMonitoringService.getConditionMonitoringRecord(id, orgId);
       if (!assessment) {
         return sendNotFound(res, "Condition monitoring assessment");
       }
@@ -229,7 +227,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("create condition monitoring assessment", async (req, res) => {
       const body = assessmentBodySchema.parse(req.body);
-      const assessment = await dbConditionMonitoringStorage.createConditionMonitoringRecord(body);
+      const assessment = await conditionMonitoringService.createConditionMonitoringRecord(body);
       sendCreated(res, assessment);
     })
   );
@@ -243,7 +241,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil change records", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
-      const records = await dbConditionMonitoringStorage.getOilChangeRecords(
+      const records = await conditionMonitoringService.getOilChangeRecords(
         orgId,
         equipmentId as string
       );
@@ -257,7 +255,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("create oil change record", async (req, res) => {
       const body = oilChangeBodySchema.parse(req.body);
-      const record = await dbConditionMonitoringStorage.createOilChangeRecord(body);
+      const record = await conditionMonitoringService.createOilChangeRecord(body);
       sendCreated(res, record);
     })
   );
@@ -273,24 +271,19 @@ export function registerConditionMonitoringRoutes(
         req.body
       );
 
-      const oilAnalysis = await dbConditionMonitoringStorage.getOilAnalysis(oilAnalysisId);
-      if (!oilAnalysis) {
-        return sendNotFound(res, "Oil analysis");
-      }
-
-      let wearAnalysis;
-      if (wearAnalysisId) {
-        wearAnalysis = await dbConditionMonitoringStorage.getWearParticleAnalysis(wearAnalysisId);
-        if (!wearAnalysis) {
-          return sendNotFound(res, "Wear particle analysis");
+      try {
+        const savedAssessment = await conditionMonitoringService.generateAssessment({
+          oilAnalysisId,
+          wearAnalysisId,
+          vibrationScore,
+        });
+        sendCreated(res, savedAssessment);
+      } catch (err) {
+        if (err instanceof ConditionResourceNotFoundError) {
+          return sendNotFound(res, err.resource);
         }
+        throw err;
       }
-
-      const { generateConditionAssessment } = await import("../../condition-monitoring.js");
-      const assessmentData = generateConditionAssessment(oilAnalysis, wearAnalysis, vibrationScore);
-      const savedAssessment =
-        await dbConditionMonitoringStorage.createConditionMonitoringRecord(assessmentData);
-      sendCreated(res, savedAssessment);
     })
   );
 
@@ -303,21 +296,8 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch latest condition data", async (req, res) => {
       const { equipmentId } = equipmentIdParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-
-      const [latestOil, latestWear, conditionRecords, lastOilChange] = await Promise.all([
-        dbConditionMonitoringStorage.getLatestOilAnalysis(equipmentId, orgId),
-        dbConditionMonitoringStorage.getLatestWearParticleAnalysis(equipmentId, orgId),
-        dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId),
-        dbConditionMonitoringStorage.getLatestOilChangeRecord(equipmentId, orgId),
-      ]);
-      const latestAssessment = conditionRecords[0] ?? null;
-
-      res.json({
-        oilAnalysis: latestOil,
-        wearAnalysis: latestWear,
-        conditionAssessment: latestAssessment,
-        lastOilChange: lastOilChange ?? null,
-      });
+      const latest = await conditionMonitoringService.getLatestConditionData(equipmentId, orgId);
+      res.json(latest);
     })
   );
 

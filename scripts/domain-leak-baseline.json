@@ -1,11 +1,11 @@
 {
   "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
-  "generatedAt": "2026-06-14T07:35:33.518Z",
+  "generatedAt": "2026-06-14T10:27:49.033Z",
   "totals": {
     "dynamicImports": 399,
-    "routeStorageImports": 102,
+    "routeStorageImports": 101,
     "crossDomainStorage": 77,
-    "total": 578
+    "total": 577
   },
   "samples": {
     "dynamicImports": [
@@ -136,10 +136,6 @@
         "storage": "dbComplianceStorage"
       },
       {
-        "file": "server/domains/condition-monitoring/routes.ts",
-        "storage": "dbConditionMonitoringStorage"
-      },
-      {
         "file": "server/domains/crew-extensions/interfaces/assignments-routes.ts",
         "storage": "dbCrewStorage"
       },
@@ -210,6 +206,10 @@
       {
         "file": "server/domains/llm/routes/compliance-report.ts",
         "storage": "dbMaintenanceStorage"
+      },
+      {
+        "file": "server/domains/llm/routes/compliance-report.ts",
+        "storage": "dbAlertStorage"
       }
     ],
     "crossDomainStorage": [
