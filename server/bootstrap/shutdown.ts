@@ -20,10 +20,17 @@ let isShuttingDown = false;
 const activeConnections = new Set<TrackedSocket>();
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_r, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_r, rej) => {
+    timer = setTimeout(() => rej(new Error("timeout")), ms);
+  });
+  // Clear the timer when the awaited promise wins, otherwise a leftover
+  // timeout keeps the event loop alive and delays process exit by up to `ms`.
+  return Promise.race([p, timeout]).finally(() => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  });
 }
 
 export function trackConnection(socket: Socket | TrackedSocket): void {

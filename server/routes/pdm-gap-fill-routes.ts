@@ -168,6 +168,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         (req.query["startDate"] as string) || Date.now() - 24 * 60 * 60 * 1000
       );
       const endDate = new Date((req.query["endDate"] as string) || Date.now());
+      // Reject unparseable startDate/endDate with a 400 instead of letting an
+      // Invalid Date reach the query and crash .toISOString() with a 500.
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          message: "startDate and endDate must be valid date strings",
+        });
+      }
       const aggregator = new TelemetryAggregator(db);
       const bucket = req.query["bucket"] as Parameters<typeof aggregator.queryAggregated>[5];
 
