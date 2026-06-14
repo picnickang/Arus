@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { useCustomMutation, useUpdateMutation, useDeleteMutation } from "@/hooks/useCrudMutations";
 import { useWorkOrders } from "./useWorkOrders";
+import type { WorkOrderFormData } from "./useWorkOrderFormDialogData";
 import { useVessels, useEquipmentList } from "@/features/vessels";
 import { useCrewList } from "@/features/crew";
 import type { WorkOrder, InsertWorkOrder } from "@shared/schema";
@@ -23,10 +24,6 @@ interface PartUsageRecord {
 interface CostRecord {
   amount?: number;
 }
-interface WorkOrderFormData extends Partial<InsertWorkOrder> {
-  templateId?: string;
-}
-
 export function useWorkOrdersPageData() {
   const { toast } = useToast();
   const [location] = useLocation();
@@ -274,7 +271,7 @@ export function useWorkOrdersPageData() {
       clearAllMutation.mutate(undefined);
     }
   };
-  const handleFormSubmit = (formData: WorkOrderFormData) => {
+  const handleFormSubmit = (formData: WorkOrderFormData & { templateId?: string }) => {
     if (formDialogMode === "create") {
       const { templateId, ...restData } = formData;
       const payload: InsertWorkOrder = { ...restData, orgId: getCurrentOrgId() ?? "" } as never;

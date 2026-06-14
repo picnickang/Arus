@@ -211,11 +211,7 @@ export default function WorkOrders() {
               </div>
             </div>
             <VirtualizedWorkOrderTable
-              workOrders={
-                filteredAndSortedWorkOrders as object as React.ComponentProps<
-                  typeof VirtualizedWorkOrderTable
-                >["workOrders"]
-              }
+              workOrders={filteredAndSortedWorkOrders}
               equipment={equipment}
               vessels={vessels}
               crew={allCrewMembers}
@@ -305,9 +301,7 @@ export default function WorkOrders() {
         onOpenChange={setFormDialogOpen}
         mode={formDialogMode}
         workOrder={selectedOrder}
-        onSubmit={
-          handleFormSubmit as object as React.ComponentProps<typeof WorkOrderFormDialog>["onSubmit"]
-        }
+        onSubmit={handleFormSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}
         defaultEquipmentId={defaultEquipmentId}
