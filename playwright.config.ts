@@ -6,6 +6,8 @@ const INCLUDE_PRODUCTION_WRITE_AUDIT = process.env.ARUS_PROD_E2E_ALLOW_WRITES ==
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
   "**/auth-hub-smoke.spec.ts",
+  "**/non-admin-hub-smoke.spec.ts",
+  "**/write-smoke.spec.ts",
   "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
@@ -107,6 +109,15 @@ export default defineConfig({
       name: "visual-mobile",
       testMatch: VISUAL_TESTS,
       use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    {
+      name: "visual-tablet",
+      testMatch: VISUAL_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 768, height: 1024 },
+        launchOptions: chromiumLaunchOptions,
+      },
     },
     // Advisory stress lane: heap-growth nav loop + rapid-fire nav race.
     // --expose-gc lets the spec force GC (via CDP) for stable heap samples.
