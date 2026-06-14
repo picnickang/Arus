@@ -80,40 +80,42 @@ export function MobileCrewPage() {
             title="Current Crew (18)"
             action={<button className="text-sm font-semibold text-brand">View All</button>}
           >
-            <div className="grid grid-cols-[32px_1.3fr_0.85fr_0.85fr_0.65fr_42px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase text-slate-500">
-              <span />
-              <span>Name / Rank</span>
-              <span>Status</span>
-              <span>Vessel</span>
-              <span>Docs</span>
-              <span />
-            </div>
             {crew.currentCrew.map((person) => (
               <div
                 key={person.name}
-                className="grid min-h-10 grid-cols-[32px_1.3fr_0.85fr_0.85fr_0.65fr_42px] items-center gap-2 border-b border-slate-200 px-3 py-1"
+                className="flex items-center gap-3 border-b border-slate-200 px-3 py-2"
               >
                 <AssetImage
                   assetId={person.avatarAssetId}
-                  className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+                  className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
                 />
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-bold text-slate-950">{person.name}</div>
-                  <div className="truncate text-[10px] text-slate-500">{person.rank}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-slate-950">{person.name}</div>
+                  <div className="truncate text-xs text-slate-500">{person.rank}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <StatusPill tone="good">{person.status}</StatusPill>
+                    <span className="text-[11px] text-slate-500">{crew.vesselName}</span>
+                    <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                      Docs {person.docs}
+                    </span>
+                  </div>
                 </div>
-                <span className="truncate rounded-md bg-emerald-50 px-1.5 py-1 text-center text-[10px] font-bold text-emerald-700">
-                  {person.status}
-                </span>
-                <span className="truncate text-[10px] font-medium text-slate-600">
-                  {crew.vesselName}
-                </span>
-                <span className="rounded-md bg-emerald-50 px-1.5 py-1 text-center text-[10px] font-bold text-emerald-700">
-                  {person.docs}
-                </span>
-                <span className="flex justify-end gap-1 text-slate-500">
-                  <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-                  <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={`Call ${person.name}`}
+                    className="grid h-11 w-11 place-items-center rounded-md text-slate-500 hover:bg-slate-100"
+                  >
+                    <Phone className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Email ${person.name}`}
+                    className="grid h-11 w-11 place-items-center rounded-md text-slate-500 hover:bg-slate-100"
+                  >
+                    <Mail className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             ))}
             <Link
@@ -254,49 +256,42 @@ export function MobileInventoryPage() {
               </div>
             }
           >
-            <div className="overflow-hidden">
-              <div className="grid grid-cols-[0.9fr_1.05fr_0.95fr_0.55fr_0.55fr_0.75fr] gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-bold uppercase text-slate-500">
-                <span>Part Number</span>
-                <span>Name</span>
-                <span>Location</span>
-                <span className="text-right">On Hand</span>
-                <span className="text-right">Avail.</span>
-                <span className="text-right">Status</span>
-              </div>
+            <div>
               {inventory.rows.map((row) => (
-                <div
-                  key={row.partNumber}
-                  className="grid min-h-8 grid-cols-[0.9fr_1.05fr_0.95fr_0.55fr_0.55fr_0.75fr] items-center gap-1 border-b border-slate-200 px-2 py-0.5 text-[10px] last:border-b-0"
-                >
-                  <span className="truncate font-mono text-slate-700">{row.partNumber}</span>
-                  <span className="min-w-0">
-                    <span className="block truncate font-bold text-slate-950">{row.name}</span>
-                    <span className="block truncate text-[9px] text-slate-500">
-                      {row.name.split(" ").slice(-1)[0]}
+                <div key={row.partNumber} className="border-b border-slate-200 px-3 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-xs text-slate-700">{row.partNumber}</span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+                        row.tone === "good"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : row.tone === "critical"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-amber-50 text-amber-700"
+                      )}
+                    >
+                      {row.reorderStatus}
                     </span>
-                  </span>
-                  <span className="truncate text-slate-600">{row.location}</span>
-                  <span className="text-right font-semibold text-slate-900">{row.onHand}</span>
-                  <span
-                    className={cn(
-                      "text-right font-semibold",
-                      row.tone === "critical" ? "text-red-600" : "text-slate-900"
-                    )}
-                  >
-                    {row.available}
-                  </span>
-                  <span
-                    className={cn(
-                      "justify-self-end rounded-md px-1.5 py-1 text-[10px] font-bold",
-                      row.tone === "good"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : row.tone === "critical"
-                          ? "bg-red-50 text-red-700"
-                          : "bg-amber-50 text-amber-700"
-                    )}
-                  >
-                    {row.reorderStatus}
-                  </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-sm font-bold text-slate-950">{row.name}</div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                    <span>{row.location}</span>
+                    <span>
+                      On hand <span className="font-semibold text-slate-900">{row.onHand}</span>
+                    </span>
+                    <span>
+                      Avail{" "}
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          row.tone === "critical" ? "text-red-600" : "text-slate-900"
+                        )}
+                      >
+                        {row.available}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               ))}
               <Link
