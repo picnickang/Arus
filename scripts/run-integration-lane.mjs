@@ -26,6 +26,7 @@ const EMBEDDED = [
   "tests/integration/kb-upload-reliability.test.ts",
   "tests/integration/lr35-pdm-promote-rollback-gate.test.ts",
   "tests/integration/telemetry.test.ts",
+  "tests/integration/asset-anomaly-coolant-overheating.test.ts",
 ];
 
 const POSTGRES = [
