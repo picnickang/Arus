@@ -61,6 +61,7 @@ under §6 "Not yet enforced" rather than asserted.
 - **Pixel-diff visual regression.** The repo's Argos pipeline (`mobile-qa-visual-argos.yml`) runs the mobile viewport projects; committed pixel baselines are not used in this lane (cross-env fragile). Contrast + overflow + render are gated deterministically instead.
 - **Light/daylight residual contrast.** 15 of the mobile contrast violations (light 9 / daylight 6) are light-palette design choices (e.g. `slate-500` small text); not yet ratcheted down. Night themes are near-clean (dark 2 / bridge 5).
 - **Confirm-on-destructive.** Not applicable on the mobile-readiness screens today: they are read-only (no destructive actions). Re-evaluate when mobile write actions are added.
+- **Mock vs. real (scope honesty).** The mobile-readiness screen *bodies* are a high-fidelity readiness layer: the cross-cutting chrome verified above (status rail, brilliance control, nav drawer, profile, connectivity, contrast, reduced-motion, touch floor) is real and enforced, but many in-screen controls (Filters, tab strips, range chips, Compare, Card/Table toggle, "View All") are presentational and not yet wired. Wiring them is feature development (filtering, tab content, CRUD), not HMI/UX compliance, and is out of scope for this appendix.
 
 ## 7. How to re-verify
 
