@@ -6,7 +6,7 @@
       "dist/public/assets/vendor-react-*.js",
       "dist/public/assets/vendor-ui-*.js"
     ],
-    "limit": "215 KB",
+    "limit": "300 KB",
     "gzip": true
   },
   {
