@@ -16,6 +16,12 @@ on:
 jobs:
   mobile-qa:
     runs-on: ubuntu-latest
+    # Gated off by default: this job uploads to Argos (argos-ci/argos-action),
+    # which fails job setup ("repository not found" / missing ARGOS_TOKEN) until
+    # Argos is configured. Skipping (rather than failing) keeps it non-blocking.
+    # Enable by setting the repo variable ENABLE_MOBILE_VISUAL_QA=true (and the
+    # ARGOS_TOKEN secret) under Settings → Secrets and variables → Actions.
+    if: ${{ vars.ENABLE_MOBILE_VISUAL_QA == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
