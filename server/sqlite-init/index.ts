@@ -39,6 +39,7 @@ import {
   runImmutableAuditTrailCompatibilityMigration,
   runImportManifestCompatibilityMigration,
   runPermissionCompatibilityMigration,
+  runVesselsCompatibilityMigration,
 } from "./compatibility-migrations-extra.js";
 const logger = createLogger("SqliteInit:Index");
 
@@ -79,6 +80,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
   await runErrorLogsCompatibilityMigration(libsqlClient);
   await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
+  await runVesselsCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
   await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
@@ -102,6 +104,7 @@ export async function applyInventoryMigrations(): Promise<void> {
   await runErrorLogsCompatibilityMigration(libsqlClient);
   await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
+  await runVesselsCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
   await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
