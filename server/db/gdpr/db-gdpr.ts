@@ -250,12 +250,12 @@ export class DatabaseGdprStorage {
       }
       if (identifierType === "crewId") {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE id = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE id = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       } else {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE email = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE email = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       }

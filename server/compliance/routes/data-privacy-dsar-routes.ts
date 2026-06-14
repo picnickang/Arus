@@ -230,6 +230,14 @@ export function registerDataPrivacyDsarRoutes(router: Router): void {
           return res.status(404).json({ error: "DSAR request not found" });
         }
         const identifier = request.requesterId || request.requesterEmail;
+        if (!identifier) {
+          // Without a requester id/email the collection queries run against NULL
+          // and silently return nothing — fail loudly instead of "succeeding"
+          // with an empty export.
+          return res.status(400).json({
+            error: "DSAR request has no requesterId or requesterEmail to collect data for",
+          });
+        }
         const type = identifierType || (request.requesterId ? "userId" : "email");
         const collectedData = await dbGdprStorage.collectUserDataForDsar(orgId, identifier, type);
         const collectedDataObj = collectedData as Record<string, unknown>;

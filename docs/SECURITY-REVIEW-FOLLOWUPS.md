@@ -379,42 +379,39 @@ stock decimals). The items below were **verified as real but deferred** because
 they need a product/compliance decision, a schema migration, or deeper
 state-machine context — do NOT silently half-fix:
 
-- [ ] **GDPR DSAR erasure is a stub (CRITICAL — compliance).**
-      `server/db/gdpr/db-gdpr.ts` `executeDataErasure` marks the request
-      `status: "completed"` / returns `"erasure_recorded"` but **deletes no
-      personal data** ("Actual data erasure requires manual review"). Either the
-      status must reflect "pending manual review" or a real, owner-approved
-      erasure (erase-vs-anonymize, which PII tables, legal-retention exemptions
-      for maritime records) must be implemented. Auto-deleting retained records
-      is dangerous — needs a compliance owner.
-- [ ] **GDPR DSAR collection is incomplete.** `collectUserDataForDsar` only
-      populates `users` + `crewMembers`; `workOrders`/`restRecords`/`auditEvents`
-      are declared but never queried, it queries a wrong table name
-      (`crew_members` — the table is the crew people table), and a `try/catch`
-      swallows errors → a DSAR export silently omits categories. Complete the
-      collection (Art. 15) as feature work.
-- [ ] **Vetting inspection initial status.** `server/domains/vetting/routes.ts`
-      POST `/` inserts a `vetting_inspections` row without setting `status`; if
-      the column has no DB default a no-findings inspection is left status-less
-      ("zombie") and can never reach `closed_out`. Confirm the column default
-      (raw-SQL table, no drizzle schema) and set an explicit initial status.
-- [ ] **Cert conditions can't be marked `overdue`.** `certificate-service.ts`
-      `updateConditionStatus` accepts only `open|closed`, but the type +
-      summary count an `overdue` state that nothing ever sets. Add an
-      overdue-marking path (due-date job or allow the status) so open-condition
-      counts are accurate.
+- [ ] **GDPR DSAR erasure + collection completion — DESIGN PROPOSAL written.**
+      The clear bugs were fixed (collection now queries the correct `crew`
+      table; the route fails 400 on a null identifier instead of "succeeding"
+      with an empty export). The remaining work — completing the access export
+      (`workOrders`/`restRecords`/`auditEvents` + id-type dispatch) and a REAL
+      erasure (`executeDataErasure` still marks `completed` while deleting
+      nothing; erase-vs-anonymize per table, retention exemptions for
+      hash-chained audit / STCW records) — is specced in
+      `docs/design/gdpr-dsar-completion.md` and needs a compliance owner's
+      sign-off before implementation. Auto-deleting retained maritime records is
+      dangerous, so it is intentionally NOT auto-implemented.
+- [x] **Vetting inspection initial status — VERIFIED FALSE POSITIVE.** The
+      raw-SQL `vetting_inspections` table (server/migrations/008-osv-specific.sql)
+      defines `status TEXT NOT NULL DEFAULT 'scheduled'`, so an inserted row is
+      never status-less. No zombie state.
+- [x] **Cert conditions `overdue` — VERIFIED FALSE POSITIVE (feature gap, not a
+      bug).** The summary's `openConditionsOfClass` counts `open` + `overdue`
+      together, so the total is correct; there is no separate overdue figure
+      that reports wrong numbers. Surfacing a distinct (derived) overdue count is
+      a feature enhancement, not a correctness fix.
 - [ ] **Survey "due" ignores `surveyWindowStart`.**
       `certificate-repository-adapter.ts` flags `nextSurveyDue <= 90d` without
       checking the window has opened — surveys read as due before they're
       openable. Confirm intended window semantics, then gate on the window.
-- [ ] **`crew` certification `daysUntilExpiry` boundary.**
-      `server/domains/crew/interfaces/certification-routes.ts` uses `Math.ceil`
-      so an already-expired-today cert reads `0` (indistinguishable from
-      "expires today"). Decide floor-vs-ceil semantics for "days remaining".
-- [ ] **Purchasing `rejectedQuantity` type mismatch.**
-      `shared/schema/purchasing/procurement.ts` declares `rejectedQuantity` as
-      `integer` while `quantity`/`receivedQuantity` are `numeric(12,3)`, so
-      decimal rejections truncate. Needs a column-type migration (PG + SQLite).
+- [ ] **`crew` certification `daysUntilExpiry` boundary (judgment — left as-is).**
+      `certification-routes.ts` uses `Math.ceil`, so an already-expired-today
+      cert reads `0`. Changing to floor shifts every alert threshold by a day;
+      left unchanged pending a deliberate floor-vs-ceil decision. (The more
+      impactful cert *summary* boundary was fixed — see cert expiry above.)
+- [x] **Purchasing `rejectedQuantity` type mismatch — DONE (0051).** Changed to
+      `numeric(12,3)` to match `quantity`/`received_quantity`; migration 0051
+      (+ down) verified reversible on PG16; db:migrate applies it. Decimal
+      rejections no longer truncate.
 - [ ] **Purchasing PO-total float accumulation.** `pr-send-service.ts` sums
       `qty * unitCost` in JS floats; over many line items this can drift by
       cents. Decide on integer-cents / rounding / DB-side SUM per the precision
