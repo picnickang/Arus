@@ -301,7 +301,11 @@ export const operatingConditionAlerts = pickSchema(
   pgSchema.operatingConditionAlerts
 );
 export const pdmAlerts = pickSchema(isLocalMode, sqliteVessel.pdmAlertsSqlite, pgSchema.pdmAlerts);
-export const pdmScoreLogs = cloudOnly(pgSchema.pdmScoreLogs);
+export const pdmScoreLogs = pickSchema(
+  isLocalMode,
+  sqliteVessel.pdmScoreLogsSqlite,
+  pgSchema.pdmScoreLogs
+);
 export const pdmBaseline = cloudOnly(pgSchema.pdmBaseline);
 export const safetyBulletins = cloudOnly(pgSchema.safetyBulletins);
 export const safetyAlarmTypes = cloudOnly(pgSchema.safetyAlarmTypes);

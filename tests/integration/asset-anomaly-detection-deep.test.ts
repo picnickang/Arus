@@ -191,17 +191,17 @@ describe("embedded ML-table round-trips (vessel-mode persistence)", () => {
 
   it("persists and reads back a pdm_score_logs row", async () => {
     const id = randomUUID();
-    const healthScore = 28; // derived from a degraded failure probability
+    const healthIdx = 28; // degraded health index
     await client.execute({
-      sql: `INSERT INTO pdm_score_logs (id, org_id, equipment_id, score, confidence, computed_at)
+      sql: `INSERT INTO pdm_score_logs (id, org_id, equipment_id, ts, health_idx, p_fail_30d)
         VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [id, ORG_ID, EQUIP_ID, healthScore, 0.8, NOW_S],
+      args: [id, ORG_ID, EQUIP_ID, NOW_S, healthIdx, 0.8],
     });
     const back = await client.execute({
-      sql: "SELECT score, confidence FROM pdm_score_logs WHERE equipment_id = ? ORDER BY computed_at DESC LIMIT 1",
+      sql: "SELECT health_idx, p_fail_30d FROM pdm_score_logs WHERE equipment_id = ? ORDER BY ts DESC LIMIT 1",
       args: [EQUIP_ID],
     });
     expect(back.rows).toHaveLength(1);
-    expect(Number(back.rows[0]!["score"])).toBe(28);
+    expect(Number(back.rows[0]!["health_idx"])).toBe(28);
   });
 });

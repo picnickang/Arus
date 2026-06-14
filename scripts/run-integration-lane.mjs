@@ -28,6 +28,7 @@ const EMBEDDED = [
   "tests/integration/telemetry.test.ts",
   "tests/integration/asset-anomaly-coolant-overheating.test.ts",
   "tests/integration/asset-anomaly-detection-deep.test.ts",
+  "tests/integration/pdm-score-logs-vessel.test.ts",
 ];
 
 const POSTGRES = [

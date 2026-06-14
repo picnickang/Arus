@@ -35,6 +35,23 @@ export const mlModelsSqlite = sqliteTable(
   })
 );
 
+export const pdmScoreLogsSqlite = sqliteTable(
+  "pdm_score_logs",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id").notNull(),
+    ts: integer("ts", { mode: "timestamp" }),
+    equipmentId: text("equipment_id").notNull(),
+    healthIdx: real("health_idx"),
+    pFail30d: real("p_fail_30d"),
+    predictedDueDate: integer("predicted_due_date", { mode: "timestamp" }),
+    contextJson: text("context_json", { mode: "json" }),
+  },
+  (table) => ({
+    equipmentIdx: index("idx_psl_equipment").on(table.equipmentId),
+  })
+);
+
 export const failurePredictionsSqlite = sqliteTable(
   "failure_predictions",
   {

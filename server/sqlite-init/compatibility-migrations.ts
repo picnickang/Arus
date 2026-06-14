@@ -348,3 +348,27 @@ export async function runErrorLogsCompatibilityMigration(client: LibsqlClient): 
   );
   logger.info("✓ Error logs compatibility migration completed");
 }
+
+export async function runPdmScoreLogsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "pdm_score_logs");
+  if (!cols.length) {
+    return; // no table yet (ensureDeclaredTablesAndIndexes creates the canonical one)
+  }
+
+  // Legacy vessel shape carried score/computed_at as NOT NULL — incompatible with
+  // the canonical PG-aligned columns the PdM code reads/writes
+  // (ts/health_idx/p_fail_30d/predicted_due_date/context_json). The vessel table
+  // is unpopulated today (writers went through the cloud-only undefined table), so
+  // recreate with the canonical shape rather than carry dead NOT NULL columns that
+  // would block canonical inserts.
+  if (cols.includes("score") || !cols.includes("health_idx")) {
+    await client.execute(`DROP TABLE IF EXISTS pdm_score_logs`);
+    await client.execute(
+      `CREATE TABLE pdm_score_logs (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, ts INTEGER, health_idx REAL, p_fail_30d REAL, predicted_due_date INTEGER, context_json TEXT, created_at INTEGER)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_psl_equipment ON pdm_score_logs(equipment_id)`
+    );
+    logger.info("✓ Recreated pdm_score_logs with the canonical shape");
+  }
+}
