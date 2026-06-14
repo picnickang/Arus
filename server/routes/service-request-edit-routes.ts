@@ -13,7 +13,7 @@ import {
   insertServiceRequestRow,
   markWorkOrderAwaitingService,
   updateServiceRequestFields,
-} from "../service-orders/repository";
+} from "../db/service-requests/repository";
 import {
   getOrgId,
   getUserId,

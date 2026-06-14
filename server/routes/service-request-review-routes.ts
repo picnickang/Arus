@@ -16,8 +16,12 @@ import {
   rejectServiceRequest,
   restoreWorkOrderStatus,
   setServiceRequestUnderReview,
-} from "../service-orders/repository";
-import { getOrgId, getUserId, type ServiceRequestRouteRateLimiters } from "./service-request-route-utils";
+} from "../db/service-requests/review-repository";
+import {
+  getOrgId,
+  getUserId,
+  type ServiceRequestRouteRateLimiters,
+} from "./service-request-route-utils";
 
 export function registerServiceRequestReviewRoutes(
   app: Express,

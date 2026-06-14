@@ -6,7 +6,7 @@ import {
   getServiceRequestWithDetails,
   listServiceRequestsForOrg,
   listServiceRequestsForWorkOrder,
-} from "../service-orders/repository";
+} from "../db/service-requests/repository";
 import { getOrgId, type ServiceRequestRouteRateLimiters } from "./service-request-route-utils";
 
 export function registerServiceRequestReadRoutes(
