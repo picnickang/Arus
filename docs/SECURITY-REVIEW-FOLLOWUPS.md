@@ -162,6 +162,28 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
 
 ## B3. Data-layer remediation follow-ups (2026-06)
 
+- [x] **Dual-schema guardrail was silently blind — restored (2026-06).** Two
+      refactors had neutered `check:schema` without turning it red: (1) the
+      per-table mode switches moved from `schema-runtime.ts` into
+      `schema-runtime-tables-{core,operations,cloud}.ts`, and the validator only
+      read `schema-runtime.ts` → **0 switched pairs**; (2) schema files moved into
+      per-domain subdirs (`shared/schema/<domain>/`) while `scanSchemaDir` only
+      scanned top-level → false "missing table" pairs. Net effect: Layer-2 column
+      parity validated **nothing** yet printed "All checks passed". Fixed both
+      `scripts/validate-dual-schema.mjs` and `scripts/regen-drift-baseline.mjs`
+      (read the tables files + join multi-line `pickSchema(...)` calls + detect
+      the `pickSchema`/`cloudOnly` forms in regen + recurse the dir scan). The
+      guardrail now sees **121 pairs / 116 with columns** again. Pinned by
+      `tests/unit/dual-schema-smoke.test.ts` (also updated for the destructured
+      export form). **NEEDS REVIEW — two real PG/SQLite divergences surfaced and
+      were baselined (known-allowed) to restore the gate; decide reconcile vs.
+      keep:**
+  - `immutable_audit_trail` — SQLite has `data_before`, `data_after`, `actor`,
+    `actor_role`; PG (`shared/schema/compliance.ts`) lacks them. Likely the cloud
+    audit trail should gain these (richer audit), i.e. reconcile by adding to PG.
+  - `error_logs` — SQLite has `error_message`; PG lacks it (PG uses a different
+    column). Confirm the intended cloud column name and reconcile.
+
 - [x] **Conflict resolution now writes back to the domain record (B1).** A
       resolved conflict previously only flipped the `sync_conflicts` row; because
       the original guarded update matched no rows, the work order still held the

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
 import { execSync } from "child_process";
-import { readFileSync, writeFileSync, unlinkSync } from "fs";
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from "fs";
 import { join } from "path";
 
 describe("Dual-DB guardrail scripts", () => {
@@ -67,8 +67,14 @@ describe("Schema-runtime file structural checks", () => {
   ];
 
   test.each(criticalTables)("schema-runtime exports critical table '%s'", (tableName) => {
-    const exportPattern = new RegExp(`export\\s+const\\s+${tableName}\\s*=`);
-    expect(exportPattern.test(runtimeContent)).toBe(true);
+    // Tables are exported either directly (`export const X = …`) or, after the
+    // dual-mode switch was centralised, via a destructured barrel
+    // (`export const { …X… } = runtimeTables;`). Accept both forms.
+    const direct = new RegExp(`export\\s+const\\s+${tableName}\\s*=`).test(runtimeContent);
+    const destructured = (runtimeContent.match(/export const \{[^}]*\} =/g) ?? []).some((block) =>
+      new RegExp(`\\b${tableName}\\b`).test(block)
+    );
+    expect(direct || destructured).toBe(true);
   });
 });
 
@@ -212,17 +218,24 @@ describe("SQLite schema structural parity", () => {
   );
 
   test("schema-runtime has sufficient dual-mode guards (>=40)", () => {
-    const runtimeContent = readFileSync(
-      join(process.cwd(), "shared", "schema-runtime.ts"),
-      "utf-8"
-    );
-    // Counts both the legacy ternary form (`IS_POSTGRES ?`) and the helper
-    // forms introduced when collapsing the cast pattern: `pickSchema(` and
-    // `cloudOnly(`. All three serve the same role: gating an export on the
+    // The per-table mode switches moved out of schema-runtime.ts into the
+    // schema-runtime-tables-*.ts files (re-exported via `export *`). Count the
+    // guard forms across all of them. Both the legacy ternary (`IS_POSTGRES ?`)
+    // and the helper forms (`pickSchema(`, `cloudOnly(`) gate an export on the
     // active dual-DB mode.
-    const ternaryMatches = runtimeContent.match(/IS_POSTGRES\s*\?/g) ?? [];
-    const pickMatches = runtimeContent.match(/\bpickSchema\(/g) ?? [];
-    const cloudMatches = runtimeContent.match(/\bcloudOnly\(/g) ?? [];
+    const content = [
+      "schema-runtime.ts",
+      "schema-runtime-tables-core.ts",
+      "schema-runtime-tables-operations.ts",
+      "schema-runtime-tables-cloud.ts",
+    ]
+      .map((f) => join(process.cwd(), "shared", f))
+      .filter((p) => existsSync(p))
+      .map((p) => readFileSync(p, "utf-8"))
+      .join("\n");
+    const ternaryMatches = content.match(/IS_POSTGRES\s*\?/g) ?? [];
+    const pickMatches = content.match(/\bpickSchema\(/g) ?? [];
+    const cloudMatches = content.match(/\bcloudOnly\(/g) ?? [];
     const total = ternaryMatches.length + pickMatches.length + cloudMatches.length;
     expect(total).toBeGreaterThanOrEqual(40);
   });
