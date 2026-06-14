@@ -18,11 +18,27 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { crewStatusLabel, CREW_STATUSES } from "@/features/crew/lib/crewManagementUtils";
 
-const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+const read = (rel: string): string => {
+  // The aggregate `MobileReadinessScreens.tsx` / `mobile-readiness-model.ts`
+  // paths are now thin barrels; the screens/model were split into per-area
+  // files. For those, concatenate the whole feature dir so this source-scan
+  // survives intra-feature file moves.
+  if (
+    rel.endsWith("mobile-readiness/MobileReadinessScreens.tsx") ||
+    rel.endsWith("mobile-readiness/mobile-readiness-model.ts")
+  ) {
+    const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+    return readdirSync(dir)
+      .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"))
+      .map((f) => readFileSync(resolve(dir, f), "utf8"))
+      .join("\n");
+  }
+  return readFileSync(resolve(process.cwd(), rel), "utf8");
+};
 
 describe("crewStatusLabel — explicit lifecycle status", () => {
   it("maps each lifecycle enum value to its explicit label", () => {

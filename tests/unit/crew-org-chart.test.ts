@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   buildReportingTree,
@@ -190,7 +190,23 @@ describe("makeMemberComparator — children render in role order", () => {
 });
 
 describe("mobile crew route source-scan", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string): string => {
+    // The aggregate `MobileReadinessScreens.tsx` / `mobile-readiness-model.ts`
+    // paths are now thin barrels; the screens/model were split into per-area
+    // files. For those, concatenate the whole feature dir so this source-scan
+    // survives intra-feature file moves.
+    if (
+      rel.endsWith("mobile-readiness/MobileReadinessScreens.tsx") ||
+      rel.endsWith("mobile-readiness/mobile-readiness-model.ts")
+    ) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"))
+        .map((f) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
   it("routes crew-management to the mobile crew replacement", () => {
     const page = read("client/src/pages/crew-management.tsx");
