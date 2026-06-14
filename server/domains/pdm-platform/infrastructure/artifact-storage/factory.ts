@@ -36,7 +36,7 @@ let settingPort: ArtifactBackendSettingPort | null = null;
 
 /**
  * Wire the persistence port. Called once at boot by system-admin's
- * composition layer (`server/domains/system-admin/routes/settings-routes.ts`).
+ * composition layer (`server/domains/system-admin/interfaces/settings-routes.ts`).
  * Until configured, the factory falls back to env-derived defaults
  * and `setArtifactBackendSetting` throws.
  */

@@ -204,7 +204,7 @@ describe("LR-3.5 wave — already-shipped items still in place (regression guard
   });
 
   it("SEC-2: admin auth-routes uses constant-time setup-token compare", async () => {
-    const src = await loadSource("server/domains/system-admin/routes/auth-routes.ts");
+    const src = await loadSource("server/domains/system-admin/interfaces/auth-routes.ts");
     const helper = await loadSource("server/lib/constant-time-compare.ts");
     expect(src).toContain("LR-3.5 / SEC-2");
     expect(src).toContain("constantTimeEqualString");

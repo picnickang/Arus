@@ -13,9 +13,8 @@ export type Request = ExpressRequest;
 export type Response = ExpressResponse;
 export type NextFunction = ExpressNextFunction;
 
-export interface ThresholdCalibrator {
-  calibrateForEquipment: (orgId: string, equipmentId: string) => Promise<Record<string, unknown>>;
-}
+import type { ThresholdCalibrator } from "../domain/ports.js";
+export type { ThresholdCalibrator };
 
 export interface SystemAdminDependencies {
   generalApiRateLimit: RateLimitRequestHandler;

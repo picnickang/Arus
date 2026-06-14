@@ -25,7 +25,7 @@ const ENV_KEYS = ["NODE_ENV", "ADMIN_TOKEN", "ADMIN_TOKEN_HASH"] as const;
 let savedEnv: Record<string, string | undefined>;
 
 beforeAll(async () => {
-  const mod = await import("../../server/domains/system-admin/routes/auth-routes");
+  const mod = await import("../../server/domains/system-admin/interfaces/auth-routes");
   getAdminCredential = mod.getAdminCredential;
 });
 

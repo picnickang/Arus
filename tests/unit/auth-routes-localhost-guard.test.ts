@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import type { Request } from "express";
-import { isLocalSetupRequest } from "../../server/domains/system-admin/routes/auth-routes";
+import { isLocalSetupRequest } from "../../server/domains/system-admin/interfaces/auth-routes";
 
 function fakeReq(opts: { remoteAddress?: string; headers?: Record<string, string> }): Request {
   return {

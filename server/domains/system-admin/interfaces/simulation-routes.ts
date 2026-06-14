@@ -6,11 +6,7 @@
 import { Express, Request, Response, z, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
-import { dbTelemetryStorage } from "../../../repositories.js";
-
-const telemetryWriter = {
-  createTelemetryReading: dbTelemetryStorage.createTelemetryReading.bind(dbTelemetryStorage),
-};
+import { systemAdminTelemetryWriter as telemetryWriter } from "../../../composition/system-admin-telemetry-data.js";
 
 export function registerSimulationRoutes(app: Express, deps: SystemAdminDependencies): void {
   const { generalApiRateLimit, writeOperationRateLimit, requireAdminAuth, auditAdminAction } = deps;

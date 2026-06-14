@@ -7,4 +7,4 @@
  * ~930 lines extracted from routes.ts
  */
 
-export { registerSystemAdminRoutes } from "./routes";
+export { registerSystemAdminRoutes } from "./interfaces/index.js";

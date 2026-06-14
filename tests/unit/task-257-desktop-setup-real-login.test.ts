@@ -43,7 +43,7 @@ describe("Task #257 — desktop setup uses real account login", () => {
 });
 
 describe("Task #257 — shared-password verify route is removed", () => {
-  const authRoutes = read("server/domains/system-admin/routes/auth-routes.ts");
+  const authRoutes = read("server/domains/system-admin/interfaces/auth-routes.ts");
 
   it("no longer registers /admin/auth/verify", () => {
     expect(authRoutes).not.toContain("auth/verify");
