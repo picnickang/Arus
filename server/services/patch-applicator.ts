@@ -14,7 +14,7 @@ import * as tar from "tar";
 import { db } from "../db";
 import { softwarePatches } from "../../shared/schema-runtime";
 import type { PatchManifest, FileChange } from "./update-checker";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { assertCloudMode, getCloudTable } from "../utils/cloud-guards";
 import crypto from "node:crypto";
 import { runTrustedExecutable, validatePath } from "../lib/secure-exec";
@@ -379,8 +379,37 @@ export class PatchApplicator {
       // an explicit non-production escape hatch).
       await this.verifyPatchTrust(manifest);
 
-      // Update patch status
-      await db.update(patchesTable).set({ status: "applying" }).where(eq(patchesTable.id, patchId));
+      // Atomically claim the patch for application. Only transition to
+      // "applying" if it isn't already being applied (or applied): a second
+      // concurrent apply then matches 0 rows and aborts here, before any
+      // extraction / file writes / migrations — preventing double-apply,
+      // conflicting writes, and duplicate migrations.
+      const claimed = await db
+        .update(patchesTable)
+        .set({ status: "applying" })
+        .where(
+          and(
+            eq(patchesTable.id, patchId),
+            ne(patchesTable.status, "applying"),
+            ne(patchesTable.status, "applied")
+          )
+        )
+        .returning({ id: patchesTable.id });
+      if (claimed.length === 0) {
+        // Lost the race (or already applied). Return WITHOUT throwing so we
+        // don't enter the catch below and clobber the winning apply's
+        // "applying" status to "failed" / trigger a spurious rollback.
+        logger.warn(
+          `[PatchApplicator] Patch ${patchId} is already being applied or applied; skipping concurrent apply`
+        );
+        return {
+          success: false,
+          appliedFiles,
+          failedFiles,
+          error: `Patch ${patchId} is already being applied or has already been applied`,
+          backupId,
+        };
+      }
 
       // Extract patch to temporary directory
       const extractDir = path.join(this.backupDir, `extract-${Date.now()}`);
