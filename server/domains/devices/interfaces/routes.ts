@@ -1,24 +1,24 @@
 import type { Express } from "express";
 import { insertDeviceSchema } from "@shared/schema-runtime";
-import { deviceService } from "./service";
-import { safeDbOperation } from "../../error-handling";
+import { deviceService } from "../application";
+import { safeDbOperation } from "../../../error-handling";
 import {
   authenticatedRequest,
   requireOrgId,
   requireOrgIdAndValidateBody,
-} from "../../middleware/auth";
-import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
+} from "../../../middleware/auth";
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
 
 /**
  * Devices Routes
- * Handles HTTP concerns for devices domain
+ * Handles HTTP concerns for devices domain; calls the application service only.
  */
 export function registerDeviceRoutes(
   app: Express,
   rateLimit: {
-    writeOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
-    criticalOperationRateLimit: import("../../lib/rate-limit-factory").RateLimit;
-    generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
+    writeOperationRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
+    criticalOperationRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
+    generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;

@@ -1,8 +1,10 @@
 /**
  * Devices Domain
- * Exports all device-related functionality
+ * DDD Modular Monolith with Hexagonal Architecture
+ *
+ * Layers: domain/ application/ infrastructure/ interfaces/
  */
-
-export { registerDeviceRoutes } from "./routes";
-export { deviceService } from "./service";
-export { deviceRepository } from "./repository";
+export * from "./domain";
+export * from "./application";
+export * from "./infrastructure";
+export * from "./interfaces";

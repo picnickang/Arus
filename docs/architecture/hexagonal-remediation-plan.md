@@ -179,7 +179,7 @@ consumers). Each phase is independently shippable.
 | **0** | Governance scaffolding + this plan (landed) | Ratchets in place |
 | **1** | **Reference conversion:** `alerts` core (landed); **1b** crew-evaluator decoupling (landed); settings/email reorg + evaluator relocation remain | Canonical template; refine recipe/ADR |
 | **2** | High-traffic flat domains (landed): `notifications`, `condition-monitoring`, `compliance`, `scheduling` full; `logbook` corrections slice full (deck/engine flat support); `sync` inventory-decoupled via composition seam (flat; full layering deferred) | Largest leak concentration removed |
-| **3** | Telemetry/sensing: `telemetry` (partial→full), `sensors`, `sensor-management`, `iot-processing`, `devices` | Highest-volume context layered |
+| **3** | Telemetry/sensing: `devices` full (landed); `telemetry` (partial→full), `sensors`, `sensor-management`, `iot-processing` remain | Highest-volume context layered |
 | **4** | ML/analytics: `ml-analytics`, `ml-pipeline`, `pdm-platform`, `insights`, flat `equipment` family | Predictive path layered |
 | **5** | Remaining flat tail + partials: `permissions`, `settings`, `system-admin`, `me-portal`, `workflow`, long tail; resolve the 5 cross-domain import allowlist entries | `flat`/`partial` → near zero |
 | **6** | Drive baselines to zero: hex-storage 146→0; domain-leaks 582→0 (static imports, route-storage→service, cross-domain storage→events/ports); flip 8 duplicate-type hard-gates to 1 | Debt eliminated |
