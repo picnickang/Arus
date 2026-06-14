@@ -17,9 +17,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_parts_inventory_org_part_number
   WHERE part_number IS NOT NULL;
 
 -- inventory_parts: (org_id, part_number)
-CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_parts_org_part_number
-  ON inventory_parts (org_id, part_number)
-  WHERE part_number IS NOT NULL;
+-- Guarded: inventory_parts was consolidated out of the canonical schema (now
+-- `parts` + `stock`) and is dropped by 0044_drop_dead_tables, so a fresh
+-- db:push baseline no longer creates it. Index it only on legacy databases
+-- that still carry the table; a missing table must not break the chain.
+DO $$
+BEGIN
+  IF to_regclass('public.inventory_parts') IS NOT NULL THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_parts_org_part_number
+      ON inventory_parts (org_id, part_number)
+      WHERE part_number IS NOT NULL;
+  END IF;
+END $$;
 
 -- maintenance_templates: (org_id, name, equipment_type)
 -- All three columns are NOT NULL on this table, so no partial clause.
