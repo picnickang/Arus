@@ -134,17 +134,27 @@ EXTENSION vector` let `db:push` complete (clears the old
       (`system-hub-format.ts`) renamed `HealthCheckEntry`. `check:dup-types` is
       green (the `CheckResult` ratchet regression is gone).
 - [x] **xlsx untrusted reader hardened.** See the `xlsx` entry in section A.
-- [ ] **Migration reversibility — reconcile epic (advisory step is correct).**
-      Empirically reproduced (2026-06): `scripts/check-migrations-reversible.sh`
-      run against a real Postgres fails at `0001_add_equipment_columns.sql` with
-      `relation "equipment" does not exist`, because the numbered SQL files are
-      additive deltas on top of the `drizzle-kit push` baseline rather than a
-      from-empty schema. The CI step stays `continue-on-error: true` (flipping it
-      would only break CI). **Real fix:** reconcile the two schema mechanisms —
-      either seed the push baseline inside the reversibility harness before
-      replaying deltas, or regenerate the numbered migrations as a standalone
-      chain. Until then the check provides no protection; validate reverse SQL
-      manually (see `docs/runbooks/migrations.md`).
+- [x] **Migration reversibility — reconcile DONE, check now blocking (2026-06).**
+      `scripts/check-migrations-reversible.sh` used to die at
+      `0001_add_equipment_columns.sql` (`relation "equipment" does not exist`)
+      because the numbered SQL files are additive deltas on top of the
+      `drizzle-kit push` baseline, not a from-empty schema. Reconciled by
+      **seeding the baseline in the harness** (the chosen option): it now spins
+      up a throwaway *database*, seeds it with `drizzle-kit push` +
+      `scripts/reversibility-baseline-shim.sql` (recreates the four tables
+      `0044`/`0050` later dropped but mid-chain deltas still reference —
+      `inventory_parts`, `telemetry_aggregates`, `telemetry_rollups`,
+      `ml_models_legacy`), then proves the deltas replay AND reverse cleanly by
+      diffing the schema across two `down→up` cycles (two cycles, not `up` vs
+      `down→up`, because the seeded baseline + `ADD COLUMN IF NOT EXISTS` deltas
+      reorder columns on a round-trip — both snapshots post-cycle keeps the diff
+      exact). Empirically validated end-to-end on Postgres 16 + pgvector.
+      Running the check for real surfaced and fixed two genuine rollback bugs:
+      `0038` down did not free the schema-global `equipment_telemetry_pkey`
+      constraint name before recreating the plain table, and `0030` down did
+      `DROP INDEX` on `uq_crew_roles_org_name` which is a UNIQUE *constraint* in
+      a push baseline (now relies on the cascading `DROP TABLE`). The CI step
+      (`.github/workflows/ci.yml`) is no longer `continue-on-error`.
 - [ ] **ML sidecar — make it a required check (Settings only).** The
       `python-sidecar` CI job is already job-level blocking and its harness
       (`scripts/ml/test-sidecar-crud.mjs`) exits non-zero on failure
