@@ -24,6 +24,7 @@ import type {
   CrewAlertSettings,
   InsertCrewAlertSettings,
 } from "@shared/schema";
+import type { ClaimResult, CooldownSnapshot } from "./settings/types.js";
 
 // Alias kept for callsite readability after the 2026-05-17 schema
 // reconciliation: AlertSettings now natively contains every email/SMTP/test
@@ -365,6 +366,38 @@ export class AlertSettingsService {
    */
   async logEmail(data: InsertAlertEmailLog): Promise<AlertEmailLog> {
     return alertSettingsRepository.logEmail(data);
+  }
+
+  /**
+   * Atomically claim an alert-send slot for dedup keyed by
+   * (org, vessel, alertType, alertKey, entity). Returns claimed:false when an
+   * email for the same key was sent within cooldownMs (or a claim is in flight).
+   * On a successful send, call recordAlertEmailSent; on failure, revertAlertSlot.
+   */
+  async claimAlertSlot(
+    orgId: string,
+    alertType: string,
+    alertKey: string,
+    cooldownMs: number,
+    vesselId?: string,
+    entityId?: string
+  ): Promise<ClaimResult> {
+    return alertSettingsRepository.atomicClaimAlertSlot(
+      orgId,
+      alertType,
+      alertKey,
+      cooldownMs,
+      vesselId,
+      entityId
+    );
+  }
+
+  async recordAlertEmailSent(cooldownId: string): Promise<void> {
+    return alertSettingsRepository.recordEmailSent(cooldownId);
+  }
+
+  async revertAlertSlot(cooldownId: string, snapshot: CooldownSnapshot): Promise<boolean> {
+    return alertSettingsRepository.revertCooldownClaim(cooldownId, snapshot);
   }
 
   async getCrewAlertSettings(orgId: string, vesselId?: string): Promise<CrewAlertSettings | null> {

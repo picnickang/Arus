@@ -13,6 +13,7 @@ import type {
   InsertNotificationQueue as InsertNotificationQueueItem,
 } from "@shared/schema";
 import { format } from "date-fns";
+import type { SendResult } from "./types.js";
 import { log, calculateBackoff } from "./logger.js";
 import { emailSender } from "./email-sender.js";
 
@@ -22,7 +23,7 @@ export async function queueNotification(
   return dbNotificationsStorage.createNotificationQueueItem(item);
 }
 
-export async function processQueueItem(item: NotificationQueueItem): Promise<void> {
+export async function processQueueItem(item: NotificationQueueItem): Promise<SendResult> {
   const currentAttempt = (item.attemptCount ?? 0) + 1;
   const maxAttempts = Number.parseInt(process.env["EMAIL_MAX_RETRIES"] || "3", 10) + 1;
   const retryConfig = emailSender.getRetryConfig();
@@ -54,7 +55,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       },
       item.orgId
     );
-    return;
+    return result;
   }
 
   const shouldRetry = result.retriable && currentAttempt < maxAttempts;
@@ -98,6 +99,8 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       item.orgId
     );
   }
+
+  return result;
 }
 
 export async function processDigestQueue(): Promise<number> {

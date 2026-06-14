@@ -86,6 +86,26 @@ jest.unstable_mockModule("../../server/services/email-notification/crew-notifica
   sendCrewComplianceNotification: jest.fn(),
 }));
 
+const claimAlertSlotMock = jest.fn<
+  (...args: unknown[]) => Promise<{
+    claimed: boolean;
+    cooldownId?: string;
+    snapshot?: unknown;
+    reason?: string;
+  }>
+>();
+const getSettingsMock = jest.fn<(orgId: string) => Promise<{ alertCooldownMinutes: number }>>();
+const recordAlertEmailSentMock = jest.fn<(id: string) => Promise<void>>();
+const revertAlertSlotMock = jest.fn<(id: string, snapshot: unknown) => Promise<boolean>>();
+jest.unstable_mockModule("../../server/domains/alerts/settings-service.js", () => ({
+  alertSettingsService: {
+    getSettings: getSettingsMock,
+    claimAlertSlot: claimAlertSlotMock,
+    recordAlertEmailSent: recordAlertEmailSentMock,
+    revertAlertSlot: revertAlertSlotMock,
+  },
+}));
+
 const { emailNotificationService } = await import(
   "../../server/services/email-notification/service.js"
 );
@@ -122,6 +142,12 @@ const finding = (o: Partial<ComplianceFinding> = {}): ComplianceFinding =>
 beforeEach(() => {
   fakeStorage.reset();
   sendEmailMock.mockReset().mockResolvedValue({ success: true, messageId: "m" });
+  getSettingsMock.mockReset().mockResolvedValue({ alertCooldownMinutes: 30 });
+  claimAlertSlotMock
+    .mockReset()
+    .mockResolvedValue({ claimed: true, cooldownId: "cd-1", snapshot: {} });
+  recordAlertEmailSentMock.mockReset().mockResolvedValue(undefined);
+  revertAlertSlotMock.mockReset().mockResolvedValue(true);
 });
 
 describe("sendComplianceNotification", () => {
@@ -181,6 +207,48 @@ describe("sendComplianceNotification", () => {
     );
 
     expect(fakeStorage.rows()[0]!["recipients"]).toEqual(["a@x.test", "b@y.test"]);
+  });
+
+  it("suppresses an immediate alert when the cooldown claim is denied", async () => {
+    fakeStorage.settings = [setting({ digestMode: false })];
+    claimAlertSlotMock.mockResolvedValue({ claimed: false, reason: "Cooldown active" });
+
+    await emailNotificationService.sendComplianceNotification(
+      finding({ severity: "critical" }),
+      "Vessel A",
+      "org-1"
+    );
+
+    expect(claimAlertSlotMock).toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(fakeStorage.rows()).toHaveLength(0);
+  });
+
+  it("commits the cooldown after a successful send", async () => {
+    fakeStorage.settings = [setting({ digestMode: false })];
+
+    await emailNotificationService.sendComplianceNotification(
+      finding({ severity: "critical" }),
+      "Vessel A",
+      "org-1"
+    );
+
+    expect(recordAlertEmailSentMock).toHaveBeenCalledWith("cd-1");
+    expect(revertAlertSlotMock).not.toHaveBeenCalled();
+  });
+
+  it("reverts the cooldown claim when the send fails", async () => {
+    fakeStorage.settings = [setting({ digestMode: false })];
+    sendEmailMock.mockResolvedValue({ success: false });
+
+    await emailNotificationService.sendComplianceNotification(
+      finding({ severity: "critical" }),
+      "Vessel A",
+      "org-1"
+    );
+
+    expect(revertAlertSlotMock).toHaveBeenCalledWith("cd-1", {});
+    expect(recordAlertEmailSentMock).not.toHaveBeenCalled();
   });
 });
 

@@ -32,6 +32,7 @@ import {
   sendDocumentExpiryNotification,
   sendCrewComplianceNotification,
 } from "./crew-notifications.js";
+import { alertSettingsService } from "../../domains/alerts/settings-service.js";
 
 function escapeHtml(value: string): string {
   return value
@@ -84,15 +85,17 @@ class EmailNotificationService {
       return;
     }
 
+    const subject = buildComplianceSubject(finding, vesselName);
+    const { text, html } = buildComplianceBody(finding, vesselName);
+
+    // Digest-mode settings defer (and dedup by batching); immediate settings are
+    // gated by a per-finding cooldown so a repeated finding doesn't re-email.
+    const immediateRecipients: string[][] = [];
     for (const setting of applicableSettings) {
       const recipients = this.getRecipients(setting);
       if (recipients.length === 0) {
         continue;
       }
-
-      const subject = buildComplianceSubject(finding, vesselName);
-      const { text, html } = buildComplianceBody(finding, vesselName);
-
       if (setting.digestMode) {
         await queueNotification({
           orgId,
@@ -107,6 +110,34 @@ class EmailNotificationService {
           scheduledFor: this.getNextDigestTime(setting.digestSchedule),
         });
       } else {
+        immediateRecipients.push(recipients);
+      }
+    }
+
+    if (immediateRecipients.length === 0) {
+      return;
+    }
+
+    const orgSettings = await alertSettingsService.getSettings(orgId);
+    const cooldownMs = (orgSettings.alertCooldownMinutes ?? 30) * 60_000;
+    const claim = await alertSettingsService.claimAlertSlot(
+      orgId,
+      "compliance",
+      finding.id,
+      cooldownMs,
+      finding.vesselId ?? undefined,
+      finding.id
+    );
+    if (!claim.claimed) {
+      logger.info(
+        `[EmailNotificationService] Compliance finding ${finding.id} suppressed by cooldown: ${claim.reason ?? "active"}`
+      );
+      return;
+    }
+
+    let anySuccess = false;
+    try {
+      for (const recipients of immediateRecipients) {
         const queueItem = await queueNotification({
           orgId,
           notificationType: "compliance",
@@ -118,7 +149,18 @@ class EmailNotificationService {
           relatedEntityId: finding.id,
           status: "pending",
         });
-        await processQueueItem(queueItem);
+        const result = await processQueueItem(queueItem);
+        if (result.success) {
+          anySuccess = true;
+        }
+      }
+    } finally {
+      if (claim.cooldownId) {
+        if (anySuccess) {
+          await alertSettingsService.recordAlertEmailSent(claim.cooldownId);
+        } else if (claim.snapshot) {
+          await alertSettingsService.revertAlertSlot(claim.cooldownId, claim.snapshot);
+        }
       }
     }
   }
