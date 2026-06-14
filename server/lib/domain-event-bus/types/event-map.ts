@@ -10,7 +10,6 @@ import type {
   SimulationCommittedPayload,
   SimulationDiscardedPayload,
   WorkOrderCreatedPayload,
-  WorkOrderAssignmentResponsePayload,
   WorkOrderUpdatedPayload,
   WorkOrderStatusChangedPayload,
   WorkOrderCompletedPayload,

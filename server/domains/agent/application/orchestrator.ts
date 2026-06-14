@@ -6,7 +6,7 @@ import type { AgentRunResult, AgentSignal, FileAttachment } from "../domain/type
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
 import { buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
-import type { AgentConversation, AgentConfigType } from "@shared/schema";
+import type { AgentConversation } from "@shared/schema";
 
 import { processAttachments as processAttachmentsHelper } from "./orchestrator-helpers/attachment-processor";
 import type { ToolContext } from "./orchestrator-helpers/tool-execution";

@@ -9,21 +9,12 @@ import {
   varchar,
   integer,
   real,
-  numeric,
   timestamp,
   boolean,
-  jsonb,
-  unique,
   index,
-  uuidPrimaryKey,
-  timestamps,
-  tenantColumn,
-  versionTracking,
 } from "../base";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { organizations } from "../core";
-import { vessels } from "../vessels";
-import { suppliers, parts } from "../inventory";
+import { parts } from "../inventory";
 import { workOrders } from "../work-orders";
 import { equipment } from "./core";
 

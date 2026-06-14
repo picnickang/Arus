@@ -10,6 +10,12 @@ beforeAll(async () => {
     __esModule: true,
     isLocalMode: true,
   }));
+  // access-seeding reads local-mode via IS_SQLITE from the schema-runtime
+  // switcher (not the db barrel), so the local-mode flag is controlled here.
+  jest.unstable_mockModule("@shared/schema-runtime", () => ({
+    __esModule: true,
+    IS_SQLITE: true,
+  }));
   jest.unstable_mockModule("../../server/domains/permissions/repository", () => ({
     __esModule: true,
     listDistinctRoleOrgIds: listDistinctRoleOrgIdsMock,

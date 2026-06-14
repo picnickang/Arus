@@ -27,7 +27,6 @@ import {
   MAINTENANCE_TYPES,
   PRIORITY_OPTIONS,
   STATUS_OPTIONS,
-  type WorkOrderFormData,
   type useWorkOrderFormDialogData,
 } from "@/features/work-orders";
 

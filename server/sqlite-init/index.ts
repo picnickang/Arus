@@ -28,16 +28,18 @@ import {
   runAdminSettingsCompatibilityMigration,
   runAdminSessionsCompatibilityMigration,
   runCrewCompatibilityMigration,
-  runEquipmentCompatibilityMigration,
   runErrorLogsCompatibilityMigration,
-  runImmutableAuditTrailCompatibilityMigration,
-  runImportManifestCompatibilityMigration,
-  runPermissionCompatibilityMigration,
   runSystemSettingsCompatibilityMigration,
   runUsersAuthCompatibilityMigration,
   safeAddColumn,
   safeRenameColumn,
 } from "./compatibility-migrations.js";
+import {
+  runEquipmentCompatibilityMigration,
+  runImmutableAuditTrailCompatibilityMigration,
+  runImportManifestCompatibilityMigration,
+  runPermissionCompatibilityMigration,
+} from "./compatibility-migrations-extra.js";
 const logger = createLogger("SqliteInit:Index");
 
 let _initialized = false;

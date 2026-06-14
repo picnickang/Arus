@@ -4,11 +4,9 @@
 
 import {
   cloudOnly,
-  IS_POSTGRES,
   isLocalMode,
   pgSchema,
   pickSchema,
-  sqliteSync,
   sqliteVessel,
 } from "./schema-runtime-table-helpers";
 

@@ -14,22 +14,22 @@ import type {
 import { db } from "../../db-config";
 import { dbWorkOrderStorage } from "../../db/workorders/index.js";
 import type { WidenPartial } from "../../lib/widen-partial";
-import { cloneWorkOrder as cloneWorkOrderOperation } from "./work-order-service-operations/clone";
+import { cloneWorkOrder as cloneWorkOrderOperation } from "../../db/workorders/operations/clone";
 import {
   completeWorkOrder as completeWorkOrderOperation,
   completeWorkOrderInTx as completeWorkOrderInTxOperation,
-} from "./work-order-service-operations/completion";
+} from "../../db/workorders/operations/completion";
 import {
   closeWorkOrder as closeWorkOrderOperation,
   closeWorkOrderWithInventoryRelease as closeWorkOrderWithInventoryReleaseOperation,
   deleteWorkOrderCascade as deleteWorkOrderCascadeOperation,
   updateWorkOrderWithDowntimeTracking as updateWorkOrderWithDowntimeTrackingOperation,
-} from "./work-order-service-operations/lifecycle";
+} from "../../db/workorders/operations/lifecycle";
 import {
   getWorkOrderCompletionAnalytics as getWorkOrderCompletionAnalyticsOperation,
   getWorkOrdersPaginated as getWorkOrdersPaginatedOperation,
   getWorkOrdersWithDetails as getWorkOrdersWithDetailsOperation,
-} from "./work-order-service-operations/queries";
+} from "../../db/workorders/operations/queries";
 import type {
   WorkOrderCloneOptions,
   WorkOrderCloseData,
@@ -40,7 +40,7 @@ import type {
   WorkOrderPaginationResult,
   WorkOrderTx,
   WorkOrderWithDetails,
-} from "./work-order-service-operations/types";
+} from "../../db/workorders/operations/types";
 
 export type {
   WorkOrderCloneOptions,
@@ -50,7 +50,7 @@ export type {
   WorkOrderFilters,
   WorkOrderPaginationResult,
   WorkOrderWithDetails,
-} from "./work-order-service-operations/types";
+} from "../../db/workorders/operations/types";
 
 class WorkOrderService {
   async getWorkOrdersWithDetails(

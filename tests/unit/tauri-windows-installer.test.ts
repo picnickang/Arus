@@ -169,7 +169,7 @@ describe("Tauri Windows Installer — Sidecar Compiler Pinning", () => {
 
 describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   const workflow = read(".github/workflows/tauri-build.yml");
-  const windowsWorkflow = workflow.match(/  build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
+  const windowsWorkflow = workflow.match(/ {2}build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
 
   it("runs the Windows desktop job on a real Windows runner", () => {
     expect(windowsWorkflow).toContain("build-windows-desktop:");

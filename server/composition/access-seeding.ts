@@ -28,7 +28,7 @@ import {
   defaultAccessLevelForRank,
 } from "@shared/role-dashboard";
 import { createLogger } from "../lib/structured-logger";
-import { isLocalMode } from "../db";
+import { IS_SQLITE as isLocalMode } from "@shared/schema-runtime";
 
 const logger = createLogger("Composition:AccessSeeding");
 

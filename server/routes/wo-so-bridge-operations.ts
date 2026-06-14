@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
-import { db as defaultDb } from "../db";
 import { logger } from "../utils/logger";
 import { generateSoNumber } from "../service-orders/repository";
 
@@ -30,7 +29,7 @@ export interface CreatedServiceOrderRow {
 }
 
 export async function createServiceOrderFromWorkOrder(
-  db: typeof defaultDb,
+  db: typeof import("../db").db,
   params: CreateSOParams
 ): Promise<CreatedServiceOrderRow> {
   const {
@@ -53,7 +52,7 @@ export async function createServiceOrderFromWorkOrder(
   // so the lock is held until the INSERT commits. Previously this path used
   // an inline SELECT MAX(...)+1 with no lock, which raced under concurrent
   // conversions for the same org and could produce duplicate so_number values.
-  return await defaultDb.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const soNumber = await generateSoNumber(orgId, tx as object as { execute: typeof db.execute });
     const serviceOrderId = randomUUID();
 
@@ -140,7 +139,7 @@ export async function createServiceOrderFromWorkOrder(
  * automatically.
  */
 export async function syncWorkOrderFromServiceOrders(
-  db: typeof defaultDb,
+  db: typeof import("../db").db,
   orgId: string,
   workOrderId: string
 ): Promise<{ synced: boolean; workOrderStatus?: string; reason: string }> {

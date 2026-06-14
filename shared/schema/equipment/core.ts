@@ -23,8 +23,7 @@ import {
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { organizations } from "../core";
 import { vessels } from "../vessels";
-import { suppliers, parts } from "../inventory";
-import { workOrders } from "../work-orders";
+import { suppliers } from "../inventory";
 
 // Central equipment registry - uses shared column builders to reduce duplication
 export const equipment = pgTable(

@@ -10,7 +10,7 @@ test.describe('Bridge Condition Simulation', () => {
 
   test('touch targets remain usable in glove-simulation (larger hit area)', async ({ page }) => {
     const buttons = page.getByRole('button');
-    await expect(buttons).toHaveCount(> 3); // example assertion
+    expect(await buttons.count()).toBeGreaterThan(3); // example assertion
   });
 
   test('offline mode highlights outbox and cached indicators correctly', async ({ page }) => {

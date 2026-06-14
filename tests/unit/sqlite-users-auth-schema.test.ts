@@ -7,9 +7,9 @@ import {
   runCrewCompatibilityMigration,
   runAdminSessionsCompatibilityMigration,
   runErrorLogsCompatibilityMigration,
-  runImmutableAuditTrailCompatibilityMigration,
   runUsersAuthCompatibilityMigration,
 } from "../../server/sqlite-init/compatibility-migrations";
+import { runImmutableAuditTrailCompatibilityMigration } from "../../server/sqlite-init/compatibility-migrations-extra";
 import { getCrewTablesSql } from "../../server/sqlite/crew-tables";
 
 describe("SQLite users auth schema", () => {
@@ -61,9 +61,7 @@ describe("SQLite users auth schema", () => {
 
     await runCrewCompatibilityMigration(client as never);
 
-    expect(executed).toContain(
-      "ALTER TABLE crew ADD COLUMN first_name TEXT NOT NULL DEFAULT ''"
-    );
+    expect(executed).toContain("ALTER TABLE crew ADD COLUMN first_name TEXT NOT NULL DEFAULT ''");
     expect(executed).toContain("ALTER TABLE crew ADD COLUMN last_name TEXT NOT NULL DEFAULT ''");
     expect(executed).toContain("ALTER TABLE crew ADD COLUMN user_id TEXT");
     expect(executed).toContain(
@@ -101,7 +99,9 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain("ALTER TABLE users ADD COLUMN password_hash TEXT");
     expect(executed).toContain("ALTER TABLE users ADD COLUMN password_updated_at INTEGER");
     expect(executed).toContain("ALTER TABLE users ADD COLUMN login_enabled INTEGER DEFAULT 1");
-    expect(executed).toContain("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0");
+    expect(executed).toContain(
+      "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"
+    );
     expect(executed).toContain("ALTER TABLE users ADD COLUMN hub_admin INTEGER DEFAULT 0");
     expect(executed).toContain("ALTER TABLE users ADD COLUMN hub_access TEXT");
   });
@@ -194,7 +194,9 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain("ALTER TABLE immutable_audit_trail ADD COLUMN event_category TEXT");
     expect(executed).toContain("ALTER TABLE immutable_audit_trail ADD COLUMN event_type TEXT");
     expect(executed).toContain("ALTER TABLE immutable_audit_trail ADD COLUMN event_timestamp TEXT");
-    expect(executed).toContain("ALTER TABLE immutable_audit_trail ADD COLUMN server_timestamp TEXT");
+    expect(executed).toContain(
+      "ALTER TABLE immutable_audit_trail ADD COLUMN server_timestamp TEXT"
+    );
     expect(executed).toContain("ALTER TABLE immutable_audit_trail ADD COLUMN prev_hash TEXT");
     expect(executed).toContain(
       "ALTER TABLE immutable_audit_trail ADD COLUMN data_hash TEXT NOT NULL DEFAULT ''"
@@ -247,7 +249,9 @@ describe("SQLite users auth schema", () => {
       "ALTER TABLE error_logs ADD COLUMN category TEXT NOT NULL DEFAULT 'application'"
     );
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN error_code TEXT");
-    expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN message TEXT NOT NULL DEFAULT ''");
+    expect(executed).toContain(
+      "ALTER TABLE error_logs ADD COLUMN message TEXT NOT NULL DEFAULT ''"
+    );
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN user_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN request_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN endpoint TEXT");

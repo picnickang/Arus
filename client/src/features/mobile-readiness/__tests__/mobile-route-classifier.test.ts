@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "@jest/globals";
 import { classifyMobileRoute, isSafeForBottomNav } from '../mobile-readiness-route-contract';
 
 describe('Phase 1 - Mobile Route Classifier', () => {

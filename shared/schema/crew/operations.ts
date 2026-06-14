@@ -9,16 +9,12 @@ import {
   varchar,
   integer,
   real,
-  numeric,
   timestamp,
   boolean,
   index,
-  unique,
 } from "../base";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import { organizations, users } from "../core";
+import { organizations } from "../core";
 import { vessels } from "../vessels";
-import { roles } from "../permissions";
 import { crew } from "./people";
 
 export const skills = pgTable("skills", {

@@ -61,7 +61,7 @@ import {
   isAdminPortalAccess,
   isSuperAdminRole,
 } from "@/application/navigation/role-navigation-policy";
-import { ADMIN_ONLY_ROUTES, getHubIdForRoute } from "@/config/navigationConfig";
+import { ADMIN_ONLY_ROUTES } from "@/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -85,67 +85,7 @@ const allRoutes = [
 // path → structural-group hub id, built from the actual route arrays so every
 // registered hub route is covered by construction (no manual list to drift).
 // Each route group corresponds 1:1 to an admin-portal hub; this is the
-// fallback classification for deep routes that are not surfaced as nav
-// children (those get their user-facing hub from `getHubIdForRoute`).
-const ROUTE_GROUP_HUB_BY_PATH: Record<string, string> = (() => {
-  const map: Record<string, string> = {};
-  const groups: Array<[string, ReadonlyArray<{ path: string }>]> = [
-    ["operations", operationsRoutes],
-    ["fleet", fleetRoutes],
-    ["maintenance", maintenanceRoutes],
-    ["crew", crewRoutes],
-    ["logistics", logisticsRoutes],
-    ["records", recordsRoutes],
-    ["analytics", analyticsRoutes],
-    ["system", systemRoutes],
-  ];
-  for (const [hubId, routes] of groups) {
-    for (const { path } of routes) {
-      map[path] = hubId;
-    }
-  }
-  return map;
-})();
-
-/**
- * Resolve the hub a route belongs to for access gating. Prefers the
- * user-facing nav classification (`getHubIdForRoute`, from
- * `navigationCategories`) so a page is gated by the hub it is *shown under*;
- * falls back to the route's structural group. Returns null only for routes
- * outside every hub group (home, portal-login, feedback) — those are never
- * hub-gated.
- */
-function resolveRouteHubId(path: string): string | null {
-  return getHubIdForRoute(path) ?? ROUTE_GROUP_HUB_BY_PATH[path] ?? null;
-}
-
-function normalizeRoutePath(path: string): string {
-  return (path.split("?")[0] ?? path).split("#")[0] ?? path;
-}
-
-function routePatternMatchesCurrent(routePattern: string, currentPath: string): boolean {
-  const patternSegments = normalizeRoutePath(routePattern).split("/").filter(Boolean);
-  const currentSegments = normalizeRoutePath(currentPath).split("/").filter(Boolean);
-  if (patternSegments.length !== currentSegments.length) {
-    return false;
-  }
-  return patternSegments.every((segment, index) => {
-    return segment.startsWith(":") || segment === currentSegments[index];
-  });
-}
-
-function resolveCurrentRouteHubId(path: string): string | null {
-  const navHubId = getHubIdForRoute(path);
-  if (navHubId) {
-    return navHubId;
-  }
-  for (const [routePath, hubId] of Object.entries(ROUTE_GROUP_HUB_BY_PATH)) {
-    if (routePatternMatchesCurrent(routePath, path)) {
-      return hubId;
-    }
-  }
-  return null;
-}
+import { resolveRouteHubId, resolveCurrentRouteHubId } from "./app-route-hubs";
 
 function PageSkeleton() {
   return (

@@ -1,18 +1,24 @@
 import { randomUUID } from "node:crypto";
 import type { Express, Request, Response } from "express";
-import { sql } from "drizzle-orm";
-import { db } from "../db";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { requireOrgIdAndValidateBody } from "../middleware/auth";
 import { sendCreated, sendNotFound, withErrorHandling } from "../lib/route-utils";
 import { createDomainEvent, domainEventBus } from "../lib/domain-event-bus";
 import { logger } from "../utils/logger";
 import {
+  getActiveServiceRequestForWorkOrder,
+  getServiceRequestStatusRow,
+  getWorkOrderForServiceRequest,
+  generateServiceRequestNumber,
+  insertServiceRequestRow,
+  markWorkOrderAwaitingService,
+  updateServiceRequestFields,
+} from "../db/service-requests/repository";
+import {
   getOrgId,
   getUserId,
   type ServiceRequestRouteRateLimiters,
   type ServiceRequestRow,
-  unwrapRows,
 } from "./service-request-route-utils";
 
 export function registerServiceRequestEditRoutes(
@@ -27,15 +33,9 @@ export function registerServiceRequestEditRoutes(
     withErrorHandling("update service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
+      const id = req.params["id"] ?? "";
 
-      const [sr] = await db
-        .execute(
-          sql`
-        SELECT id, status FROM service_requests
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const sr = await getServiceRequestStatusRow(id, orgId);
 
       if (!sr) {
         return sendNotFound(res, "Service Request");
@@ -72,24 +72,7 @@ export function registerServiceRequestEditRoutes(
         return res.status(400).json({ error: "No fields to update" });
       }
 
-      const [updated] = await db
-        .execute(
-          sql`
-        UPDATE service_requests
-        SET
-          title = ${updates["title"] !== undefined ? updates["title"] : sql`title`},
-          description = ${updates["description"] !== undefined ? updates["description"] : sql`description`},
-          urgency = ${updates["urgency"] !== undefined ? updates["urgency"] : sql`urgency`},
-          estimated_cost = ${updates["estimated_cost"] !== undefined ? updates["estimated_cost"] : sql`estimated_cost`},
-          service_details = ${updates["service_details"] !== undefined ? updates["service_details"] : sql`service_details`},
-          special_requirements = ${updates["special_requirements"] !== undefined ? updates["special_requirements"] : sql`special_requirements`},
-          reviewed_by = COALESCE(reviewed_by, ${userId}),
-          updated_at = NOW()
-        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
-        RETURNING *
-      `
-        )
-        .then(unwrapRows<ServiceRequestRow>);
+      const updated = await updateServiceRequestFields(id, orgId, userId, updates);
 
       res.json(updated);
     })
@@ -107,15 +90,7 @@ export function registerServiceRequestEditRoutes(
         const workOrderId = req.params["id"] ?? "";
         const userId = getUserId(req);
 
-        const [wo] = await db
-          .execute(
-            sql`
-        SELECT id, wo_number, description, vessel_id, status
-        FROM work_orders
-        WHERE id = ${workOrderId} AND org_id = ${orgId}
-      `
-          )
-          .then(unwrapRows<ServiceRequestRow>);
+        const wo = await getWorkOrderForServiceRequest(workOrderId, orgId);
 
         if (!wo) {
           return sendNotFound(res, "Work Order");
@@ -127,17 +102,7 @@ export function registerServiceRequestEditRoutes(
             .json({ error: `Cannot create a service request for a ${wo.status} work order` });
         }
 
-        const [existingActive] = await db
-          .execute(
-            sql`
-        SELECT id, request_number, status
-        FROM service_requests
-        WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
-          AND status NOT IN ('rejected', 'converted')
-        LIMIT 1
-      `
-          )
-          .then(unwrapRows<ServiceRequestRow>);
+        const existingActive = await getActiveServiceRequestForWorkOrder(workOrderId, orgId);
 
         if (existingActive) {
           return res.status(409).json({
@@ -156,53 +121,22 @@ export function registerServiceRequestEditRoutes(
         const maxRetries = 3;
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            const [seqResult] = await db
-              .execute(
-                sql`
-            SELECT COALESCE(
-              MAX(CAST(SUBSTRING(request_number FROM 'SR-([0-9]+)') AS INTEGER)),
-              0
-            ) + 1 AS next_num
-            FROM service_requests
-            WHERE org_id = ${orgId}
-          `
-              )
-              .then(unwrapRows<{ next_num: number | string | null }>);
-            const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
-
+            const requestNumber = await generateServiceRequestNumber(orgId);
             const serviceRequestId = randomUUID();
-            const [inserted] = await db
-              .execute(
-                sql`
-            INSERT INTO service_requests (
-              id, org_id, work_order_id, request_number,
-              title, description, urgency, estimated_cost,
-              service_details, special_requirements,
-              requested_by, status, previous_wo_status,
-              created_at, updated_at
-            )
-            VALUES (
-              ${serviceRequestId},
-              ${orgId},
-              ${workOrderId},
-              ${requestNumber},
-              ${title},
-              ${description || null},
-              ${urgency || "medium"},
-              ${estimatedCost ? Number(estimatedCost) : null},
-              ${serviceDetails || null},
-              ${specialRequirements || null},
-              ${userId},
-              'pending_review',
-              ${previousWoStatus},
-              NOW(),
-              NOW()
-            )
-            RETURNING *
-          `
-              )
-              .then(unwrapRows<ServiceRequestRow>);
-            newSr = inserted;
+            newSr = await insertServiceRequestRow({
+              serviceRequestId,
+              orgId,
+              workOrderId,
+              requestNumber,
+              title,
+              description: description || null,
+              urgency: urgency || "medium",
+              estimatedCost: estimatedCost ? Number(estimatedCost) : null,
+              serviceDetails: serviceDetails || null,
+              specialRequirements: specialRequirements || null,
+              requestedBy: userId,
+              previousWoStatus,
+            });
             break;
           } catch (err) {
             const pgErr = err as { code?: string; constraint?: string };
@@ -226,12 +160,7 @@ export function registerServiceRequestEditRoutes(
 
         const requestNumber = newSr.request_number;
 
-        await db.execute(sql`
-        UPDATE work_orders
-        SET status = 'awaiting_service', updated_at = NOW()
-        WHERE id = ${workOrderId} AND org_id = ${orgId}
-          AND status NOT IN ('completed', 'cancelled', 'awaiting_service')
-      `);
+        await markWorkOrderAwaitingService(workOrderId, orgId);
 
         domainEventBus.emit(
           "service_request.created",
