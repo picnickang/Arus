@@ -1,11 +1,11 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
-import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
-import { logger } from "../../utils/logger.js";
-import { dbComplianceStorage as complianceRepo } from "../../db/compliance/db-compliance.js";
-import type { RateLimit } from "../../lib/rate-limit-factory";
-import { authenticatedRequest } from "../../middleware/auth";
+import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
+import { logger } from "../../../utils/logger.js";
+import type { RateLimit } from "../../../lib/rate-limit-factory";
+import { authenticatedRequest } from "../../../middleware/auth";
+import { complianceService } from "../application";
 
 interface RateLimiters {
   writeOperationRateLimit: RateLimit;
@@ -93,7 +93,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const filters = findingsFiltersSchema.parse(req.query);
 
-      const findings = await complianceRepo.getComplianceFindings(orgId!, filters);
+      const findings = await complianceService.getComplianceFindings(orgId!, filters);
       res.json(findings);
     })
   );
@@ -104,7 +104,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
       const { includeArchived } = findingByIdQuerySchema.parse(req.query);
-      const finding = await complianceRepo.getComplianceFindingById(id, orgId!, {
+      const finding = await complianceService.getComplianceFindingById(id, orgId!, {
         includeArchived,
       });
 
@@ -122,10 +122,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("create compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const body = createFindingSchema.parse(req.body);
-      const finding = await complianceRepo.createComplianceFinding({
+      const finding = await complianceService.createComplianceFinding({
         ...body,
         orgId,
-      } as Parameters<typeof complianceRepo.createComplianceFinding>[0]);
+      } as Parameters<typeof complianceService.createComplianceFinding>[0]);
       res.status(201).json(finding);
     })
   );
@@ -140,10 +140,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         req.body
       );
 
-      const finding = await complianceRepo.acknowledgeComplianceFinding(
+      const finding = await complianceService.acknowledgeComplianceFinding(
         id,
         { acknowledgedByUserId, acknowledgedByUserName },
-        orgId
+        orgId!
       );
       res.json(finding);
     })
@@ -159,10 +159,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         req.body
       );
 
-      const finding = await complianceRepo.resolveComplianceFinding(
+      const finding = await complianceService.resolveComplianceFinding(
         id,
         { resolvedByUserId, resolvedByUserName, resolutionNotes },
-        orgId
+        orgId!
       );
       res.json(finding);
     })
@@ -176,10 +176,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const { id } = idParamSchema.parse(req.params);
       const { suppressedUntil, suppressedReason } = suppressBodySchema.parse(req.body);
 
-      const finding = await complianceRepo.suppressComplianceFinding(
+      const finding = await complianceService.suppressComplianceFinding(
         id,
         { suppressedUntil: new Date(suppressedUntil), suppressedReason },
-        orgId
+        orgId!
       );
       res.json(finding);
     })
@@ -196,7 +196,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       // who removed the finding.
       const authReq = authenticatedRequest(req);
       const archivedBy = authReq.user?.id ?? (req.headers["x-user-id"] as string | undefined);
-      await complianceRepo.deleteComplianceFinding(id, orgId!, archivedBy);
+      await complianceService.deleteComplianceFinding(id, orgId!, archivedBy);
       res.status(204).send();
     })
   );
@@ -212,7 +212,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         enabled: raw.enabled === "true" ? true : raw.enabled === "false" ? false : undefined,
       };
 
-      const rules = await complianceRepo.getComplianceRules(orgId!, filters);
+      const rules = await complianceService.getComplianceRules(orgId!, filters);
       res.json(rules);
     })
   );
@@ -222,7 +222,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("get compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      const rule = await complianceRepo.getComplianceRuleById(id, orgId!);
+      const rule = await complianceService.getComplianceRuleById(id, orgId!);
 
       if (!rule) {
         return sendNotFound(res, "Compliance rule");
@@ -238,10 +238,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("create compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const body = createRuleSchema.parse(req.body);
-      const rule = await complianceRepo.createComplianceRule({
+      const rule = await complianceService.createComplianceRule({
         ...body,
         orgId,
-      } as Parameters<typeof complianceRepo.createComplianceRule>[0]);
+      } as Parameters<typeof complianceService.createComplianceRule>[0]);
       res.status(201).json(rule);
     })
   );
@@ -253,9 +253,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
       const body = updateRuleSchema.parse(req.body);
-      const rule = await complianceRepo.updateComplianceRule(
+      const rule = await complianceService.updateComplianceRule(
         id,
-        body as Parameters<typeof complianceRepo.updateComplianceRule>[1],
+        body as Parameters<typeof complianceService.updateComplianceRule>[1],
         orgId!
       );
       res.json(rule);
@@ -268,7 +268,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("delete compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      await complianceRepo.deleteComplianceRule(id, orgId!);
+      await complianceService.deleteComplianceRule(id, orgId!);
       res.status(204).send();
     })
   );
@@ -280,7 +280,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const { vesselId, logDate, logType } = complianceCheckBodySchema.parse(req.body);
 
-      const { complianceRulesEngine } = await import("../../services/compliance-rules-engine");
+      const { complianceRulesEngine } = await import("../../../services/compliance-rules-engine");
 
       const result = await complianceRulesEngine.runComplianceCheck({
         orgId,
@@ -309,7 +309,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     writeOperationRateLimit,
     withErrorHandling("seed compliance rules", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { complianceRulesEngine } = await import("../../services/compliance-rules-engine");
+      const { complianceRulesEngine } = await import("../../../services/compliance-rules-engine");
 
       await complianceRulesEngine.seedDefaultRules(orgId);
       res.json({ success: true, message: "Default compliance rules seeded" });
@@ -322,35 +322,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const { vesselId } = vesselIdParamSchema.parse(req.params);
 
-      const findings = await complianceRepo.getComplianceFindings(orgId!, {
-        vesselId,
-        status: "open",
-      });
-
-      const summary = {
-        vesselId,
-        totalOpenFindings: findings.length,
-        bySeverity: {
-          critical: findings.filter((f) => f["severity"] === "critical").length,
-          warning: findings.filter((f) => f["severity"] === "warning").length,
-          info: findings.filter((f) => f["severity"] === "info").length,
-        },
-        bySource: {
-          logbook_deck: findings.filter((f) => f["sourceType"] === "logbook_deck").length,
-          logbook_engine: findings.filter((f) => f["sourceType"] === "logbook_engine").length,
-          crew: findings.filter((f) => f["sourceType"] === "crew").length,
-          maintenance: findings.filter((f) => f["sourceType"] === "maintenance").length,
-          telemetry: findings.filter((f) => f["sourceType"] === "telemetry").length,
-        },
-        byCategory: {
-          operational: findings.filter((f) => f["category"] === "operational").length,
-          safety: findings.filter((f) => f["category"] === "safety").length,
-          data_integrity: findings.filter((f) => f["category"] === "data_integrity").length,
-          regulatory: findings.filter((f) => f["category"] === "regulatory").length,
-        },
-        recentFindings: findings.slice(0, 10),
-      };
-
+      const summary = await complianceService.getVesselFindingsSummary(orgId!, vesselId);
       res.json(summary);
     })
   );
@@ -363,7 +335,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId!;
       const { days: lookbackDays } = stcwSummaryQuerySchema.parse(req.query);
 
-      const { getFleetSTCWSummary } = await import("../../scheduler/stcw-dashboard");
+      const { getFleetSTCWSummary } = await import("../../../scheduler/stcw-dashboard");
       const summary = await getFleetSTCWSummary(orgId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");
@@ -378,7 +350,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const { vesselId } = vesselIdParamSchema.parse(req.params);
       const { days: lookbackDays } = stcwSummaryQuerySchema.parse(req.query);
 
-      const { getVesselSTCWSummary } = await import("../../scheduler/stcw-dashboard");
+      const { getVesselSTCWSummary } = await import("../../../scheduler/stcw-dashboard");
       const summary = await getVesselSTCWSummary(orgId, vesselId, lookbackDays);
 
       res.setHeader("Cache-Control", "private, max-age=300");
@@ -392,7 +364,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId!;
       const { days: lookbackDays, vesselId } = stcwTrendsQuerySchema.parse(req.query);
 
-      const { getSTCWComplianceTrends } = await import("../../scheduler/stcw-dashboard");
+      const { getSTCWComplianceTrends } = await import("../../../scheduler/stcw-dashboard");
       const trends = await getSTCWComplianceTrends(orgId, lookbackDays, vesselId);
 
       res.setHeader("Cache-Control", "private, max-age=300");
