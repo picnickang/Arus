@@ -334,6 +334,9 @@ export async function apiFormDataRequest<T = unknown>(
   return unwrapEnvelope<T>(result, url);
 }
 
+// Re-exported so existing `@/lib/queryClient` consumers keep a single import site.
+export { retryUnlessClientError } from "@/lib/query-retry";
+
 export type UnauthorizedBehavior = "returnNull" | "throw";
 
 export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFunction<T> {

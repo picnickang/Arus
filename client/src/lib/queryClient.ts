@@ -24,6 +24,7 @@ import {
   DEFAULT_GET_TIMEOUT_MS,
   getQueryFn,
   resolveUrl,
+  retryUnlessClientError,
   TenantQuotaExceededError,
 } from "@/lib/queryClient-request";
 
@@ -34,6 +35,7 @@ export {
   DEFAULT_GET_TIMEOUT_MS,
   getQueryFn,
   resolveUrl,
+  retryUnlessClientError,
   TenantQuotaExceededError,
   type ApiRequestInit,
   type ApiRequestOptions,
@@ -121,7 +123,9 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: CACHE_TIMES.MODERATE,
-      retry: 1,
+      // A 4xx (auth/not-found/validation) is terminal — retrying it only fires
+      // redundant failing requests. Transient errors (network/5xx) still retry once.
+      retry: retryUnlessClientError(1),
       retryDelay: (attempt) => computeBackoffDelay(attempt),
     },
     mutations: {

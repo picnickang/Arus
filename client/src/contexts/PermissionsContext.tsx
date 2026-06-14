@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useEffect, useRef, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, retryUnlessClientError } from "@/lib/queryClient";
 import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionToken";
 
 export interface PermissionMatrix {
@@ -83,7 +83,10 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const { data, isLoading, error } = useQuery<PermissionsResponse>({
     queryKey: ["/api/permissions/me"],
     staleTime: 5 * 60 * 1000,
-    retry: 3,
+    // Never retry a 401 — on a fresh (unauthenticated) load the probe is
+    // expected to fail once and drive the login redirect; retrying it just
+    // fired 4 redundant 401s. Transient errors still retry up to 3x.
+    retry: retryUnlessClientError(3),
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
