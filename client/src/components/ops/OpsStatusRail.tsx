@@ -1,5 +1,6 @@
 import { ArrowLeftRight, Cloud, CloudOff, RefreshCw, UploadCloud } from "lucide-react";
 import { ObiAlertCategoryA } from "@oicl/openbridge-webcomponents-react/icons/icon-alert-category-a.js";
+import { ObiAlertCategoryB } from "@oicl/openbridge-webcomponents-react/icons/icon-alert-category-b.js";
 import { cn } from "@/lib/utils";
 
 export interface OpsRailRisk {
@@ -62,7 +63,12 @@ export default function OpsStatusRail({
     >
       {topRisk && (
         <div className={cn(chip, "border-destructive/40 bg-destructive/10 text-destructive")}>
-          <ObiAlertCategoryA className="inline-block h-4 w-4 shrink-0" aria-hidden="true" />
+          {/* IEC-aligned priority symbol: category A for high, B for medium. */}
+          {topRisk.severity === "high" ? (
+            <ObiAlertCategoryA className="inline-block h-4 w-4 shrink-0" aria-hidden="true" />
+          ) : (
+            <ObiAlertCategoryB className="inline-block h-4 w-4 shrink-0" aria-hidden="true" />
+          )}
           <span className="font-semibold">{topRisk.label}</span>
           <button
             type="button"
