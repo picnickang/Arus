@@ -30,8 +30,25 @@ const errors = [];
 // Layer 1 — Export guard check
 // ============================================================================
 
-const runtimePath = resolve(root, "shared/schema-runtime.ts");
-const runtimeSrc = readFileSync(runtimePath, "utf8");
+// The mode-switched table exports (`export const X = pickSchema(...)` /
+// `cloudOnly(...)`) live in the schema-runtime tables modules that
+// schema-runtime.ts re-exports; the switcher itself now only destructures
+// them. Scan the switcher plus those modules so switched-pair detection and
+// the Layer-2 column-parity check see the real definitions.
+const runtimeSrc = [
+  "shared/schema-runtime.ts",
+  "shared/schema-runtime-tables-core.ts",
+  "shared/schema-runtime-tables-operations.ts",
+  "shared/schema-runtime-tables-cloud.ts",
+]
+  .map((rel) => {
+    try {
+      return readFileSync(resolve(root, rel), "utf8");
+    } catch {
+      return "";
+    }
+  })
+  .join("\n");
 
 const guardedNames = new Set();
 const switchedPairs = [];
@@ -39,23 +56,35 @@ const lines = runtimeSrc.split("\n");
 
 const VALID_NAMESPACES = new Set(["pgSchema", "sqliteVessel", "sqliteSync"]);
 
-for (const line of lines) {
+for (let li = 0; li < lines.length; li++) {
+  const line = lines[li];
   const exportMatch = line.match(/^export const (\w+)\s*=/);
   if (!exportMatch) continue;
   const name = exportMatch[1];
 
+  // A switched/cloud-only export may span multiple lines, e.g.
+  //   export const updateSettings = (
+  //     IS_POSTGRES ? pgSchema.updateSettings : _sqliteUpdateSettings
+  //   ) as typeof pgSchema.updateSettings;
+  // Accumulate the whole statement (until `;`) before classifying it so the
+  // mode guard on a continuation line isn't missed.
+  let stmt = line;
+  for (let j = li + 1; j < lines.length && !stmt.includes(";"); j++) {
+    stmt += "\n" + lines[j];
+  }
+
   const isSwitched =
-    line.includes("isLocalMode ?") ||
-    line.includes("isEmbedded ?") ||
-    line.includes("IS_POSTGRES ?") ||
-    line.includes("IS_SQLITE ?") ||
+    stmt.includes("isLocalMode ?") ||
+    stmt.includes("isEmbedded ?") ||
+    stmt.includes("IS_POSTGRES ?") ||
+    stmt.includes("IS_SQLITE ?") ||
     // Helper-based switched exports introduced to compress dual-mode casts:
     //   export const X = pickSchema(isLocalMode, sqliteX.tableY, pgSchema.tableY);
     //   export const X = cloudOnly(pgSchema.tableY);
-    line.includes("pickSchema(") ||
-    line.includes("cloudOnly(");
+    stmt.includes("pickSchema(") ||
+    stmt.includes("cloudOnly(");
 
-  const isDirectPgExport = line.includes("pgSchema.") && !isSwitched;
+  const isDirectPgExport = stmt.includes("pgSchema.") && !isSwitched;
 
   const isConfigConst =
     name === "DEPLOYMENT_MODE" ||
@@ -69,14 +98,14 @@ for (const line of lines) {
   }
 
   if (isSwitched) {
-    const pgMatch = line.match(/pgSchema\.(\w+)/);
-    const sqliteMatch = line.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
+    const pgMatch = stmt.match(/pgSchema\.(\w+)/);
+    const sqliteMatch = stmt.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
     if (pgMatch && sqliteMatch) {
       switchedPairs.push({ name, pgExport: pgMatch[1], sqliteExport: sqliteMatch[1] });
     }
   }
 
-  const nsRefs = line.matchAll(/(\w+)\.\w+/g);
+  const nsRefs = stmt.matchAll(/(\w+)\.\w+/g);
   for (const nsRef of nsRefs) {
     const ns = nsRef[1];
     if (
@@ -231,12 +260,16 @@ function extractColumnsFromSource(src) {
 function scanSchemaDir(dir) {
   const result = {};
   if (!existsSync(dir)) return result;
-  const entries = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
-  for (const file of entries) {
-    const filePath = join(dir, file);
-    const src = readFileSync(filePath, "utf8");
-    const tables = extractColumnsFromSource(src);
-    Object.assign(result, tables);
+  // Recurse: schema tables are organised into per-domain subdirectories
+  // (equipment/, crew/, alerts/, …); a flat readdir misses every table
+  // defined there and falsely reports it as a missing PG table.
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const filePath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(result, scanSchemaDir(filePath));
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      Object.assign(result, extractColumnsFromSource(readFileSync(filePath, "utf8")));
+    }
   }
   return result;
 }

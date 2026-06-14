@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   buildReportingTree,
@@ -190,7 +190,16 @@ describe("makeMemberComparator — children render in role order", () => {
 });
 
 describe("mobile crew route source-scan", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string) => {
+    if (rel.includes("features/mobile-readiness/")) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f: string) => /\.(ts|tsx)$/.test(f))
+        .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
   it("routes crew-management to the mobile crew replacement", () => {
     const page = read("client/src/pages/crew-management.tsx");

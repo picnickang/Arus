@@ -1378,7 +1378,11 @@
         "performedAt",
         "previousHash",
         "sequenceNumber",
-        "signature"
+        "signature",
+        "dataBefore",
+        "dataAfter",
+        "actor",
+        "actorRole"
       ]
     },
     "engineerOverrides": {
@@ -1524,7 +1528,7 @@
     },
     "errorLogs": {
       "pgOnly": ["category", "timestamp"],
-      "sqliteOnly": ["endpoint", "errorType", "requestId", "userId"]
+      "sqliteOnly": ["endpoint", "errorMessage", "errorType", "requestId", "userId"]
     },
     "idempotencyLog": {
       "pgOnly": ["expiresAt", "key"],
