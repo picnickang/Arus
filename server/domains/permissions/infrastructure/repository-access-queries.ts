@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
-import { db } from "../../db";
+import { db } from "../../../db";
 import { crew, organizations, users, roles, userRoleAssignments } from "@shared/schema-runtime";
 
 export async function listUsersWithRoles(orgId: string): Promise<

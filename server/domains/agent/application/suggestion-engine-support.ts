@@ -1,7 +1,6 @@
-import { db } from "../../../db";
+import { dbNotificationsStorage } from "../../../db/notifications/index.js";
 import { createLogger } from "../../../lib/structured-logger";
 import { llmGateway } from "../../../composition/llm-gateway";
-import { notificationQueue } from "@shared/schema-runtime";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
 
@@ -130,7 +129,7 @@ export async function queueSuggestionNotifications(
       if (sug.triggerType === "ai_summary") {
         continue;
       }
-      await db.insert(notificationQueue).values({
+      await dbNotificationsStorage.createNotificationQueueItem({
         orgId,
         notificationType: "ai_suggestion",
         subject: sug.title,

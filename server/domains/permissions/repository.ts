@@ -41,7 +41,7 @@ import {
   PDM_BACKFILL_ROLE_NAMES,
   type PdmBackfillRoleResult,
 } from "./pdm-backfill-planner";
-import { listUsersWithRoles } from "./repository-access-queries";
+import { listUsersWithRoles } from "./infrastructure/repository-access-queries";
 
 // Re-export so existing importers (e.g. server/scripts/backfill-pdm-permissions.ts)
 // keep resolving these from the repository module.
@@ -58,8 +58,8 @@ export {
   getCrewLinkForUser,
   getUserDiagnosticRow,
   getUserPrimaryRole,
-} from "./repository-access-queries";
-export type { SeedRoleRow } from "./repository-access-queries";
+} from "./infrastructure/repository-access-queries";
+export type { SeedRoleRow } from "./infrastructure/repository-access-queries";
 
 function staticResources(): PermissionResource[] {
   return RESOURCES.map((r) => ({
