@@ -38,7 +38,7 @@ under §6 "Not yet enforced" rather than asserted.
 | Adoption decision + scope recorded | Enforced (review) | ADR `docs/adr/003-openbridge-design-system-adoption.md` |
 | OpenBridge web components in use | Implemented (incremental) | `@oicl/openbridge-webcomponents(-react)` deps; `ObiAlertCategoryA` (rail risk chip), `ObcIconButton` + `ObiSearch` (ops top-bar search); `openbridge.css` imported in `client/src/main.tsx` |
 | OpenBridge brilliance tokens active | Enforced | `data-obc-theme` mapping (§2) + `openbridge.css` import; contrast gate covers the result |
-| Touch targets ≥44px | Enforced | `bridge-conditions.spec.ts` + `mobile-ops-rail.spec.ts` assert rail/header control bounding boxes ≥44px; bottom nav is `h-16` (64px) in `MobileReadinessShared.tsx` |
+| Touch targets ≥44px | Enforced (lint + e2e) | coarse-pointer CSS floor (`@media (hover: none) and (pointer: coarse)`, `client/src/index.css`) pinned by `tests/unit/touch-target-css.test.ts`; runtime boundingBox ≥44px in `bridge-conditions.spec.ts` + `mobile-ops-rail.spec.ts`; bottom nav is `h-16` (64px) in `MobileReadinessShared.tsx` |
 
 ## 4. Responsive density & no-overflow (small-screen legibility)
 
@@ -46,6 +46,7 @@ under §6 "Not yet enforced" rather than asserted.
 |---|---|---|
 | No horizontal overflow at 360–768px | Enforced | `tests/playwright/mobile-core-smoke.spec.ts` (`expectNoMobileOverflow`) and `mobile-readiness-visual-fidelity.spec.ts` (`expectNoHorizontalOverflow`, ≤1px per screen × viewport); `mobile-ops-rail.spec.ts` asserts ≤1px at 360px with the header control |
 | Crew & Inventory dense grids reflow to cards (no truncation) | Implemented | `client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx` (`MobileCrewPage` / `MobileInventoryPage`) — vertical cards; overflow gated as above |
+| Logs / PdM telemetry / work-execution render as readable card + tab/KPI-strip layouts at 360px (not truncating tables) | Verified (visual) | confirmed by 360px capture during review; the dense numeric table (PdM Raw Readings) fits via `minmax(0,…)` tracks (M3.1); overflow gated as above |
 
 ## 5. Offline-first / connectivity (VESSEL mode)
 
@@ -56,11 +57,9 @@ under §6 "Not yet enforced" rather than asserted.
 
 ## 6. Not yet enforced (honest gaps — do not claim as compliant)
 
-- **Touch-target size as a lint rule.** Sizes are asserted in e2e (above) and set in CSS, but there is no static lint that fails a sub-44px interactive element. (Rubric item 6 — pending.)
 - **Full OpenBridge symbology migration.** Adoption is incremental (rail icon, top-bar search). Most icons are still `lucide-react`. (Rubric item 4 — in progress, Phase B/C.)
 - **Pixel-diff visual regression.** The repo's Argos pipeline (`mobile-qa-visual-argos.yml`) runs the mobile viewport projects; committed pixel baselines are not used in this lane (cross-env fragile). Contrast + overflow + render are gated deterministically instead.
 - **Light/daylight residual contrast.** 15 of the mobile contrast violations (light 9 / daylight 6) are light-palette design choices (e.g. `slate-500` small text); not yet ratcheted down. Night themes are near-clean (dark 2 / bridge 5).
-- **Logs/Records & PdM telemetry density.** These still use dense grids (overflow-gated, not card-reflowed). (Rubric item 7 — partial.)
 - **Confirm-on-destructive.** Not applicable on the mobile-readiness screens today: they are read-only (no destructive actions). Re-evaluate when mobile write actions are added.
 
 ## 7. How to re-verify
