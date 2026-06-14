@@ -175,14 +175,22 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       the `pickSchema`/`cloudOnly` forms in regen + recurse the dir scan). The
       guardrail now sees **121 pairs / 116 with columns** again. Pinned by
       `tests/unit/dual-schema-smoke.test.ts` (also updated for the destructured
-      export form). **NEEDS REVIEW — two real PG/SQLite divergences surfaced and
-      were baselined (known-allowed) to restore the gate; decide reconcile vs.
-      keep:**
-  - `immutable_audit_trail` — SQLite has `data_before`, `data_after`, `actor`,
-    `actor_role`; PG (`shared/schema/compliance.ts`) lacks them. Likely the cloud
-    audit trail should gain these (richer audit), i.e. reconcile by adding to PG.
-  - `error_logs` — SQLite has `error_message`; PG lacks it (PG uses a different
-    column). Confirm the intended cloud column name and reconcile.
+      export form). **Two real PG/SQLite divergences surfaced; both RESOLVED by
+      reconciliation (2026-06) — not by adding to PG as first guessed below, but
+      by dropping the SQLite side, because investigation showed they were legacy
+      duplicates of columns BOTH schemas already carry (never read back; the
+      audit ones are not part of the hash chain):**
+  - `immutable_audit_trail` — SQLite's `data_before`/`data_after` mirrored
+    `previous_state`/`new_state`, and `actor`/`actor_role` mirrored
+    `performed_by`/`performed_by_role` (the canonical columns exist on both
+    sides). Dropped the four duplicates from the SQLite schema + raw DDL, stopped
+    mirror-writing them in the audit insert path, and added a vessel migration
+    that folds any legacy-only value into the canonical column before
+    `DROP COLUMN`.
+  - `error_logs` — SQLite's `error_message` duplicated the canonical `message`
+    (present on both sides). Dropped it the same way (fold into `message`, then
+    `DROP COLUMN`). The drift baseline was regenerated; the dual-schema gate is
+    green with the reconciled columns gone.
 
 - [x] **Conflict resolution now writes back to the domain record (B1).** A
       resolved conflict previously only flipped the `sync_conflicts` row; because
