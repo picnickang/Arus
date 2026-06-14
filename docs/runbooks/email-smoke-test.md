@@ -44,6 +44,10 @@ H=(-H "Content-Type: application/json" -H "x-org-id: default-org-id" \
 
 ## 2. Status — expect development mode
 
+The status is org-aware: `provider` reflects the org's configured provider
+(`sendgrid`/`smtp`/`ses`) when `alert_settings` has one, else the env SendGrid
+key, else `development`. With no provider configured and no env key:
+
 ```bash
 curl -s "${H[@]}" $BASE/api/notifications/email/status
 # => {"enabled":false,"provider":"development"}

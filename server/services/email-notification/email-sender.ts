@@ -173,15 +173,35 @@ export class EmailSender {
   }
 
   /**
-   * Coarse, org-agnostic status for the /email/status endpoint: reflects the
-   * global env SendGrid key only. An org may still send via its own configured
-   * provider even when this reports "development".
+   * Coarse, org-agnostic status: reflects the global env SendGrid key only.
+   * Used as the fallback for getStatusForOrg.
    */
   getStatus(): { enabled: boolean; provider: string } {
     return {
       enabled: !!this.envSendGridKey,
       provider: this.envSendGridKey ? "sendgrid" : "development",
     };
+  }
+
+  /**
+   * Org-aware status for the /email/status endpoint. Mirrors the send
+   * resolution: reports the org's configured provider when available, otherwise
+   * the global env SendGrid key, otherwise dev-mode. Falls back to the env/dev
+   * status when org config resolution fails (e.g. settings unavailable).
+   */
+  async getStatusForOrg(orgId: string): Promise<{ enabled: boolean; provider: string }> {
+    try {
+      const orgConfig = await alertSettingsService.resolveOrgEmailConfig(orgId);
+      if (orgConfig) {
+        return { enabled: true, provider: orgConfig.provider };
+      }
+    } catch (error) {
+      log("warn", "Org email status resolution failed; using env/dev status", {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return this.getStatus();
   }
 }
 

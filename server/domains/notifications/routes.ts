@@ -170,7 +170,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       const { emailNotificationService } = await import(
         "../../services/email-notification-service"
       );
-      return res.json(emailNotificationService.getStatus());
+      return res.json(await emailNotificationService.getStatusForOrg(req.orgId));
     })
   );
 
@@ -220,7 +220,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       // freshly-queued test row was never attempted (yet the response still
       // claimed the email had been sent).
       await emailNotificationService.sendTestNotification({ orgId, email, subject, message });
-      const status = emailNotificationService.getStatus();
+      const status = await emailNotificationService.getStatusForOrg(orgId);
 
       return res.json({
         success: true,

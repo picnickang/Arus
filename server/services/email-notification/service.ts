@@ -267,6 +267,10 @@ class EmailNotificationService {
   getStatus(): { enabled: boolean; provider: string } {
     return emailSender.getStatus();
   }
+
+  async getStatusForOrg(orgId: string): Promise<{ enabled: boolean; provider: string }> {
+    return emailSender.getStatusForOrg(orgId);
+  }
 }
 
 export const emailNotificationService = new EmailNotificationService();

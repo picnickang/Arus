@@ -160,6 +160,39 @@ describe("status", () => {
   });
 });
 
+describe("getStatusForOrg", () => {
+  it("reports the org's configured provider when available", async () => {
+    resolveOrgConfigMock.mockResolvedValue({ provider: "smtp", fromEmail: "ops@org.test" });
+    const sender = new EmailSender();
+    expect(await sender.getStatusForOrg("org-1")).toEqual({ enabled: true, provider: "smtp" });
+  });
+
+  it("falls back to env SendGrid when the org has no configured provider", async () => {
+    process.env["SENDGRID_API_KEY"] = "env-key";
+    resolveOrgConfigMock.mockResolvedValue(null);
+    const sender = new EmailSender();
+    expect(await sender.getStatusForOrg("org-1")).toEqual({ enabled: true, provider: "sendgrid" });
+  });
+
+  it("reports development when neither org provider nor env key is set", async () => {
+    resolveOrgConfigMock.mockResolvedValue(null);
+    const sender = new EmailSender();
+    expect(await sender.getStatusForOrg("org-1")).toEqual({
+      enabled: false,
+      provider: "development",
+    });
+  });
+
+  it("falls back to env/dev status when org resolution throws", async () => {
+    resolveOrgConfigMock.mockRejectedValue(new Error("settings unavailable"));
+    const sender = new EmailSender();
+    expect(await sender.getStatusForOrg("org-1")).toEqual({
+      enabled: false,
+      provider: "development",
+    });
+  });
+});
+
 describe("sendWithAttachment", () => {
   it("logs (no fetch) in dev mode", async () => {
     const sender = new EmailSender();
