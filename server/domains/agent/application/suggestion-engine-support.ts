@@ -1,4 +1,4 @@
-import { db } from "../../../db";
+import type { db as DbHandle } from "../../../db";
 import { createLogger } from "../../../lib/structured-logger";
 import { llmGateway } from "../../../composition/llm-gateway";
 import { notificationQueue } from "@shared/schema-runtime";
@@ -6,6 +6,13 @@ import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
 
 const logger = createLogger("Domains:Agent:Application:SuggestionEngine");
+
+/**
+ * The injected database handle. The notification-queue write is threaded in
+ * from the parent `suggestion-engine.ts` (the db-owning caller) rather than
+ * importing the singleton here, keeping the support helper off the db barrel.
+ */
+type SuggestionEngineDb = typeof DbHandle;
 
 export interface SupportSuggestionPreferences {
   maintenance: boolean;
@@ -122,6 +129,7 @@ export async function summarizeSuggestionsWithAi(
 }
 
 export async function queueSuggestionNotifications(
+  db: SuggestionEngineDb,
   orgId: string,
   suggestions: AgentSuggestion[]
 ): Promise<void> {

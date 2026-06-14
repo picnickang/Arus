@@ -2,12 +2,16 @@ import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import type { InsertWorkOrder, InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
 import { inventoryMovements, stock, workOrderParts, workOrders } from "@shared/schema-runtime";
-import { db } from "../../../db-config";
 import {
   fireInventoryMovementProjections,
   type PendingMovementProjection,
 } from "../../../db/inventory/index.js";
-import type { WorkOrderCompletionInput, WorkOrderCompletionResult, WorkOrderTx } from "./types";
+import type {
+  WorkOrderCompletionInput,
+  WorkOrderCompletionResult,
+  WorkOrderDb,
+  WorkOrderTx,
+} from "./types";
 
 /**
  * Complete a work order on a caller-supplied transaction handle.
@@ -116,6 +120,7 @@ export async function completeWorkOrderInTx(
  * callers that do not thread a transaction handle.
  */
 export async function completeWorkOrder(
+  db: WorkOrderDb,
   workOrderId: string,
   completionData: InsertWorkOrderCompletion
 ): Promise<WorkOrderCompletion> {

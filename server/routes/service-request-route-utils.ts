@@ -1,4 +1,5 @@
 import type { Request, RequestHandler } from "express";
+import type { db } from "../db";
 import { authenticatedRequest } from "../middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
@@ -6,6 +7,14 @@ export interface ServiceRequestRouteRateLimiters {
   writeOperationRateLimit: RequestHandler;
   generalApiRateLimit: RequestHandler;
 }
+
+/**
+ * The injected database handle. The split service-request route modules receive
+ * this from the parent `service-request-routes.ts` registrar (the single owner
+ * of the db import) rather than importing the singleton themselves, keeping db
+ * access out of the route layer per the hexagonal storage boundary.
+ */
+export type ServiceRequestDb = typeof db;
 
 export interface ServiceRequestRow {
   id: string;

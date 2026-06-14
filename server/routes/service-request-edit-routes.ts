@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import { sql } from "drizzle-orm";
-import { db } from "../db";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { requireOrgIdAndValidateBody } from "../middleware/auth";
 import { sendCreated, sendNotFound, withErrorHandling } from "../lib/route-utils";
@@ -10,6 +9,7 @@ import { logger } from "../utils/logger";
 import {
   getOrgId,
   getUserId,
+  type ServiceRequestDb,
   type ServiceRequestRouteRateLimiters,
   type ServiceRequestRow,
   unwrapRows,
@@ -17,6 +17,7 @@ import {
 
 export function registerServiceRequestEditRoutes(
   app: Express,
+  db: ServiceRequestDb,
   { writeOperationRateLimit }: Pick<ServiceRequestRouteRateLimiters, "writeOperationRateLimit">
 ) {
   app.patch(

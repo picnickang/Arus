@@ -1,6 +1,5 @@
 import type { Express, Request, Response } from "express";
 import { sql } from "drizzle-orm";
-import { db } from "../db";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { requireOrgIdAndValidateBody } from "../middleware/auth";
 import { sendNotFound, withErrorHandling } from "../lib/route-utils";
@@ -10,6 +9,7 @@ import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 import {
   getOrgId,
   getUserId,
+  type ServiceRequestDb,
   type ServiceRequestRouteRateLimiters,
   type ServiceRequestRow,
   unwrapRows,
@@ -17,6 +17,7 @@ import {
 
 export function registerServiceRequestReviewRoutes(
   app: Express,
+  db: ServiceRequestDb,
   { writeOperationRateLimit }: Pick<ServiceRequestRouteRateLimiters, "writeOperationRateLimit">
 ) {
   app.post(

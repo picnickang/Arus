@@ -1,11 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { sql } from "drizzle-orm";
-import { db } from "../db";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { requireOrgId } from "../middleware/auth";
 import { sendNotFound, withErrorHandling } from "../lib/route-utils";
 import {
   getOrgId,
+  type ServiceRequestDb,
   type ServiceRequestRouteRateLimiters,
   type ServiceRequestRow,
   unwrapRows,
@@ -13,6 +13,7 @@ import {
 
 export function registerServiceRequestReadRoutes(
   app: Express,
+  db: ServiceRequestDb,
   { generalApiRateLimit }: Pick<ServiceRequestRouteRateLimiters, "generalApiRateLimit">
 ) {
   app.get(

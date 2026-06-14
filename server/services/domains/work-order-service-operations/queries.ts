@@ -2,13 +2,13 @@ import { and, eq, getTableColumns, gte, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { WorkOrderCompletion } from "@shared/schema";
 import { equipment, vessels, workOrders } from "@shared/schema-runtime";
-import { db } from "../../../db-config";
 import { dbWorkOrderStorage } from "../../../db/workorders/index.js";
 import { createLogger } from "../../../lib/structured-logger";
 import { ilike } from "../../../utils/sql-compat";
 import type {
   WorkOrderCompletionAnalytics,
   WorkOrderCompletionAnalyticsFilters,
+  WorkOrderDb,
   WorkOrderFilters,
   WorkOrderPaginationResult,
   WorkOrderWithDetails,
@@ -76,6 +76,7 @@ function withGeneratedWorkOrderNumber(wo: WorkOrderWithDetails): WorkOrderWithDe
 }
 
 export async function getWorkOrdersWithDetails(
+  db: WorkOrderDb,
   equipmentId?: string,
   orgId?: string,
   filters?: WorkOrderFilters
@@ -105,6 +106,7 @@ export async function getWorkOrdersWithDetails(
 }
 
 export async function getWorkOrdersPaginated(
+  db: WorkOrderDb,
   equipmentId: string | undefined,
   orgId: string | undefined,
   limit: number,

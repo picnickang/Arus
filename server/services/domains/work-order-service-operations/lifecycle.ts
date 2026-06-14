@@ -10,13 +10,13 @@ import {
   workOrderWorklogs,
   workOrders,
 } from "@shared/schema-runtime";
-import { db } from "../../../db-config";
 import { dbInventoryStorage } from "../../../db/inventory/index.js";
 import type { WidenPartial } from "../../../lib/widen-partial";
 import { getWebSocketServer } from "../../../websocket-server";
-import type { WorkOrderCloseData } from "./types";
+import type { WorkOrderCloseData, WorkOrderDb } from "./types";
 
 export async function updateWorkOrderWithDowntimeTracking(
+  db: WorkOrderDb,
   id: string,
   updates: WidenPartial<InsertWorkOrder>
 ): Promise<WorkOrder> {
@@ -98,6 +98,7 @@ export async function updateWorkOrderWithDowntimeTracking(
 }
 
 export async function closeWorkOrderWithInventoryRelease(
+  db: WorkOrderDb,
   id: string,
   closeData: WorkOrderCloseData
 ): Promise<WorkOrder> {
@@ -165,7 +166,11 @@ export async function closeWorkOrderWithInventoryRelease(
   return closedOrder;
 }
 
-export async function closeWorkOrder(id: string, closeData: WorkOrderCloseData): Promise<WorkOrder> {
+export async function closeWorkOrder(
+  db: WorkOrderDb,
+  id: string,
+  closeData: WorkOrderCloseData
+): Promise<WorkOrder> {
   const closedOrder = await db.transaction(async (tx) => {
     const txParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
     const partIds = txParts.map((p) => p.partId);
@@ -294,7 +299,7 @@ export async function closeWorkOrder(id: string, closeData: WorkOrderCloseData):
   return closedOrder;
 }
 
-export async function deleteWorkOrderCascade(id: string): Promise<void> {
+export async function deleteWorkOrderCascade(db: WorkOrderDb, id: string): Promise<void> {
   const [wo] = await db
     .select({ orgId: workOrders.orgId })
     .from(workOrders)

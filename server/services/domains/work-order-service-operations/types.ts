@@ -59,6 +59,14 @@ export interface WorkOrderCompletionAnalytics {
 
 export type WorkOrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/**
+ * The injected database handle. The split work-order operations receive this
+ * from the parent `work-order-service.ts` (the single owner of the db import)
+ * rather than importing the singleton themselves, keeping db access out of the
+ * service layer per the hexagonal storage boundary.
+ */
+export type WorkOrderDb = typeof db;
+
 export interface WorkOrderCompletionResult {
   completion: WorkOrderCompletion;
   pendingProjections: PendingMovementProjection[];

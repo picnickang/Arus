@@ -58,7 +58,7 @@ class WorkOrderService {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrderWithDetails[]> {
-    return getWorkOrdersWithDetailsOperation(equipmentId, orgId, filters);
+    return getWorkOrdersWithDetailsOperation(db, equipmentId, orgId, filters);
   }
 
   async getWorkOrdersPaginated(
@@ -68,21 +68,21 @@ class WorkOrderService {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<WorkOrderPaginationResult> {
-    return getWorkOrdersPaginatedOperation(equipmentId, orgId, limit, offset, filters);
+    return getWorkOrdersPaginatedOperation(db, equipmentId, orgId, limit, offset, filters);
   }
 
   async updateWorkOrderWithDowntimeTracking(
     id: string,
     updates: WidenPartial<InsertWorkOrder>
   ): Promise<WorkOrder> {
-    return updateWorkOrderWithDowntimeTrackingOperation(id, updates);
+    return updateWorkOrderWithDowntimeTrackingOperation(db, id, updates);
   }
 
   async closeWorkOrderWithInventoryRelease(
     id: string,
     closeData: WorkOrderCloseData
   ): Promise<WorkOrder> {
-    return closeWorkOrderWithInventoryReleaseOperation(id, closeData);
+    return closeWorkOrderWithInventoryReleaseOperation(db, id, closeData);
   }
 
   async generateWorkOrderNumber(orgId: string): Promise<string> {
@@ -125,11 +125,11 @@ class WorkOrderService {
   }
 
   async closeWorkOrder(id: string, closeData: WorkOrderCloseData): Promise<WorkOrder> {
-    return closeWorkOrderOperation(id, closeData);
+    return closeWorkOrderOperation(db, id, closeData);
   }
 
   async deleteWorkOrderCascade(id: string): Promise<void> {
-    return deleteWorkOrderCascadeOperation(id);
+    return deleteWorkOrderCascadeOperation(db, id);
   }
 
   async cloneWorkOrder(
@@ -137,7 +137,7 @@ class WorkOrderService {
     orgId: string,
     options?: WorkOrderCloneOptions
   ): Promise<WorkOrder> {
-    return cloneWorkOrderOperation(id, orgId, (targetOrgId) =>
+    return cloneWorkOrderOperation(db, id, orgId, (targetOrgId) =>
       this.generateWorkOrderNumber(targetOrgId), options);
   }
 
@@ -153,7 +153,7 @@ class WorkOrderService {
     workOrderId: string,
     completionData: InsertWorkOrderCompletion
   ): Promise<WorkOrderCompletion> {
-    return completeWorkOrderOperation(workOrderId, completionData);
+    return completeWorkOrderOperation(db, workOrderId, completionData);
   }
 
   async getWorkOrderCompletionAnalytics(

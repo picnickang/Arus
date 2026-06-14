@@ -1,11 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import type { WorkOrder } from "@shared/schema";
 import { workOrderParts, workOrders, workOrderTasks } from "@shared/schema-runtime";
-import { db } from "../../../db-config";
 import { publishEvent } from "../../../sync-events.js";
-import type { WorkOrderCloneOptions } from "./types";
+import type { WorkOrderCloneOptions, WorkOrderDb } from "./types";
 
 export async function cloneWorkOrder(
+  db: WorkOrderDb,
   id: string,
   orgId: string,
   generateWorkOrderNumber: (orgId: string) => Promise<string>,

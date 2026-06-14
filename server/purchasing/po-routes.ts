@@ -460,7 +460,7 @@ router.patch(
   }
 );
 
-registerPurchaseOrderFulfillmentRoutes(router, {
+registerPurchaseOrderFulfillmentRoutes(router, db, {
   generalLimit,
   writeLimit,
 });

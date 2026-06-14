@@ -125,7 +125,7 @@ export class SuggestionEngine {
           return fresh || s;
         })
       );
-      await queueSuggestionNotifications(orgId, updatedSuggestions);
+      await queueSuggestionNotifications(db, orgId, updatedSuggestions);
     }
 
     logger.info(

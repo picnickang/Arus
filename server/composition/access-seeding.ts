@@ -28,7 +28,7 @@ import {
   defaultAccessLevelForRank,
 } from "@shared/role-dashboard";
 import { createLogger } from "../lib/structured-logger";
-import { isLocalMode } from "../db";
+import { isLocalMode } from "../config/runtimeEnv";
 
 const logger = createLogger("Composition:AccessSeeding");
 

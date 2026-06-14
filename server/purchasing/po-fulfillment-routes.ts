@@ -1,6 +1,6 @@
 import type { RequestHandler, Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "../db";
+import type { db as DbHandle } from "../db";
 import { createLogger } from "../lib/structured-logger";
 import {
   purchaseOrders,
@@ -14,6 +14,13 @@ import { fulfillItem } from "./fulfillment-service";
 
 const logger = createLogger("Purchasing:PoRoutes");
 
+/**
+ * The injected database handle. These fulfillment routes receive it from the
+ * parent `po-routes.ts` registrar (the single owner of the db import) rather
+ * than importing the singleton, keeping db access out of the route layer.
+ */
+type PurchaseOrderFulfillmentDb = typeof DbHandle;
+
 interface PurchaseOrderFulfillmentRouteLimits {
   generalLimit: RequestHandler;
   writeLimit: RequestHandler;
@@ -25,6 +32,7 @@ function getOrgId(req: AuthenticatedRequest): string {
 
 export function registerPurchaseOrderFulfillmentRoutes(
   router: Router,
+  db: PurchaseOrderFulfillmentDb,
   { generalLimit, writeLimit }: PurchaseOrderFulfillmentRouteLimits
 ): void {
   // POST /purchase-orders/:id/fulfill-pr - Improvement #10
