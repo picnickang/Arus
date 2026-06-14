@@ -4,7 +4,6 @@ import { jsonRecordSchema } from "@shared/validation/json";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
 import { insertEquipmentSchema } from "@shared/schema-runtime";
-import { db } from "../../db";
 import {
   authenticatedRequest,
   requireOrgId,
@@ -212,7 +211,7 @@ export function registerEquipmentRoutes(
       const { id: equipmentId } = idParamSchema.parse(req.params);
 
       const { RulEngine } = await import("../../rul-engine.js");
-      const rulEngine = new RulEngine(db);
+      const rulEngine = new RulEngine(undefined);
 
       const prediction = await rulEngine.calculateRul(equipmentId, orgId);
 
@@ -238,7 +237,7 @@ export function registerEquipmentRoutes(
       const { equipmentIds } = batchRulBodySchema.parse(req.body);
 
       const { RulEngine } = await import("../../rul-engine.js");
-      const rulEngine = new RulEngine(db);
+      const rulEngine = new RulEngine(undefined);
 
       const predictions = await rulEngine.calculateBatchRul(equipmentIds, orgId);
       const result = Object.fromEntries(predictions);
@@ -258,7 +257,7 @@ export function registerEquipmentRoutes(
       const body = degradationBodySchema.parse(req.body);
 
       const { RulEngine } = await import("../../rul-engine.js");
-      const rulEngine = new RulEngine(db);
+      const rulEngine = new RulEngine(undefined);
 
       await rulEngine.recordDegradation(orgId, equipmentId, body.componentType, {
         degradationMetric: body.degradationMetric,

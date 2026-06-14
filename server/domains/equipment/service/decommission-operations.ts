@@ -3,13 +3,11 @@
  */
 
 import type { InsertDecommissionEvent, EquipmentDecommissionEvent } from "@shared/schema";
-import { db } from "../../../db";
-import { equipment, equipmentDecommissionEvents } from "@shared/schema-runtime";
-import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
 import { recordAndPublish } from "../../../sync-events";
 import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
 import * as crud from "./crud-operations.js";
+import { equipmentDecommissionRepository } from "../infrastructure/equipment-decommission-repository";
 
 export interface DecommissionResult {
   event: EquipmentDecommissionEvent;
@@ -50,42 +48,18 @@ export async function decommissionEquipment(
     throw new Error("Equipment is already decommissioned");
   }
 
-  const [decommissionEvent] = await db
-    .insert(equipmentDecommissionEvents)
-    .values({
-      orgId,
-      equipmentId,
-      reason: data.reason,
-      eventDate: data.eventDate,
-      authorizedBy: data.authorizedBy,
-      finalCondition: data.finalCondition,
-      notes: data.notes,
-      saleDetails: data.saleDetails,
-      disposalDetails: data.disposalDetails,
-      replacementEquipmentId: data.replacementEquipmentId,
-      bookValueAtRemoval: data.bookValueAtRemoval,
-      residualValue: data.residualValue,
-      documentationRefs: data.documentationRefs,
-    })
-    .returning();
-  if (!decommissionEvent) {
-    throw new Error("decommissionEquipment: event insert returned no row");
-  }
+  const decommissionEvent = await equipmentDecommissionRepository.insertDecommissionEvent(
+    orgId,
+    equipmentId,
+    data
+  );
 
-  const [updatedEquipment] = await db
-    .update(equipment)
-    .set({
-      isActive: false,
-      decommissionedAt: new Date(),
-      decommissionStatus: data.reason,
-      decommissionEventId: decommissionEvent.id,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
-    .returning();
-  if (!updatedEquipment) {
-    throw new Error(`decommissionEquipment: equipment ${equipmentId} update returned no row`);
-  }
+  const updatedEquipment = await equipmentDecommissionRepository.deactivateEquipment(
+    orgId,
+    equipmentId,
+    data.reason,
+    decommissionEvent.id
+  );
 
   logger.info("EquipmentDecommission", `Equipment ${equipmentId} decommissioned: ${data.reason}`);
 
@@ -109,41 +83,14 @@ export async function decommissionEquipment(
 export async function listDecommissionedEquipment(
   orgId: string
 ): Promise<DecommissionedEquipmentWithEvent[]> {
-  return await db
-    .select({
-      equipment: {
-        id: equipment.id,
-        name: equipment.name,
-        type: equipment.type,
-        manufacturer: equipment.manufacturer,
-        model: equipment.model,
-        vesselName: equipment.vesselName,
-        purchaseValue: equipment.purchaseValue,
-        decommissionedAt: equipment.decommissionedAt,
-      },
-      event: equipmentDecommissionEvents,
-    })
-    .from(equipment)
-    .leftJoin(
-      equipmentDecommissionEvents,
-      eq(equipment.decommissionEventId, equipmentDecommissionEvents.id)
-    )
-    .where(and(eq(equipment.orgId, orgId), isNotNull(equipment.decommissionedAt)))
-    .orderBy(sql`${equipment.decommissionedAt} DESC`);
+  return equipmentDecommissionRepository.listDecommissionedWithEvents(orgId);
 }
 
 export async function getDecommissionEvent(
   eventId: string,
   orgId: string
 ): Promise<EquipmentDecommissionEvent | undefined> {
-  const [event] = await db
-    .select()
-    .from(equipmentDecommissionEvents)
-    .where(
-      and(eq(equipmentDecommissionEvents.id, eventId), eq(equipmentDecommissionEvents.orgId, orgId))
-    );
-
-  return event;
+  return equipmentDecommissionRepository.getDecommissionEventById(eventId, orgId);
 }
 
 export async function getEquipmentFinancialSummary(orgId: string): Promise<{
@@ -153,24 +100,11 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
   activeEquipmentCount: number;
   decommissionedCount: number;
 }> {
-  const allEquipment = await db
-    .select({
-      purchaseValue: equipment.purchaseValue,
-      purchaseDate: equipment.purchaseDate,
-      isActive: equipment.isActive,
-      decommissionedAt: equipment.decommissionedAt,
-    })
-    .from(equipment)
-    .where(eq(equipment.orgId, orgId));
+  const allEquipment = await equipmentDecommissionRepository.getEquipmentForFinancials(orgId);
 
   let decommissionEvents: { saleDetails: unknown }[] = [];
   try {
-    decommissionEvents = await db
-      .select({
-        saleDetails: equipmentDecommissionEvents.saleDetails,
-      })
-      .from(equipmentDecommissionEvents)
-      .where(eq(equipmentDecommissionEvents.orgId, orgId));
+    decommissionEvents = await equipmentDecommissionRepository.getDecommissionSaleDetails(orgId);
   } catch (error) {
     logger.warn(
       "getEquipmentFinancialSummary",

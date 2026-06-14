@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-10T15:48:42.179Z",
-  "count": 143,
+  "count": 141,
   "notes": "Hexagonal storage boundary burn-down baseline. Each entry is a file that imports from server/db/* or server/db-config outside the allowed layers. Goal: shrink this list to zero. NEVER add new entries \u2014 refactor instead.",
   "files": [
     "server/adaptive-training-window/data-range.ts",
@@ -40,8 +40,6 @@
     "server/domains/crew/lifecycle/lifecycle-repository.ts",
     "server/domains/dp/routes.ts",
     "server/domains/efms/routes.ts",
-    "server/domains/equipment/routes.ts",
-    "server/domains/equipment/service/decommission-operations.ts",
     "server/domains/hub-sync/service.ts",
     "server/domains/inventory/application/supplier-performance-service.ts",
     "server/domains/inventory/supplier-repository.ts",
