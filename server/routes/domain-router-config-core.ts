@@ -42,6 +42,7 @@ import {
 } from "./route-dependencies";
 
 import type { DomainRouterConfig } from "./domain-router-config-types";
+import { alertCrewDataProvider } from "../composition/alert-crew-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -112,7 +113,12 @@ export const coreDomainRouters: DomainRouterConfig[] = [
     name: "AlertSettings",
     importPath: "../domains/alerts/index.js",
     functionName: "registerAlertSettingsRoutes",
-    getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
+    getDeps: () => ({
+      writeOperationRateLimit,
+      criticalOperationRateLimit,
+      generalApiRateLimit,
+      crewAlertData: alertCrewDataProvider,
+    }),
   },
 
   // Logbook & Telemetry

@@ -3,7 +3,7 @@
  * Re-exports all evaluator functions
  */
 
-export type { CrewAlertResult, EvaluationContext } from "./types.js";
+export type { CrewAlertResult, EvaluationContext, ICrewAlertDataPort } from "./types.js";
 export {
   getSeverityFromMinSeverity,
   getCertificationsNearExpiry,

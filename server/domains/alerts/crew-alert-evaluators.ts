@@ -3,7 +3,11 @@
  * Re-exports all functionality from modular implementation
  */
 
-export type { CrewAlertResult, EvaluationContext } from "./evaluators/index.js";
+export type {
+  CrewAlertResult,
+  EvaluationContext,
+  ICrewAlertDataPort,
+} from "./evaluators/index.js";
 export {
   evaluateCertificateExpiryAlerts,
   evaluateHoRViolationAlerts,

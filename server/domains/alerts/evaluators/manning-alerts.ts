@@ -3,7 +3,7 @@
  * Evaluates minimum safe manning alerts
  */
 
-import { vesselService, dbCrewStorage } from "../../../repositories";
+import { vesselService } from "../../../repositories";
 import { alertSettingsService } from "../settings-service.js";
 import type { CrewAlertResult, EvaluationContext } from "./types.js";
 import { getSeverityFromMinSeverity } from "./helpers.js";
@@ -44,7 +44,7 @@ export async function evaluateManningComplianceAlerts(
       continue;
     }
 
-    const vesselCrew = await dbCrewStorage.getCrew(ctx.orgId, vessel.id);
+    const vesselCrew = await ctx.crew.getCrew(ctx.orgId, vessel.id);
     const activeCrew = vesselCrew.filter((c) => {
       const status = "status" in c ? (c as { status?: string }).status : undefined;
       return status === "active" || status === "onboard";

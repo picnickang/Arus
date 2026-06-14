@@ -9,6 +9,7 @@ import { jsonRecordSchema } from "@shared/validation/json";
 import { alertSettingsService } from "./settings-service";
 import { emailTemplatesService } from "./email-templates-service";
 import type { EmailTemplate } from "./email-templates-service";
+import type { ICrewAlertDataPort } from "./crew-alert-evaluators";
 import {
   insertAlertSettingsSchema,
   insertAlertSettingsVesselSchema,
@@ -76,9 +77,12 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit: import("express").RequestHandler;
     criticalOperationRateLimit: import("express").RequestHandler;
     generalApiRateLimit: import("express").RequestHandler;
+    /** Injected crew data accessor for the crew-alert runner (see composition). */
+    crewAlertData: ICrewAlertDataPort;
   }
 ) {
-  const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
+  const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit, crewAlertData } =
+    rateLimit;
 
   app.get(
     "/api/alert-settings",
@@ -294,6 +298,7 @@ export function registerAlertSettingsRoutes(
         orgId,
         vesselId,
         now: new Date(),
+        crew: crewAlertData,
       });
       return res.json(result);
     })
@@ -310,6 +315,7 @@ export function registerAlertSettingsRoutes(
         orgId,
         vesselId,
         now: new Date(),
+        crew: crewAlertData,
       });
       res.json({
         timestamp: new Date().toISOString(),

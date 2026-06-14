@@ -148,13 +148,25 @@ Result: `alerts` moved **flat → full** (conformance baseline regenerated:
 17 full / 7 partial / 38 flat); `check`, `check:guards`, and the public-api-paths
 audit are green.
 
-**Deferred to Phase 1b** (still flat support files under `alerts/`, unchanged):
-the crew alert **evaluators** (`evaluators/*`, `crew-alert-evaluators.ts`), the
-**alert runner** (`alert-runner.ts`), the **settings** subsystem
-(`settings-*.ts`, `settings/*`), and `email-templates-service.ts`. These carry
-the domain's remaining `server/repositories` coupling (crew/vessel/stcw/log
-storage) and need their own ports/adapters; converting them is a self-contained
-follow-up that does not block the reference template.
+**Phase 1b — crew evaluator decoupling (landed).** The crew alert evaluators no
+longer reach into `dbCrewStorage` via the repositories barrel. They now depend on
+an injected `ICrewAlertDataPort` (declared in `evaluators/types.ts` and carried on
+`EvaluationContext`); the concrete adapter lives in
+`server/composition/alert-crew-data.ts` — **outside `server/domains/`**, which is
+the key trick: any file *under* `alerts/` that names `dbCrewStorage` is counted as
+a cross-domain leak (the checker regex matches even comments/types), so the
+adapter must live in the composition layer. The provider is wired through the
+`AlertSettings` route deps (registry → `registerAlertSettingsRoutes` →
+`runCrewAlerts`/`runAllCrewAlertEvaluators`). Result: the three `alerts → crew`
+cross-domain leaks are gone (domain-leak baseline regenerated 582 → 579).
+
+**Still deferred (flat support under `alerts/`):** the **settings** subsystem
+(`settings-*.ts`, `settings/*`) and `email-templates-service.ts` (structural
+reorg into layers — no cross-domain leak delta); `hor-alerts.ts`'s `dbStcwStorage`
+and `alert-runner.ts`'s `vesselService`/`dbUserStorage` (not currently counted by
+the leak heuristic, but the same composition-port pattern applies); and physically
+relocating the evaluators/runner into the hexagonal layer folders. Each is a
+self-contained follow-up.
 
 ## 4. Phasing
 
@@ -165,7 +177,7 @@ consumers). Each phase is independently shippable.
 | Phase | Scope | Outcome |
 |---|---|---|
 | **0** | Governance scaffolding + this plan (landed) | Ratchets in place |
-| **1** | **Reference conversion:** `alerts` core (landed); `alerts` evaluators/runner/settings = **1b** | Canonical template; refine recipe/ADR |
+| **1** | **Reference conversion:** `alerts` core (landed); **1b** crew-evaluator decoupling (landed); settings/email reorg + evaluator relocation remain | Canonical template; refine recipe/ADR |
 | **2** | High-traffic flat domains: `compliance`, `condition-monitoring`, `logbook`, `notifications`, `scheduling`, `sync` | Largest leak concentration removed |
 | **3** | Telemetry/sensing: `telemetry` (partial→full), `sensors`, `sensor-management`, `iot-processing`, `devices` | Highest-volume context layered |
 | **4** | ML/analytics: `ml-analytics`, `ml-pipeline`, `pdm-platform`, `insights`, flat `equipment` family | Predictive path layered |

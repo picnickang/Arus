@@ -3,9 +3,9 @@
  * Utility functions for alert evaluation
  */
 
-import { dbCrewStorage } from "../../../repositories";
 import { deckLogStorage, engineLogStorage } from "../../../repositories";
 import { addDays } from "date-fns";
+import type { ICrewAlertDataPort } from "./types.js";
 
 const severityMap: Record<string, "info" | "warning" | "critical"> = {
   critical: "critical",
@@ -17,21 +17,22 @@ export function getSeverityFromMinSeverity(minSeverity?: string): "info" | "warn
 }
 
 export async function getCertificationsNearExpiry(
+  crew: ICrewAlertDataPort,
   orgId: string,
   vesselId: string | undefined,
   now: Date,
   maxDays: number
 ) {
   const cutoffDate = addDays(now, maxDays);
-  const crew = await dbCrewStorage.getCrew(orgId, vesselId);
-  const crewIds = crew.map((c) => c.id);
+  const crewMembers = await crew.getCrew(orgId, vesselId);
+  const crewIds = crewMembers.map((c) => c.id);
 
   if (crewIds.length === 0) {
     return [];
   }
 
   const allCerts = await Promise.all(
-    crewIds.map((id) => dbCrewStorage.getCrewCertifications(id, orgId))
+    crewIds.map((id) => crew.getCrewCertifications(id, orgId))
   );
   const certs = allCerts.flat();
   return certs.filter((cert) => {

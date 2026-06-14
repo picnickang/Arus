@@ -3,11 +3,12 @@
  * Evaluates upcoming crew change alerts based on assignments
  */
 
-import { dbCrewStorage, vesselService } from "../../../repositories";
+import { vesselService } from "../../../repositories";
+import type { CrewAssignment } from "@shared/schema";
 import { alertSettingsService } from "../settings-service.js";
 import type { CrewAlertResult, EvaluationContext } from "./types.js";
 
-type Assignment = Awaited<ReturnType<typeof dbCrewStorage.getCrewAssignments>>[number];
+type Assignment = CrewAssignment;
 
 function isAssignmentActive(assignment: Assignment): boolean {
   return assignment.status === "active" || assignment.status === "onboard";
@@ -116,7 +117,7 @@ export async function evaluateCrewChangeReminders(
   const results: CrewAlertResult[] = [];
 
   for (const vessel of vessels) {
-    const assignments = await dbCrewStorage.getCrewAssignments(ctx.orgId, { vesselId: vessel.id });
+    const assignments = await ctx.crew.getCrewAssignments(ctx.orgId, { vesselId: vessel.id });
     for (const assignment of assignments) {
       const alert = processAssignment(assignment, vessel.id, now, reminderDays);
       if (alert) {

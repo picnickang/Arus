@@ -12,6 +12,7 @@ import {
   runAllCrewAlertEvaluators,
   type CrewAlertResult,
   type EvaluationContext,
+  type ICrewAlertDataPort,
 } from "./crew-alert-evaluators";
 import { format } from "date-fns";
 import { logger } from "../../utils/logger.js";
@@ -391,7 +392,9 @@ export async function runCrewAlerts(ctx: EvaluationContext): Promise<AlertRunRes
   }
 }
 
-export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
+export async function runCrewAlertsForAllOrgs(
+  crew: ICrewAlertDataPort
+): Promise<AlertRunResult[]> {
   const results: AlertRunResult[] = [];
 
   try {
@@ -402,6 +405,7 @@ export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
         const result = await runCrewAlerts({
           orgId: org.id,
           now: new Date(),
+          crew,
         });
         results.push(result);
       } catch (err) {

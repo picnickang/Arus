@@ -149,7 +149,13 @@ export async function evaluateCertificateExpiryAlerts(
 
   const thresholds = buildAlertThresholds(settings.certExpiryCustomDays);
   const maxDays = Math.max(...thresholds.map((t) => t.days));
-  const certifications = await getCertificationsNearExpiry(ctx.orgId, ctx.vesselId, now, maxDays);
+  const certifications = await getCertificationsNearExpiry(
+    ctx.crew,
+    ctx.orgId,
+    ctx.vesselId,
+    now,
+    maxDays
+  );
 
   const results: CrewAlertResult[] = [];
   const settingsRecord = (settings ?? {}) as Record<string, unknown>;
