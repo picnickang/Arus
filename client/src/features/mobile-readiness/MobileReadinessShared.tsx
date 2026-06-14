@@ -4,6 +4,14 @@ import { ChevronDown, ChevronRight, Menu, type LucideIcon } from "lucide-react";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { getMobileReadinessAsset } from "./mobile-readiness-assets";
 import {
   buildMobileReadinessNavigationForVariant,
@@ -162,6 +170,68 @@ export function IconTile({ icon: Icon, tone }: { icon: LucideIcon; tone: Readine
   );
 }
 
+/**
+ * Header navigation drawer. The mobile headers previously rendered a "menu"
+ * button with no handler (a dead control); this gives it its labelled action —
+ * a slide-in nav listing the role's destinations (same model as the bottom
+ * nav), which is also the only nav on desktop where the bottom bar is hidden.
+ */
+function MobileNavDrawer({ tone = "navy" }: { tone?: "navy" | "light" }) {
+  const [location] = useLocation();
+  const roleHint = readRoleHint();
+  const nav = buildMobileReadinessNavigationForVariant(pickNavVariant(location), roleHint);
+  const currentPath = location.split("?")[0] ?? "/";
+  const isActive = (href: string) =>
+    href === "/" ? currentPath === "/" : currentPath === href || currentPath.startsWith(`${href}/`);
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "grid h-11 w-11 shrink-0 place-items-center rounded-lg",
+            tone === "navy" ? "text-white" : "text-brand-navy-850"
+          )}
+          aria-label="Open navigation"
+          data-testid="mobile-readiness-menu-trigger"
+        >
+          <Menu className="h-6 w-6" aria-hidden="true" />
+        </button>
+      </SheetTrigger>
+      <SheetContent
+        side="left"
+        className="w-[80vw] max-w-xs p-0"
+        data-testid="mobile-readiness-nav-drawer"
+      >
+        <SheetHeader className="border-b border-border px-4 py-4 text-left">
+          <SheetTitle>Navigate</SheetTitle>
+        </SheetHeader>
+        <nav className="space-y-1 p-3" aria-label="Mobile navigation">
+          {nav.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <SheetClose asChild key={item.id}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold",
+                    active ? "bg-primary/15 text-primary" : "text-foreground hover:bg-accent/10"
+                  )}
+                  data-testid={`mobile-readiness-drawer-${item.id}`}
+                >
+                  <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              </SheetClose>
+            );
+          })}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function AppHeader({
   title,
   subtitle,
@@ -179,13 +249,7 @@ export function AppHeader({
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex min-h-[72px] w-full max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <button
-            type="button"
-            className="grid h-11 w-11 place-items-center rounded-lg text-brand-navy-850 md:hidden"
-            aria-label="Open menu"
-          >
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <MobileNavDrawer tone="light" />
           <div className="min-w-0">
             <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-brand-navy-800 md:text-2xl">
               {title}
@@ -229,15 +293,7 @@ export function NavyHeader({
   return (
     <header className="sticky top-0 z-20 bg-brand-navy text-white shadow-sm">
       <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-3 px-4">
-        {left ?? (
-          <button
-            type="button"
-            className="grid h-11 w-11 place-items-center rounded-lg"
-            aria-label="Open menu"
-          >
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </button>
-        )}
+        {left ?? <MobileNavDrawer tone="navy" />}
         <div className="min-w-0 text-center">
           <div className="truncate text-xl font-extrabold tracking-normal">{title}</div>
           {subtitle ? <div className="truncate text-xs text-blue-100">{subtitle}</div> : null}

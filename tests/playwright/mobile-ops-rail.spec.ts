@@ -174,4 +174,21 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     await expect(page.getByTestId("theme-bridge")).toBeVisible();
     await page.screenshot({ path: "test-results/mobile-header-theme.png" });
   });
+
+  test("the header menu button opens a working navigation drawer", async ({ page }) => {
+    await installFixtures(page, "light");
+    await loginToMobileRoute(page, "/fleet");
+    const trigger = page.getByTestId("mobile-readiness-menu-trigger");
+    await expect(trigger).toBeVisible();
+    const tbox = await trigger.boundingBox();
+    expect(tbox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // Previously a dead control; it must now actually open the nav drawer.
+    await trigger.click();
+    const drawer = page.getByTestId("mobile-readiness-nav-drawer");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.locator("[data-testid^='mobile-readiness-drawer-']").first()).toBeVisible();
+    await expect(drawer).toHaveAttribute("data-state", "open");
+    await page.waitForTimeout(450); // let the slide-in settle for the capture
+    await page.screenshot({ path: "test-results/mobile-nav-drawer.png" });
+  });
 });
