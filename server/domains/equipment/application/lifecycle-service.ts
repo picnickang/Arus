@@ -1,17 +1,22 @@
 import type { Equipment, EquipmentDecommissionEvent, DecommissionStatus } from "@shared/schema";
-import { equipmentLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { logger } from "../../../utils/logger.js";
-import type { DecommissionEquipmentInput, ReinstateEquipmentInput } from "./lifecycle-validation";
+import type { IEquipmentLifecycleRepository } from "../domain/ports";
+import type {
+  DecommissionEquipmentInput,
+  ReinstateEquipmentInput,
+} from "../domain/lifecycle-validation";
 
 export class EquipmentLifecycleService {
+  constructor(private readonly repo: IEquipmentLifecycleRepository) {}
+
   async decommissionEquipment(
     id: string,
     orgId: string,
     input: DecommissionEquipmentInput,
     userId?: string
   ): Promise<Equipment> {
-    const existingEquipment = await equipmentLifecycleRepository.findActiveEquipmentById(id, orgId);
+    const existingEquipment = await this.repo.findActiveEquipmentById(id, orgId);
     if (!existingEquipment) {
       throw new Error(`Active equipment not found: ${id}`);
     }
@@ -39,9 +44,9 @@ export class EquipmentLifecycleService {
       documentationRefs: input.documentationRefs,
     };
 
-    const decommissionEvent = await equipmentLifecycleRepository.createDecommissionEvent(eventData);
+    const decommissionEvent = await this.repo.createDecommissionEvent(eventData);
 
-    const updatedEquipment = await equipmentLifecycleRepository.decommissionEquipment(
+    const updatedEquipment = await this.repo.decommissionEquipment(
       id,
       orgId,
       decommissionStatus,
@@ -65,7 +70,7 @@ export class EquipmentLifecycleService {
     input: ReinstateEquipmentInput,
     userId?: string
   ): Promise<Equipment> {
-    const existingEquipment = await equipmentLifecycleRepository.findDecommissionedEquipmentById(
+    const existingEquipment = await this.repo.findDecommissionedEquipmentById(
       id,
       orgId
     );
@@ -79,7 +84,7 @@ export class EquipmentLifecycleService {
 
     const reinstatedBy = input.reinstatedBy || userId || "system";
 
-    const updatedEquipment = await equipmentLifecycleRepository.reinstateEquipment(
+    const updatedEquipment = await this.repo.reinstateEquipment(
       id,
       orgId,
       reinstatedBy
@@ -94,25 +99,24 @@ export class EquipmentLifecycleService {
   }
 
   async getDecommissionedEquipment(orgId: string): Promise<Equipment[]> {
-    return equipmentLifecycleRepository.findDecommissionedEquipment(orgId);
+    return this.repo.findDecommissionedEquipment(orgId);
   }
 
   async getDecommissionedEquipmentWithHistory(
     orgId: string
   ): Promise<Array<Equipment & { decommissionEvents: EquipmentDecommissionEvent[] }>> {
-    return equipmentLifecycleRepository.findDecommissionedEquipmentWithHistory(orgId);
+    return this.repo.findDecommissionedEquipmentWithHistory(orgId);
   }
 
   async getEquipmentHistory(
     equipmentId: string,
     orgId: string
   ): Promise<EquipmentDecommissionEvent[]> {
-    const equipment = await equipmentLifecycleRepository.findEquipmentById(equipmentId, orgId);
+    const equipment = await this.repo.findEquipmentById(equipmentId, orgId);
     if (!equipment) {
       throw new Error(`Equipment not found: ${equipmentId}`);
     }
-    return equipmentLifecycleRepository.getDecommissionHistory(equipmentId, orgId);
+    return this.repo.getDecommissionHistory(equipmentId, orgId);
   }
 }
 
-export const equipmentLifecycleService = new EquipmentLifecycleService();

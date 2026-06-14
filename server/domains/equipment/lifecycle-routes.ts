@@ -8,11 +8,8 @@ import {
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import { requirePermission } from "../../lib/permissions/middleware.js";
 import { equipmentService } from "./service";
-import {
-  equipmentLifecycleService,
-  decommissionEquipmentSchema,
-  reinstateEquipmentSchema,
-} from "./lifecycle";
+import { equipmentLifecycleService } from "./application";
+import { decommissionEquipmentSchema, reinstateEquipmentSchema } from "./domain";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 const equipmentIdParamSchema = z.object({ equipmentId: z.string().min(1) });

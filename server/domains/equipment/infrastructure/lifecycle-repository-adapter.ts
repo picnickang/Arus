@@ -8,8 +8,9 @@ import { db } from "../../../db";
 import { equipment } from "@shared/schema";
 import { equipmentDecommissionEvents } from "@shared/schema/equipment";
 import { eq, and, sql } from "drizzle-orm";
+import type { IEquipmentLifecycleRepository } from "../domain/ports";
 
-export class EquipmentLifecycleRepository {
+export class EquipmentLifecycleRepository implements IEquipmentLifecycleRepository {
   async findEquipmentById(id: string, orgId: string): Promise<Equipment | undefined> {
     const results = await db
       .select()
