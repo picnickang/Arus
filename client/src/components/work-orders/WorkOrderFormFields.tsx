@@ -140,11 +140,17 @@ export function WorkOrderFormFields({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Assign to Crew Member</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || ""} disabled={!selectedVesselId}>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value || ""}
+              disabled={!selectedVesselId}
+            >
               <FormControl>
                 <SelectTrigger data-testid="select-crew">
                   <SelectValue
-                    placeholder={selectedVesselId ? "Select crew member (optional)" : "Select vessel first"}
+                    placeholder={
+                      selectedVesselId ? "Select crew member (optional)" : "Select vessel first"
+                    }
                   />
                 </SelectTrigger>
               </FormControl>
@@ -175,7 +181,11 @@ export function WorkOrderFormFields({
           <FormItem>
             <FormLabel>Reason *</FormLabel>
             <FormControl>
-              <Textarea {...field} placeholder="Describe the maintenance issue..." data-testid="input-reason" />
+              <Textarea
+                {...field}
+                placeholder="Describe the maintenance issue..."
+                data-testid="input-reason"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -211,7 +221,10 @@ export function WorkOrderFormFields({
                   <FormControl>
                     <Button
                       variant="outline"
-                      className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
                       data-testid="input-planned-start-date"
                     >
                       {field.value ? format(field.value, "PPP") : "Pick a date"}
@@ -220,7 +233,12 @@ export function WorkOrderFormFields({
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={field.value || undefined}
+                    onSelect={field.onChange}
+                    initialFocus
+                  />
                 </PopoverContent>
               </Popover>
               <FormMessage />
@@ -238,7 +256,10 @@ export function WorkOrderFormFields({
                   <FormControl>
                     <Button
                       variant="outline"
-                      className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
                       data-testid="input-planned-end-date"
                     >
                       {field.value ? format(field.value, "PPP") : "Pick a date"}
@@ -348,7 +369,10 @@ export function WorkOrderFormFields({
             <DollarSign className="h-4 w-4" />
             Cost Justification
           </div>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-cost-justification">
+          <p
+            className="text-sm text-muted-foreground whitespace-pre-wrap"
+            data-testid="text-cost-justification"
+          >
             {workOrder.costJustification}
           </p>
           {workOrder.laborCost != null && (
@@ -362,7 +386,13 @@ export function WorkOrderFormFields({
       )}
 
       <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} data-testid="button-cancel">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          data-testid="button-cancel"
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting} data-testid="button-submit">

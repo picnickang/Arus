@@ -106,7 +106,9 @@ export async function closeWorkOrderWithInventoryRelease(
     await tx
       .select()
       .from(stock)
-      .where(sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`)
+      .where(
+        sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`
+      )
       .orderBy(stock.id);
 
     const [wo] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
@@ -165,9 +167,15 @@ export async function closeWorkOrderWithInventoryRelease(
   return closedOrder;
 }
 
-export async function closeWorkOrder(id: string, closeData: WorkOrderCloseData): Promise<WorkOrder> {
+export async function closeWorkOrder(
+  id: string,
+  closeData: WorkOrderCloseData
+): Promise<WorkOrder> {
   const closedOrder = await db.transaction(async (tx) => {
-    const txParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
+    const txParts = await tx
+      .select()
+      .from(workOrderParts)
+      .where(eq(workOrderParts.workOrderId, id));
     const partIds = txParts.map((p) => p.partId);
     const partIdsArray =
       partIds.length > 0

@@ -1,1 +1,21 @@
-{"default":{"identifier":"default","description":"Default capabilities for the main ARUS window","local":true,"windows":["main"],"permissions":["core:default",{"identifier":"shell:allow-open","allow":[{"url":"^https?://"}]},{"identifier":"shell:allow-execute","allow":[{"name":"arus-server","sidecar":true}]},"process:allow-restart","process:allow-exit","updater:default",{"identifier":"fs:allow-app-read","allow":[{"path":"$APPDATA/**"}]},{"identifier":"fs:allow-app-write","allow":[{"path":"$APPDATA/**"}]}]}}
+{
+  "default": {
+    "identifier": "default",
+    "description": "Default capabilities for the main ARUS window",
+    "local": true,
+    "windows": ["main"],
+    "permissions": [
+      "core:default",
+      { "identifier": "shell:allow-open", "allow": [{ "url": "^https?://" }] },
+      {
+        "identifier": "shell:allow-execute",
+        "allow": [{ "name": "arus-server", "sidecar": true }]
+      },
+      "process:allow-restart",
+      "process:allow-exit",
+      "updater:default",
+      { "identifier": "fs:allow-app-read", "allow": [{ "path": "$APPDATA/**" }] },
+      { "identifier": "fs:allow-app-write", "allow": [{ "path": "$APPDATA/**" }] }
+    ]
+  }
+}

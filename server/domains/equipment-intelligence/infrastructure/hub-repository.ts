@@ -113,13 +113,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
 
     const operationalContext = buildOperationalContext(row.vesselStatus);
 
-    const needsAction = buildNeedsAction(
-      risk,
-      rul ?? 365,
-      workOrders,
-      serviceOrders,
-      equipmentId
-    );
+    const needsAction = buildNeedsAction(risk, rul ?? 365, workOrders, serviceOrders, equipmentId);
 
     return {
       id: row.eqId,

@@ -213,7 +213,9 @@ export function MaintenanceTemplateDialogs({ m }: MaintenanceTemplateDialogsProp
                 </Button>
                 <Button
                   type="submit"
-                  disabled={m.createTemplateMutation.isPending || m.updateTemplateMutation.isPending}
+                  disabled={
+                    m.createTemplateMutation.isPending || m.updateTemplateMutation.isPending
+                  }
                   data-testid="button-submit"
                 >
                   {m.createTemplateMutation.isPending || m.updateTemplateMutation.isPending

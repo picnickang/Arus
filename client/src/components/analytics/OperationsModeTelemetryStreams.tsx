@@ -24,11 +24,9 @@ export function OperationsModeTelemetryStreams() {
     queryKey: ["/api/vessels"],
   });
 
-  const { data: equipment = [] } = useQuery<Array<{ id: string; name: string; vesselId: string }>>(
-    {
-      queryKey: ["/api/equipment"],
-    }
-  );
+  const { data: equipment = [] } = useQuery<Array<{ id: string; name: string; vesselId: string }>>({
+    queryKey: ["/api/equipment"],
+  });
 
   const filteredEquipment =
     selectedVessel === "all" ? equipment : equipment.filter((e) => e.vesselId === selectedVessel);

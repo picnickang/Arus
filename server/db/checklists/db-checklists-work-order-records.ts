@@ -1,11 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db } from "../../db-config";
-import {
-  workOrderChecklists,
-  workOrderTasks,
-  workOrderWorklogs,
-} from "@shared/schema-runtime";
+import { workOrderChecklists, workOrderTasks, workOrderWorklogs } from "@shared/schema-runtime";
 import type {
   InsertWorkOrderChecklist,
   InsertWorkOrderTask,

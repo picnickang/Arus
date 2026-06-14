@@ -1,10 +1,4 @@
-import {
-  expect,
-  test,
-  type ConsoleMessage,
-  type Page,
-  type Route,
-} from "@playwright/test";
+import { expect, test, type ConsoleMessage, type Page, type Route } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";

@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import type { InsertWorkOrder, InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
+import type {
+  InsertWorkOrder,
+  InsertWorkOrderCompletion,
+  WorkOrderCompletion,
+} from "@shared/schema";
 import { inventoryMovements, stock, workOrderParts, workOrders } from "@shared/schema-runtime";
 import { db } from "../../../db-config";
 import {

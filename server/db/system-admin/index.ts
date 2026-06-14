@@ -198,9 +198,7 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
           ? log["errorType"]
           : "application";
     const errorType =
-      typeof log["errorType"] === "string" && log["errorType"]
-        ? log["errorType"]
-        : category;
+      typeof log["errorType"] === "string" && log["errorType"] ? log["errorType"] : category;
     const context =
       isLocalMode && typeof log["context"] === "object" && log["context"] !== null
         ? JSON.stringify(log["context"])
@@ -212,7 +210,9 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
       context,
       createdAt: log["createdAt"] instanceof Date ? log["createdAt"] : now,
       errorMessage:
-        typeof log["errorMessage"] === "string" && log["errorMessage"] ? log["errorMessage"] : message,
+        typeof log["errorMessage"] === "string" && log["errorMessage"]
+          ? log["errorMessage"]
+          : message,
       errorType,
       message,
       timestamp: log["timestamp"] instanceof Date ? log["timestamp"] : now,

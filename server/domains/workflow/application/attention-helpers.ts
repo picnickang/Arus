@@ -21,10 +21,7 @@ export function isRecord(value: unknown): value is RecordLike {
   return value !== null && typeof value === "object";
 }
 
-export async function safeCall<T>(
-  label: string,
-  fn: () => Promise<T>
-): Promise<SafeCallResult<T>> {
+export async function safeCall<T>(label: string, fn: () => Promise<T>): Promise<SafeCallResult<T>> {
   try {
     return { data: await fn(), status: "ok" };
   } catch (error) {

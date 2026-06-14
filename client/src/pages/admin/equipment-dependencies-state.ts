@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  type Connection,
-  type Edge,
-  type EdgeChange,
-  type NodeChange,
-} from "reactflow";
+import { type Connection, type Edge, type EdgeChange, type NodeChange } from "reactflow";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Equipment, EquipmentDependency, Vessel } from "@shared/schema";
@@ -84,7 +79,11 @@ export function useEquipmentDependenciesPageState() {
       invalidateDeps();
     },
     onError: (err: Error) =>
-      toast({ title: "Failed to add dependency", description: err.message, variant: "destructive" }),
+      toast({
+        title: "Failed to add dependency",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const deleteMutation = useMutation({
@@ -94,7 +93,11 @@ export function useEquipmentDependenciesPageState() {
       invalidateDeps();
     },
     onError: (err: Error) =>
-      toast({ title: "Failed to remove dependency", description: err.message, variant: "destructive" }),
+      toast({
+        title: "Failed to remove dependency",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const graphCreateMutation = useMutation({
@@ -318,7 +321,12 @@ export function useEquipmentDependenciesPageState() {
         toast({ title: "That dependency already exists" });
         return;
       }
-      setNotesDialog({ mode: "create", upstreamId: conn.source, downstreamId: conn.target, notes: "" });
+      setNotesDialog({
+        mode: "create",
+        upstreamId: conn.source,
+        downstreamId: conn.target,
+        notes: "",
+      });
     },
     [dependencies, toast]
   );

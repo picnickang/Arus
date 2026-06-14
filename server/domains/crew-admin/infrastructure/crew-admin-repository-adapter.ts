@@ -15,12 +15,7 @@ import type {
   CrewAccessMemberRef,
 } from "../domain/types";
 import { db } from "../../../db";
-import {
-  roles,
-  users,
-  roleDashboardConfigs,
-  type Role,
-} from "@shared/schema-runtime";
+import { roles, users, roleDashboardConfigs, type Role } from "@shared/schema-runtime";
 import {
   PROTECTED_ROLE_KEYS,
   roleDashboardConfigSchema,

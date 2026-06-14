@@ -38,7 +38,9 @@ const opsRuntimeMachine = setup({
   },
   guards: {
     canPerformCriticalAction: ({ context, event }) => {
-      if (event.type !== "PERFORM_ACTION") {return false;}
+      if (event.type !== "PERFORM_ACTION") {
+        return false;
+      }
       const isOnline = context.connectivity === "ONLINE";
       const notTransitioning = !context.isTransitioning;
       const hasPerms = ["chiefEngineer", "captain", "superintendent"].includes(context.userRole);
@@ -53,7 +55,9 @@ const opsRuntimeMachine = setup({
       );
     },
     targetWasCloud: ({ event }) => {
-      if (event.type !== "SWITCH_MODE") {return false;}
+      if (event.type !== "SWITCH_MODE") {
+        return false;
+      }
       return event.targetMode === "CLOUD";
     },
   },

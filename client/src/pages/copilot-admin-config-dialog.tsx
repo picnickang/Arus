@@ -89,11 +89,7 @@ export function ConfigDialog({ open, onClose, config, availableTools }: ConfigDi
           <PermissionSection merged={merged} setFormData={setFormData} />
           <RuntimeSection merged={merged} setFormData={setFormData} />
           <PromptSection merged={merged} setFormData={setFormData} />
-          <ToolsSection
-            merged={merged}
-            setFormData={setFormData}
-            availableTools={availableTools}
-          />
+          <ToolsSection merged={merged} setFormData={setFormData} availableTools={availableTools} />
         </div>
 
         <DialogFooter className="gap-2">
@@ -278,7 +274,9 @@ function RuntimeSection({
         </div>
         <Switch
           checked={merged.contextCompaction !== false}
-          onCheckedChange={(value) => setFormData((prev) => ({ ...prev, contextCompaction: value }))}
+          onCheckedChange={(value) =>
+            setFormData((prev) => ({ ...prev, contextCompaction: value }))
+          }
           data-testid="switch-compaction"
         />
       </div>
@@ -370,7 +368,8 @@ function ToolsSection({
       </h3>
       <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg">
         {availableTools.map((tool) => {
-          const enabledTools = merged.enabledTools ?? availableTools.map((available) => available.name);
+          const enabledTools =
+            merged.enabledTools ?? availableTools.map((available) => available.name);
           const isEnabled = enabledTools.includes(tool.name);
           return (
             <div key={tool.name} className="flex items-center gap-1.5 text-xs">
@@ -378,7 +377,8 @@ function ToolsSection({
                 className="scale-75"
                 checked={isEnabled}
                 onCheckedChange={(checked) => {
-                  const current = merged.enabledTools ?? availableTools.map((available) => available.name);
+                  const current =
+                    merged.enabledTools ?? availableTools.map((available) => available.name);
                   const updated = checked
                     ? [...current, tool.name]
                     : current.filter((name: string) => name !== tool.name);
