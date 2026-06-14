@@ -98,7 +98,7 @@ export class AlertSettingsService {
       smtpPort: 587,
       smtpUser: null,
       smtpUseTls: true,
-      fromEmail: "noreply@arus-marine.com",
+      fromEmail: "noreply@arus.io",
       fromName: "ARUS Marine",
       alertCooldownMinutes: 30,
       dailyDigestEnabled: false,
@@ -127,7 +127,7 @@ export class AlertSettingsService {
       smtpPort: settings.smtpPort ?? null,
       smtpUser: settings.smtpUser ?? null,
       smtpUseTls: settings.smtpUseTls ?? true,
-      fromEmail: settings.fromEmail || "noreply@arus-marine.com",
+      fromEmail: settings.fromEmail || "noreply@arus.io",
       fromName: settings.fromName || "ARUS Marine",
       alertCooldownMinutes: settings.alertCooldownMinutes ?? 30,
       dailyDigestEnabled: settings.dailyDigestEnabled ?? false,
@@ -276,7 +276,7 @@ export class AlertSettingsService {
         ? decryptSecret(settings.smtpEncryptedPassword)
         : undefined,
       smtpUseTls: settings.smtpUseTls ?? true,
-      fromEmail: settings.fromEmail || "noreply@arus-marine.com",
+      fromEmail: settings.fromEmail || "noreply@arus.io",
       fromName: settings.fromName || "ARUS Marine",
     };
   }

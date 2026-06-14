@@ -23,12 +23,12 @@ import { alertSettingsService } from "../../domains/alerts/settings-service.js";
 
 export class EmailSender {
   private envSendGridKey: string | null = null;
-  private fromEmail: string = "noreply@arus-marine.com";
+  private fromEmail: string = "noreply@arus.io";
   private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG;
 
   constructor() {
     this.envSendGridKey = process.env["SENDGRID_API_KEY"] || null;
-    this.fromEmail = process.env["EMAIL_FROM"] || "noreply@arus-marine.com";
+    this.fromEmail = process.env["EMAIL_FROM"] || "noreply@arus.io";
 
     if (this.envSendGridKey) {
       log("info", "Initialized with SendGrid (env key)");

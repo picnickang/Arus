@@ -46,7 +46,7 @@ export const alertSettings = pgTable(
     smtpUseTls: boolean("smtp_use_tls").default(true),
     apiKeyEncrypted: text("api_key_encrypted"),
     apiBaseUrl: text("api_base_url"),
-    fromEmail: text("from_email").default("noreply@arus-marine.com"),
+    fromEmail: text("from_email").default("noreply@arus.io"),
     fromName: text("from_name").default("ARUS Marine"),
     alertCooldownMinutes: integer("alert_cooldown_minutes").default(30),
     dailyDigestEnabled: boolean("daily_digest_enabled").default(false),

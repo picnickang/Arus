@@ -33,7 +33,7 @@ const settings = (o: Record<string, unknown> = {}): Record<string, unknown> => (
   smtpUser: null,
   smtpEncryptedPassword: null,
   smtpUseTls: true,
-  fromEmail: "noreply@arus-marine.com",
+  fromEmail: "noreply@arus.io",
   fromName: "ARUS Marine",
   ...o,
 });
