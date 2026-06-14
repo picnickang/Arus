@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { LayoutGrid, Menu, Search } from "lucide-react";
+import { LayoutGrid, Menu } from "lucide-react";
+import { ObcIconButton } from "@oicl/openbridge-webcomponents-react/components/icon-button/icon-button.js";
+import { ObiSearch } from "@oicl/openbridge-webcomponents-react/icons/icon-search.js";
 import { pruneOverrideToPolicyIds } from "@/application/navigation/role-navigation-policy";
 import {
   readUserRole,
@@ -30,6 +32,7 @@ import {
 import { OpsShell } from "./OpsShell";
 import { OpsSidebar, type OpsSidebarItem } from "./OpsSidebar";
 import { OpsTopBar } from "./OpsTopBar";
+import { OpsStatusRailContainer } from "./OpsStatusRailContainer";
 
 interface UniversalOpsShellProps {
   currentPath: string;
@@ -308,16 +311,14 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
             subtitle={activeHub?.description ?? "Universal admin hub navigation"}
             trailing={
               <span className="inline-flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:h-8 md:w-8"
+                <ObcIconButton
                   onClick={() => window.dispatchEvent(new CustomEvent("arus:open-command-palette"))}
                   aria-label="Search (Ctrl+K)"
                   title="Search (Ctrl+K)"
                   data-testid="button-global-search"
                 >
-                  <Search className="h-5 w-5 md:h-4 md:w-4" aria-hidden="true" />
-                </button>
+                  <ObiSearch className="inline-block h-5 w-5" aria-hidden="true" />
+                </ObcIconButton>
                 {activeHub ? (
                   <Badge variant="outline" data-testid="universal-ops-active-hub">
                     {activeHub.name}
@@ -329,6 +330,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
           <UniversalSubnav currentPath={currentPath} items={navModel.activeChildren} />
         </>
       }
+      statusRail={<OpsStatusRailContainer />}
     >
       {children}
     </OpsShell>

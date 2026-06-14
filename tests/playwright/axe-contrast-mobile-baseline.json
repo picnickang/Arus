@@ -1,0 +1,10 @@
+{
+  "_comment": "WCAG color-contrast violation nodes on /fleet across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.",
+  "maxContrastViolations": 8,
+  "perTheme": {
+    "light": 3,
+    "dark": 1,
+    "bridge": 4,
+    "daylight": 0
+  }
+}

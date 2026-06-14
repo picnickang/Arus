@@ -19,7 +19,7 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-9 h-9 px-0"
+          className="h-11 w-11 px-0 md:h-9 md:w-9"
           aria-label="Toggle theme"
           data-testid="theme-toggle"
         >

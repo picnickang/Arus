@@ -54,7 +54,7 @@ export function MobileFleetPage() {
               <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
               <span className="relative">
                 <Bell className="h-5 w-5" aria-hidden="true" />
-                <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] font-bold">
+                <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-600 text-[10px] font-bold">
                   12
                 </span>
               </span>

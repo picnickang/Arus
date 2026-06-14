@@ -519,3 +519,89 @@
     }
   }
 }
+
+/* --- Night-dimming retrofit for the mobile-readiness screens ---
+ * These screens hardcode a light brand/slate palette (~400 call-sites). The
+ * dark AND bridge (night-vision) themes both carry the `.dark` class, so this
+ * remaps that palette to theme tokens within the mobile shell + bottom nav, so
+ * the screens dim for night without rewriting every call-site. Light/daylight
+ * keep the intended light look. Tokens are full hsl() colors → use var()
+ * directly. Placed outside @layer so it wins over Tailwind's utility classes. */
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"]) {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"]) .bg-white {
+  background-color: var(--card);
+}
+.dark [data-testid="mobile-readiness-shell"] .bg-brand-mist {
+  background-color: var(--background);
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.bg-slate-50, .bg-slate-100, .bg-slate-200) {
+  background-color: var(--muted);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--muted-foreground);
+}
+.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  :is(.border-slate-100, .border-slate-200, .border-slate-300) {
+  border-color: var(--border);
+}
+
+/* Night-vision accent legibility: the mobile screens use semantic accent colors
+ * (status badges + KPI values) that are too dark on the dimmed night background,
+ * plus `bg-*-50` badge fills that never dimmed. Within the mobile shell, dim the
+ * pale badge fills and lift the dark accent text to a brighter shade of the same
+ * hue so dark/bridge keep the at-a-glance status colour while clearing WCAG AA.
+ * Light/daylight (no `.dark`) are unaffected. */
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.bg-red-50, .bg-rose-50, .bg-orange-50, .bg-amber-50, .bg-yellow-50, .bg-emerald-50,
+    .bg-green-50, .bg-blue-50, .bg-sky-50, .bg-indigo-50) {
+  background-color: var(--muted);
+}
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.text-blue-700, .text-blue-800, .text-brand, .text-sky-700, .text-indigo-700) {
+  color: #60a5fa;
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.text-emerald-700, .text-emerald-800, .text-green-700) {
+  color: #34d399;
+}
+.dark [data-testid="mobile-readiness-shell"]
+  :is(.text-amber-700, .text-amber-800, .text-yellow-700, .text-orange-700) {
+  color: #fbbf24;
+}
+.dark [data-testid="mobile-readiness-shell"] :is(.text-red-700, .text-red-800, .text-rose-700) {
+  color: #f87171;
+}
+
+/* Daylight/light legibility: `text-slate-500` muted labels clear AA on pure
+ * white but dip below it on the pale tinted surfaces the screens use
+ * (`bg-*-50` badges, near-white panels) — worst for the outdoor/daylight
+ * brilliance where sunlight contrast matters most. Darken muted labels one
+ * step (→ slate-600) within the mobile shell on the light themes only. */
+:is(.light, .daylight) [data-testid="mobile-readiness-shell"] .text-slate-500 {
+  color: #475569;
+}
+
+/* --- Reduced motion (WCAG 2.1 SC 2.3.3; rough-seas / vestibular safety) ---
+ * Crew in heavy seas and motion-sensitive operators can request reduced motion
+ * at the OS level. When they do, collapse animation/transition durations to ~0
+ * and stop looping animations (spinners, pulses) so the UI presents statically.
+ * Durations are near-zero rather than 0 so transitionend/animationend handlers
+ * still fire. This only applies under the OS preference — default motion is
+ * unchanged. Outside @layer so it wins over Tailwind's animate/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
