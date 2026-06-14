@@ -32,14 +32,14 @@ import { PermissionGate } from "@/components/PermissionGate";
 export function AddEventDialog({ e }: { e: EngineLogbookHookReturn }) {
   return (
     <Dialog open={e.newEventDialogOpen} onOpenChange={e.setNewEventDialogOpen}>
-      <DialogTrigger asChild>
-        <PermissionGate resource="engine_logbook" action="create">
+      <PermissionGate resource="engine_logbook" action="create">
+        <DialogTrigger asChild>
           <Button size="sm" disabled={e.isLocked} data-testid="button-add-event">
             <Plus className="h-4 w-4 mr-2" />
             Add Event
           </Button>
-        </PermissionGate>
-      </DialogTrigger>
+        </DialogTrigger>
+      </PermissionGate>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Engine Room Event</DialogTitle>

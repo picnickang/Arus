@@ -357,14 +357,14 @@ export default function DeckLogbookPage() {
                         }
                       }}
                     >
-                      <DialogTrigger asChild>
-                        <PermissionGate resource="deck_logbook" action="create">
+                      <PermissionGate resource="deck_logbook" action="create">
+                        <DialogTrigger asChild>
                           <Button data-testid="button-add-event">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Event
                           </Button>
-                        </PermissionGate>
-                      </DialogTrigger>
+                        </DialogTrigger>
+                      </PermissionGate>
                       <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
                           <DialogTitle>Add Manual Event</DialogTitle>
