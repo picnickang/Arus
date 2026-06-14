@@ -29,10 +29,7 @@ import { test, expect, type ConsoleMessage, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import {
-  getMobileReadinessExpectedScreen,
-  isMobileReadinessReplacementPath,
-} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
+import { isMobileReadinessReplacementPath } from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 import {
   installRoleFixtures,
   isBenignConsoleError,
@@ -40,6 +37,7 @@ import {
   navigateWithinAuthenticatedSpa,
 } from "./helpers/spa-auth";
 import { buildNavTargets, type NavTarget } from "./helpers/hub-targets";
+import { expectedScreenTestId } from "./helpers/roles";
 
 type RoleKey = "system_admin" | "deck_officer";
 
@@ -68,11 +66,6 @@ const VIEWPORTS: readonly Viewport[] = [
 const ROLES: readonly RoleKey[] = ["system_admin", "deck_officer"];
 
 const NAV_TARGETS = buildNavTargets();
-
-function markerForPath(path: string): string {
-  const marker = getMobileReadinessExpectedScreen(path);
-  return marker ? `mobile-readiness-screen-${marker}` : "universal-ops-shell";
-}
 
 function isRegularAllowedTarget(target: NavTarget): boolean {
   const path = new URL(target.resolved, "http://arus.local").pathname;
@@ -123,7 +116,9 @@ async function expectRouteRendered(page: Page, target: NavTarget, role: RoleKey)
   if (isMobileReadinessReplacementPath(target.resolved)) {
     await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
   }
-  await expect(page.getByTestId(markerForPath(target.resolved))).toBeVisible();
+  await expect(
+    page.getByTestId(expectedScreenTestId(target.resolved, { fallback: "universal-ops-shell" }))
+  ).toBeVisible();
 }
 
 const results: MatrixResult[] = [];

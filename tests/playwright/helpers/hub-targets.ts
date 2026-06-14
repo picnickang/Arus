@@ -22,6 +22,45 @@ export const HUBS: ReadonlyArray<{ id: string; hubRoute: string }> = navigationC
   (category) => ({ id: category.id, hubRoute: category.hubRoute })
 );
 
+export interface DeepRoute {
+  /** Stable id used for screenshot/baseline names. */
+  readonly id: string;
+  readonly path: string;
+  /** The `getMobileReadinessExpectedScreen` marker this route should land on. */
+  readonly expectedScreen: string;
+}
+
+/**
+ * Representative DEEP sub-routes (beyond the hub roots), with the canonical test
+ * data IDs (`mv-atlas`, `port-generator`, `so-4481`). Shared by the deep-route
+ * visual spec and the deep-route real-backend smoke. `/digital-twin` and
+ * `/vessels/:id/3d` are intentionally absent — they're heavy/blocked and only
+ * exercised by the stress lane.
+ */
+export const DEEP_ROUTES: readonly DeepRoute[] = [
+  {
+    id: "vessel-overview",
+    path: "/vessel-intelligence/mv-atlas/overview",
+    expectedScreen: "vessel-detail",
+  },
+  {
+    id: "vessel-diagrams",
+    path: "/vessel-intelligence/mv-atlas/diagrams",
+    expectedScreen: "vessel-diagram",
+  },
+  { id: "pdm-asset-case", path: "/pdm/equipment/port-generator", expectedScreen: "pdm-asset-case" },
+  {
+    id: "pdm-telemetry",
+    path: "/pdm/equipment/port-generator/telemetry",
+    expectedScreen: "pdm-telemetry",
+  },
+  { id: "work-execution", path: "/work-orders/so-4481", expectedScreen: "work-execution" },
+  { id: "logs-deck", path: "/logs/deck", expectedScreen: "logs" },
+  { id: "logs-engine", path: "/logs/engine", expectedScreen: "logs" },
+  { id: "logs-compliance", path: "/logs/compliance", expectedScreen: "logs" },
+  { id: "logistics-inventory", path: "/logistics?tab=inventory", expectedScreen: "inventory" },
+];
+
 /**
  * Build the full list of nav targets from the single source of truth.
  * De-dupe by resolved URL so we don't visit `/foo` twice when two children
