@@ -134,20 +134,9 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
   }
 });
 
-router.get("/equipment/types", async (req: AuthenticatedRequest, res: Response) => {
-  sendSuccess(res, [
-    "Engine",
-    "Compressor",
-    "Pump",
-    "Generator",
-    "Hydraulic System",
-    "Gearbox",
-    "Propeller",
-    "Steering Gear",
-    "Boiler",
-    "Heat Exchanger",
-  ]);
-});
+// Note: `/equipment/types` moved to the equipment domain
+// (server/domains/equipment/routes.ts), declared before `/api/equipment/:id`
+// so the literal path is not shadowed by the id param route.
 
 // LR-3.5 / TX-2: training is a side-effectful mutation — it inserts an
 // `ml_models` row in status='training' and enqueues a background job.

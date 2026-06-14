@@ -211,6 +211,53 @@ export function registerEquipmentRoutes(
     })
   );
 
+  // GET equipment type taxonomy (static list). Declared before the
+  // `/api/equipment/:id` route below so the literal "types" segment is not
+  // captured as id="types". This previously lived in ml-routes and was
+  // shadowed by `/:id`, returning 404 "Equipment not found" (e.g. on the
+  // AI Studio equipment-type selector).
+  app.get(
+    "/api/equipment/types",
+    requireOrgId,
+    generalApiRateLimit,
+    withErrorHandling("fetch equipment types", async (_req: Request, res: Response) => {
+      return res.json([
+        "Engine",
+        "Compressor",
+        "Pump",
+        "Generator",
+        "Hydraulic System",
+        "Gearbox",
+        "Propeller",
+        "Steering Gear",
+        "Boiler",
+        "Heat Exchanger",
+      ]);
+    })
+  );
+
+  // GET decommissioned equipment list (using lifecycle service). Declared
+  // before `/api/equipment/:id` so the literal "decommissioned" segment is
+  // not captured as an id (which 404'd as "Equipment not found").
+  app.get(
+    "/api/equipment/decommissioned",
+    requireOrgId,
+    generalApiRateLimit,
+    withErrorHandling("fetch decommissioned equipment", async (req: Request, res: Response) => {
+      const orgId = authenticatedRequest(req).orgId;
+      const { withHistory: withHistoryParam } = decommissionedListQuerySchema.parse(req.query);
+      const withHistory = withHistoryParam === "true";
+
+      if (withHistory) {
+        const decommissioned =
+          await equipmentLifecycleService.getDecommissionedEquipmentWithHistory(orgId);
+        return res.json(decommissioned);
+      }
+      const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
+      return res.json(decommissioned);
+    })
+  );
+
   // RUL Prediction - single equipment
   app.get(
     "/api/equipment/:id/rul",
@@ -520,26 +567,6 @@ export function registerEquipmentRoutes(
         }
         throw error;
       }
-    })
-  );
-
-  // GET decommissioned equipment list (using lifecycle service)
-  app.get(
-    "/api/equipment/decommissioned",
-    requireOrgId,
-    generalApiRateLimit,
-    withErrorHandling("fetch decommissioned equipment", async (req: Request, res: Response) => {
-      const orgId = authenticatedRequest(req).orgId;
-      const { withHistory: withHistoryParam } = decommissionedListQuerySchema.parse(req.query);
-      const withHistory = withHistoryParam === "true";
-
-      if (withHistory) {
-        const decommissioned =
-          await equipmentLifecycleService.getDecommissionedEquipmentWithHistory(orgId);
-        return res.json(decommissioned);
-      }
-      const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
-      return res.json(decommissioned);
     })
   );
 

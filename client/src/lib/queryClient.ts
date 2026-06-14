@@ -337,7 +337,7 @@ export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFu
       url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
     } else {
       url = queryKey.join("/");
-      if (process.env["NODE_ENV"] === "development") {
+      if (import.meta.env.DEV) {
         console.warn(
           `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
         );

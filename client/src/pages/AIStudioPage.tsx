@@ -91,7 +91,7 @@ export default function AIStudioPage() {
 
   // Fetch accuracy trend data
   const { data: accuracyData = [] } = useQuery({
-    queryKey: ["/api/ml/accuracy-trend", accuracyTimeRange],
+    queryKey: ["/api/ml/accuracy-trend", { range: accuracyTimeRange }],
   });
 
   // Fetch equipment types for training form
