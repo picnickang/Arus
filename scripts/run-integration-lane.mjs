@@ -27,9 +27,11 @@ const EMBEDDED = [
   "tests/integration/lr35-pdm-promote-rollback-gate.test.ts",
   "tests/integration/telemetry.test.ts",
   "tests/integration/asset-anomaly-coolant-overheating.test.ts",
+  "tests/integration/asset-anomaly-detection-deep.test.ts",
 ];
 
 const POSTGRES = [
+  "tests/integration/asset-anomaly-postgres.test.ts",
   "tests/integration/audit-chain-mixed-hash-versions.test.ts",
   "tests/integration/cross-tenant-domains.test.ts",
   "tests/integration/rls-cross-tenant-api.test.ts",
