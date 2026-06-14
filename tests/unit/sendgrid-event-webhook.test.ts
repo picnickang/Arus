@@ -9,6 +9,7 @@ import {
   verifySendGridWebhook,
   sendGridEventToStatus,
   normalizeSendGridMessageId,
+  parseSendGridEvents,
 } from "../../server/domains/alerts/webhooks/sendgrid-event-webhook";
 
 describe("verifySendGridWebhook (fail-closed)", () => {
@@ -51,5 +52,28 @@ describe("normalizeSendGridMessageId", () => {
   it("returns null for empty/undefined input", () => {
     expect(normalizeSendGridMessageId(undefined)).toBeNull();
     expect(normalizeSendGridMessageId("")).toBeNull();
+  });
+});
+
+describe("parseSendGridEvents", () => {
+  it("keeps only objects carrying a string event field", () => {
+    const events = parseSendGridEvents([
+      { event: "delivered", sg_message_id: "a.1" },
+      { event: "bounce", sg_message_id: "b.1", reason: "550" },
+      { sg_message_id: "c.1" }, // no event → dropped
+      { event: 42 }, // non-string event → dropped
+      null,
+      "nope",
+    ]);
+    expect(events).toEqual([
+      { event: "delivered", sg_message_id: "a.1" },
+      { event: "bounce", sg_message_id: "b.1", reason: "550" },
+    ]);
+  });
+
+  it("returns [] for a non-array (verified-but-malformed) body", () => {
+    expect(parseSendGridEvents(undefined)).toEqual([]);
+    expect(parseSendGridEvents({ event: "delivered" })).toEqual([]);
+    expect(parseSendGridEvents("[]")).toEqual([]);
   });
 });

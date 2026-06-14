@@ -47,6 +47,13 @@ import type { Request } from "express";
 //                          dependencies) expose internal operational detail
 //                          and MUST stay behind auth — listing `/health` as a
 //                          prefix would silently expose all of them.
+//   /webhooks/sendgrid/events — SendGrid Signed Event Webhook receiver.
+//                          Unauthenticated by design (SendGrid posts
+//                          server-to-server with no session/orgId). Every
+//                          request is rejected unless its ECDSA signature
+//                          verifies against SENDGRID_WEBHOOK_VERIFICATION_KEY
+//                          (fail-closed); the handler only updates
+//                          alert_email_log delivery status by messageId.
 const EXACT_PUBLIC_API_PATHS = new Set([
   "/admin/auth/status",
   "/admin/auth/setup",
@@ -58,6 +65,7 @@ const EXACT_PUBLIC_API_PATHS = new Set([
   "/healthz",
   "/readyz",
   "/metrics",
+  "/webhooks/sendgrid/events",
 ]);
 
 // PUBLIC_API_PREFIXES — prefix-match (and bare path) is allowed.

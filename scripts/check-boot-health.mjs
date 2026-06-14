@@ -4,7 +4,7 @@
  *
  * Spawns the dev server, waits for "Domain routers registered (N modules)",
  * and asserts:
- *   1. The expected module count is reached (default: 113).
+ *   1. The expected module count is reached (default: 114).
  *   2. Zero "Failed to register" lines appear in startup output.
  *   3. The "ARUS application is now live" line is emitted.
  *
@@ -15,14 +15,14 @@
  * regressions only surface as 404s in production.
  *
  * Wire into CI as: `node scripts/check-boot-health.mjs`
- * Configure expected count via env: BOOT_EXPECTED_MODULES=113
+ * Configure expected count via env: BOOT_EXPECTED_MODULES=114
  * If DATABASE_URL is absent, the guard boots deterministic embedded mode so
  * route-registration health does not depend on ambient cloud credentials.
  */
 
 import { spawn } from "node:child_process";
 
-const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 113);
+const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 114);
 const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 180_000);
 const PORT = process.env.PORT ?? "0";
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);

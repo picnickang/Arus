@@ -34,6 +34,23 @@ export async function updateEmailLogStatus(
   return updated;
 }
 
+/**
+ * Update delivery status of alert_email_log rows by their SendGrid messageId
+ * (used by the event-webhook receiver). Returns the number of rows updated
+ * (0 when the messageId is unknown — e.g. an email this system didn't log).
+ */
+export async function updateEmailLogStatusByMessageId(
+  messageId: string,
+  status: string,
+  errorMessage?: string | null
+): Promise<number> {
+  const result = await db
+    .update(alertEmailLog)
+    .set({ status, errorMessage: errorMessage ?? null })
+    .where(eq(alertEmailLog.messageId, messageId));
+  return result.rowCount ?? 0;
+}
+
 export async function getEmailLogs(
   orgId: string,
   options?: EmailLogOptions

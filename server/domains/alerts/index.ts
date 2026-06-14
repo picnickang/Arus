@@ -10,6 +10,8 @@ export { alertSettingsRepository, AlertSettingsRepository } from "./settings-rep
 export { alertSettingsService, AlertSettingsService } from "./settings-service";
 export { registerAlertSettingsRoutes } from "./settings-routes";
 
+export { registerSendGridWebhookRoutes } from "./webhooks/routes";
+
 export {
   crewAlertEvaluators,
   evaluateCertificateExpiryAlerts,

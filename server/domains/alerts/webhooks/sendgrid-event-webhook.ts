@@ -72,3 +72,21 @@ export function normalizeSendGridMessageId(sgMessageId: string | undefined): str
   const base = sgMessageId.split(".")[0];
   return base && base.length > 0 ? base : null;
 }
+
+/**
+ * Coerce an already-parsed webhook body into the SendGrid events we understand,
+ * dropping anything that is not an object carrying a string `event` field.
+ * Returns [] for a non-array body (a verified-but-malformed payload), so the
+ * caller can treat "nothing to record" uniformly.
+ */
+export function parseSendGridEvents(body: unknown): SendGridEvent[] {
+  if (!Array.isArray(body)) {
+    return [];
+  }
+  return body.filter(
+    (item): item is SendGridEvent =>
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as { event?: unknown }).event === "string"
+  );
+}
