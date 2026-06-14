@@ -26,9 +26,22 @@ export const TEST_ORG_ID = "default-org-id";
 const POOL_KEY = "__ARUS_INTEGRATION_PG_POOL__" as const;
 type PoolHolder = { [POOL_KEY]?: Pool };
 const _holder = process as unknown as PoolHolder;
-export const pool: Pool = (_holder[POOL_KEY] ??= new Pool({
-  connectionString: process.env["DATABASE_URL"],
-}));
+
+function createIntegrationPool(): Pool {
+  const p = new Pool({ connectionString: process.env["DATABASE_URL"] });
+  // pg emits 'error' on *idle* pooled clients when the backend drops the
+  // connection (network blip, server restart, idle timeout). With no listener
+  // Node treats it as an unhandled 'error' event and aborts the whole Jest
+  // process before any assertions run (this lane sets forceExit: false). Swallow
+  // it — the next acquire transparently opens a fresh client.
+  p.on("error", (err) => {
+    // eslint-disable-next-line no-console
+    console.warn(`[forms-integration] idle pg client error (non-fatal): ${err.message}`);
+  });
+  return p;
+}
+
+export const pool: Pool = (_holder[POOL_KEY] ??= createIntegrationPool());
 
 /**
  * Build a fresh RUN_ID for the calling suite. Each test file should create
@@ -37,6 +50,37 @@ export const pool: Pool = (_holder[POOL_KEY] ??= new Pool({
  */
 export function makeRunId(prefix = "form"): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * The global `/api` gate (server/security/authentication.ts) requires a Bearer
+ * token, so the legacy x-org-id/x-user-role headers alone now 401. Authenticate
+ * through the dev-login backdoor (the designed preview/test session) — mint one
+ * admin token per process and reuse it. Requires the target server to run with
+ * ARUS_DEV_LOGIN=1.
+ */
+let _authTokenPromise: Promise<string> | null = null;
+export async function authToken(): Promise<string> {
+  if (!_authTokenPromise) {
+    _authTokenPromise = (async () => {
+      const res = await fetch(`${BASE_URL}/api/portal/dev-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ persona: "admin" }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        data?: { sessionToken?: string };
+      } | null;
+      const token = json?.data?.sessionToken;
+      if (!token) {
+        throw new Error(
+          `forms-integration: dev-login failed (status ${res.status}). Run the server with ARUS_DEV_LOGIN=1.`
+        );
+      }
+      return token;
+    })();
+  }
+  return _authTokenPromise;
 }
 
 export interface ApiResult<T = unknown> {
@@ -51,10 +95,12 @@ export async function api<T = unknown>(
   body?: unknown,
   extraHeaders: Record<string, string> = {}
 ): Promise<ApiResult<T>> {
+  const token = await authToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
       "x-org-id": TEST_ORG_ID,
       "x-user-role": "admin",
       "x-user-id": "forms-integration-test",
