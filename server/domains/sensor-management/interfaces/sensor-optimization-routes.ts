@@ -1,12 +1,14 @@
 /**
- * Sensor Optimization Routes
- * AI-powered sensor optimization and threshold management
+ * Sensor Optimization Routes - threshold optimization (via service) and
+ * AI sensor-tuning (via the LLM tuning service).
  */
 
 import type { Express } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
-import type { SensorManagementConfig } from "./types.js";
+import type { SensorRouteContext } from "./types.js";
+import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
+import { authenticatedRequest } from "../../../middleware/auth";
 
 const optimizationQuerySchema = z.object({
   equipmentId: z.string().optional(),
@@ -21,13 +23,9 @@ const equipmentSensorParamSchema = z.object({
 });
 const rejectBodySchema = z.object({ reason: z.string().optional() });
 const applyTuningBodySchema = z.object({ parameters: jsonRecordSchema.default({}) });
-import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
-import { authenticatedRequest } from "../../../middleware/auth";
-import { dbMlAnalyticsStorage } from "../../../db/ml-analytics/index.js";
-import { dbSensorsStorage } from "../../../db/sensors/index.js";
 
-export function registerSensorOptimizationRoutes(app: Express, config: SensorManagementConfig) {
-  const { requireOrgId, writeOperationRateLimit } = config;
+export function registerSensorOptimizationRoutes(app: Express, ctx: SensorRouteContext) {
+  const { requireOrgId, writeOperationRateLimit, service } = ctx;
 
   app.get(
     "/api/sensor-optimization",
@@ -36,12 +34,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { equipmentId, sensorType, status } = optimizationQuerySchema.parse(req.query);
       const orgId = authenticatedRequest(req).orgId;
       void status;
-      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
-        orgId,
-        equipmentId,
-        sensorType
-      );
-      res.json(optimizations);
+      res.json(await service.listThresholdOptimizations(orgId, equipmentId, sensorType));
     })
   );
 
@@ -51,7 +44,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { optimizationId } = optimizationIdParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
+      const optimization = await service.getThresholdOptimization(
         Number.parseInt(optimizationId),
         orgId
       );
@@ -69,7 +62,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     withErrorHandling("apply optimization", async (req, res) => {
       const { optimizationId } = optimizationIdParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const result = await dbMlAnalyticsStorage.applyThresholdOptimization(
+      const result = await service.applyThresholdOptimization(
         Number.parseInt(optimizationId),
         orgId
       );
@@ -85,7 +78,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { optimizationId } = optimizationIdParamSchema.parse(req.params);
       const { reason } = rejectBodySchema.parse(req.body ?? {});
       const orgId = authenticatedRequest(req).orgId;
-      const result = await dbMlAnalyticsStorage.rejectThresholdOptimization(
+      const result = await service.rejectThresholdOptimization(
         Number.parseInt(optimizationId),
         reason ?? "",
         orgId
@@ -153,27 +146,12 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { equipmentId, sensorType } = equipmentSensorParamSchema.parse(req.params);
       const { parameters } = applyTuningBodySchema.parse(req.body ?? {});
       const orgId = authenticatedRequest(req).orgId;
-      let configuration;
-      try {
-        configuration = await dbSensorsStorage.updateSensorConfiguration(
-          equipmentId,
-          sensorType,
-          parameters,
-          orgId
-        );
-      } catch (updateError) {
-        if (updateError instanceof Error && updateError.message?.includes("not found")) {
-          configuration = await dbSensorsStorage.createSensorConfiguration({
-            equipmentId,
-            sensorType,
-            orgId,
-            enabled: true,
-            ...parameters,
-          });
-        } else {
-          throw updateError;
-        }
-      }
+      const configuration = await service.applySensorTuning(
+        equipmentId,
+        sensorType,
+        parameters,
+        orgId
+      );
       res.json({ success: true, configuration });
     })
   );

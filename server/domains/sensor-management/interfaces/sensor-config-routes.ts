@@ -1,11 +1,11 @@
 /**
- * Sensor Configuration Routes
- * CRUD operations for sensor configurations
+ * Sensor Configuration Routes - CRUD over sensor configurations (via service).
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { insertSensorConfigSchema, bulkSensorConfigSchema } from "@shared/schema-runtime";
-import type { SensorManagementConfig } from "./types.js";
+import type { SensorRouteContext } from "./types.js";
 import {
   withErrorHandling,
   sendNotFound,
@@ -13,9 +13,7 @@ import {
   sendDeleted,
 } from "../../../lib/route-utils.js";
 import { authenticatedRequest } from "../../../middleware/auth";
-import { dbSensorsStorage } from "../../../db/sensors/index.js";
-import { dbEquipmentStorage } from "../../../db/equipment/index.js";
-import { z } from "zod";
+import { EquipmentNotFoundError } from "../application";
 
 const sensorConfigQuerySchema = z.object({
   equipmentId: z.string().optional(),
@@ -27,8 +25,8 @@ const sensorPairParamSchema = z.object({
 });
 const idParamSchema = z.object({ id: z.string().min(1) });
 
-export function registerSensorConfigRoutes(app: Express, config: SensorManagementConfig) {
-  const { requireOrgId, writeOperationRateLimit, criticalOperationRateLimit } = config;
+export function registerSensorConfigRoutes(app: Express, ctx: SensorRouteContext) {
+  const { requireOrgId, writeOperationRateLimit, criticalOperationRateLimit, service } = ctx;
 
   app.get(
     "/api/sensor-configs",
@@ -36,12 +34,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("fetch sensor configurations", async (req, res) => {
       const { equipmentId, sensorType } = sensorConfigQuerySchema.parse(req.query);
       const orgId = authenticatedRequest(req).orgId;
-      const configs = await dbSensorsStorage.getSensorConfigurations(
-        orgId,
-        equipmentId as string,
-        sensorType as string
-      );
-      res.json(configs);
+      res.json(await service.listSensorConfigurations(orgId, equipmentId, sensorType));
     })
   );
 
@@ -51,12 +44,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("fetch sensor configurations", async (req, res) => {
       const { equipmentId, sensorType } = sensorConfigQuerySchema.parse(req.query);
       const orgId = authenticatedRequest(req).orgId;
-      const configs = await dbSensorsStorage.getSensorConfigurations(
-        orgId,
-        equipmentId as string,
-        sensorType as string
-      );
-      res.json(configs);
+      res.json(await service.listSensorConfigurations(orgId, equipmentId, sensorType));
     })
   );
 
@@ -66,11 +54,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("fetch sensor configuration", async (req, res) => {
       const { equipmentId, sensorType } = sensorPairParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      const sensorConfig = await dbSensorsStorage.getSensorConfiguration(
-        equipmentId,
-        sensorType,
-        orgId
-      );
+      const sensorConfig = await service.getSensorConfiguration(equipmentId, sensorType, orgId);
       if (!sensorConfig) {
         return sendNotFound(res, "Sensor configuration");
       }
@@ -85,11 +69,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("create sensor configuration", async (req, res) => {
       const configData = insertSensorConfigSchema.parse(req.body);
       const orgId = authenticatedRequest(req).orgId;
-      const sensorConfig = await dbSensorsStorage.createSensorConfiguration({
-        ...configData,
-        orgId,
-      } as object as Parameters<typeof dbSensorsStorage.createSensorConfiguration>[0]);
-      sendCreated(res, sensorConfig);
+      sendCreated(res, await service.createSensorConfiguration(orgId, configData));
     })
   );
 
@@ -98,29 +78,26 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("bulk create sensor configurations", async (req, res) => {
-      const payload = bulkSensorConfigSchema.parse(req.body);
-      const { equipmentId, configs, overwriteExisting } = payload;
+      const { equipmentId, configs, overwriteExisting } = bulkSensorConfigSchema.parse(req.body);
       const orgId = authenticatedRequest(req).orgId;
-      const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
-      if (!equipment) {
-        return sendNotFound(res, "Equipment");
+      try {
+        const created = await service.bulkCreateSensorConfigurations(
+          orgId,
+          equipmentId,
+          configs,
+          overwriteExisting
+        );
+        sendCreated(res, {
+          message: `Successfully created ${created.length} sensor configuration(s)`,
+          created: created.length,
+          sensors: created,
+        });
+      } catch (err) {
+        if (err instanceof EquipmentNotFoundError) {
+          return sendNotFound(res, "Equipment");
+        }
+        throw err;
       }
-      const fullConfigs = configs.map((config: Record<string, unknown>) => ({
-        ...config,
-        equipmentId,
-        orgId,
-      }));
-      const created = await dbSensorsStorage.bulkCreateSensorConfigurations(
-        fullConfigs as object as Parameters<
-          typeof dbSensorsStorage.bulkCreateSensorConfigurations
-        >[0],
-        overwriteExisting
-      );
-      sendCreated(res, {
-        message: `Successfully created ${created.length} sensor configuration(s)`,
-        created: created.length,
-        sensors: created,
-      });
     })
   );
 
@@ -132,13 +109,9 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
       const { equipmentId, sensorType } = sensorPairParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
       const configData = insertSensorConfigSchema.partial().parse(req.body);
-      const sensorConfig = await dbSensorsStorage.updateSensorConfiguration(
-        equipmentId,
-        sensorType,
-        configData,
-        orgId
+      res.json(
+        await service.updateSensorConfiguration(equipmentId, sensorType, configData, orgId)
       );
-      res.json(sensorConfig);
     })
   );
 
@@ -150,12 +123,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
       const configData = insertSensorConfigSchema.partial().parse(req.body);
-      const sensorConfig = await dbSensorsStorage.updateSensorConfigurationById(
-        id,
-        configData,
-        orgId
-      );
-      res.json(sensorConfig);
+      res.json(await service.updateSensorConfigurationById(id, configData, orgId));
     })
   );
 
@@ -166,7 +134,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("delete sensor configuration", async (req, res) => {
       const { equipmentId, sensorType } = sensorPairParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      await dbSensorsStorage.deleteSensorConfiguration(equipmentId, sensorType, orgId);
+      await service.deleteSensorConfiguration(equipmentId, sensorType, orgId);
       sendDeleted(res);
     })
   );
@@ -178,7 +146,7 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
     withErrorHandling("delete sensor configuration", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
       const orgId = authenticatedRequest(req).orgId;
-      await dbSensorsStorage.deleteSensorConfigurationById(id, orgId);
+      await service.deleteSensorConfigurationById(id, orgId);
       sendDeleted(res);
     })
   );

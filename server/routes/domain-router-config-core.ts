@@ -46,6 +46,11 @@ import { alertCrewDataProvider } from "../composition/alert-crew-data";
 import { syncInventoryProvider } from "../composition/sync-inventory-data";
 import { schedulingMaintenanceProvider } from "../composition/scheduling-maintenance-data";
 import { telemetryExternalProvider } from "../composition/telemetry-external-data";
+import {
+  sensorEquipmentProvider,
+  sensorThresholdOptimizationProvider,
+  sensorTelemetryHistoryProvider,
+} from "../composition/sensor-management-external-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -268,6 +273,9 @@ export const coreDomainRouters: DomainRouterConfig[] = [
       generalApiRateLimit,
       writeOperationRateLimit,
       criticalOperationRateLimit,
+      equipment: sensorEquipmentProvider,
+      optimization: sensorThresholdOptimizationProvider,
+      telemetryHistory: sensorTelemetryHistoryProvider,
     }),
   },
 
