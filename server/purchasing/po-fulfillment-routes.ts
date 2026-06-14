@@ -1,13 +1,12 @@
 import type { RequestHandler, Router } from "express";
-import { and, eq, sql } from "drizzle-orm";
-import { db } from "../db";
 import { createLogger } from "../lib/structured-logger";
 import {
-  purchaseOrders,
-  purchaseOrderItems,
-  purchaseOrderEvents,
-  purchaseRequestItems,
-} from "@shared/schema-runtime";
+  getPurchaseOrderById,
+  getPurchaseOrderCreationEvent,
+  getPurchaseOrderItems,
+  getMatchingPurchaseRequestItem,
+  listPurchaseOrderEvents,
+} from "./repository";
 import { authenticatedRequest, requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
 import { idempotencyMiddleware } from "../middleware/idempotency";
 import { fulfillItem } from "./fulfillment-service";
@@ -57,10 +56,7 @@ export function registerPurchaseOrderFulfillmentRoutes(
         }
         const userId = authenticatedRequest(req).user?.id;
 
-        const [po] = await db
-          .select()
-          .from(purchaseOrders)
-          .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+        const po = await getPurchaseOrderById(id, orgId);
 
         if (!po) {
           return res.status(404).json({ error: "Purchase order not found" });
@@ -70,28 +66,14 @@ export function registerPurchaseOrderFulfillmentRoutes(
         }
 
         // Find the originating PR via the PO creation event
-        const [creationEvent] = await db
-          .select()
-          .from(purchaseOrderEvents)
-          .where(
-            and(
-              eq(purchaseOrderEvents.poId, id),
-              eq(purchaseOrderEvents.eventType, "created"),
-              eq(purchaseOrderEvents.orgId, orgId)
-            )
-          )
-          .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
-          .limit(1);
+        const creationEvent = await getPurchaseOrderCreationEvent(id, orgId);
 
         const prId = (creationEvent?.details as { prId?: string } | undefined)?.prId;
         if (!prId) {
           return res.status(400).json({ error: "No originating PR found for this PO" });
         }
 
-        const poItems = await db
-          .select()
-          .from(purchaseOrderItems)
-          .where(eq(purchaseOrderItems.poId, id));
+        const poItems = await getPurchaseOrderItems(id);
 
         const results: {
           partId: string;
@@ -107,17 +89,7 @@ export function registerPurchaseOrderFulfillmentRoutes(
           }
 
           // Find the matching PR item
-          const [prItem] = await db
-            .select()
-            .from(purchaseRequestItems)
-            .where(
-              and(
-                eq(purchaseRequestItems.prId, prId),
-                eq(purchaseRequestItems.partId, poItem.partId),
-                eq(purchaseRequestItems.orgId, orgId)
-              )
-            )
-            .limit(1);
+          const prItem = await getMatchingPurchaseRequestItem(prId, poItem.partId, orgId);
 
           if (!prItem) {
             results.push({
@@ -168,11 +140,7 @@ export function registerPurchaseOrderFulfillmentRoutes(
         return res.status(400).json({ error: "Missing required path parameter: id" });
       }
 
-      const events = await db
-        .select()
-        .from(purchaseOrderEvents)
-        .where(and(eq(purchaseOrderEvents.poId, id), eq(purchaseOrderEvents.orgId, orgId)))
-        .orderBy(sql`${purchaseOrderEvents.createdAt} DESC`);
+      const events = await listPurchaseOrderEvents(id, orgId);
 
       return res.json(events);
     } catch (err) {
