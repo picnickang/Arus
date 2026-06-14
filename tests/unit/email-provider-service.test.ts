@@ -100,6 +100,25 @@ describe("sendEmail via SendGrid", () => {
     expect(body.reply_to).toBeUndefined();
   });
 
+  it("includes base64-encoded attachments", async () => {
+    fetchMock.mockResolvedValue(sgOk());
+    await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
+      to: ["a@x.test"],
+      subject: "S",
+      text: "T",
+      attachments: [
+        { filename: "r.pdf", content: Buffer.from("PDFDATA"), contentType: "application/pdf" },
+      ],
+    });
+    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.attachments[0]).toEqual({
+      content: Buffer.from("PDFDATA").toString("base64"),
+      filename: "r.pdf",
+      type: "application/pdf",
+      disposition: "attachment",
+    });
+  });
+
   it("falls back to an sg- messageId when the header is missing", async () => {
     fetchMock.mockResolvedValue(sgOk(null));
     const r = await emailProviderService.sendEmail(
@@ -224,6 +243,23 @@ describe("sendEmail via SMTP", () => {
 
     // first call built it, error evicted it, second call rebuilt it
     expect(createTransportMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes attachments to nodemailer", async () => {
+    sendMailMock.mockResolvedValue({ messageId: "m" });
+    await emailProviderService.sendEmail(
+      cfg({ provider: "smtp", smtpHost: "smtp.attach.test", smtpPort: 587 }),
+      {
+        to: ["a@x.test"],
+        subject: "S",
+        text: "T",
+        attachments: [
+          { filename: "r.pdf", content: Buffer.from("X"), contentType: "application/pdf" },
+        ],
+      }
+    );
+    const mail = sendMailMock.mock.calls[0]![0] as { attachments?: Array<{ filename: string }> };
+    expect(mail.attachments?.[0]?.filename).toBe("r.pdf");
   });
 
   it("errors when no SMTP host is configured", async () => {

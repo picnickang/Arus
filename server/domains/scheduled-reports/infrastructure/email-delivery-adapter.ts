@@ -27,7 +27,14 @@ export class EmailDeliveryAdapter implements IReportDeliveryAdapter {
       };
 
       for (const recipient of recipients) {
-        await emailSender.sendWithAttachment(recipient, subject, text, html, attachment);
+        await emailSender.sendWithAttachment(
+          recipient,
+          subject,
+          text,
+          html,
+          attachment,
+          report.orgId
+        );
 
         logger.info(LOG_CTX, `Report delivered to ${recipient}`, report.id);
       }

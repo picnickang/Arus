@@ -33,6 +33,7 @@ export interface EmailPayload {
   text: string;
   html?: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>;
 }
 
 export interface SendResult {
@@ -123,6 +124,12 @@ class EmailProviderService {
             { type: "text/plain", value: payload.text },
             ...(payload.html ? [{ type: "text/html", value: payload.html }] : []),
           ],
+          attachments: payload.attachments?.map((a) => ({
+            content: a.content.toString("base64"),
+            filename: a.filename,
+            type: a.contentType,
+            disposition: "attachment",
+          })),
         }),
       });
 
@@ -196,6 +203,11 @@ class EmailProviderService {
         subject: payload.subject,
         text: payload.text,
         html: payload.html,
+        attachments: payload.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
       });
 
       log("info", "Email sent via SMTP", {

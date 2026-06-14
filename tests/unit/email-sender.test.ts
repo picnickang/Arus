@@ -36,19 +36,10 @@ jest.unstable_mockModule("../../server/domains/alerts/settings-service.js", () =
 
 const { EmailSender } = await import("../../server/services/email-notification/email-sender.js");
 
-type FetchResponse = {
-  ok: boolean;
-  status: number;
-  headers: { get: (k: string) => string | null };
-};
-let fetchMock: jest.Mock<(...args: unknown[]) => Promise<FetchResponse>>;
-
 const ORIGINAL_SENDGRID = process.env["SENDGRID_API_KEY"];
 const ORIGINAL_FROM = process.env["EMAIL_FROM"];
 
 beforeEach(() => {
-  fetchMock = jest.fn<(...args: unknown[]) => Promise<FetchResponse>>();
-  (global as { fetch: unknown }).fetch = fetchMock;
   providerSendMock.mockReset().mockResolvedValue({ success: true, messageId: "prov-1" });
   resolveOrgConfigMock.mockReset().mockResolvedValue(null);
   logEmailMock.mockReset().mockResolvedValue({});
@@ -233,7 +224,7 @@ describe("audit logging", () => {
 });
 
 describe("sendWithAttachment", () => {
-  it("logs (no fetch) in dev mode", async () => {
+  it("routes through the transport — dev mode does not send", async () => {
     const sender = new EmailSender();
     const result = await sender.sendWithAttachment("a@x.test", "S", "T", "<p>T</p>", {
       filename: "f.pdf",
@@ -241,23 +232,29 @@ describe("sendWithAttachment", () => {
       contentType: "application/pdf",
     });
     expect(result.messageId).toMatch(/^dev-/);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(providerSendMock).not.toHaveBeenCalled();
   });
 
-  it("posts a base64 attachment to SendGrid when the env key is set", async () => {
+  it("delegates to the provider with the attachment when sending is configured", async () => {
     process.env["SENDGRID_API_KEY"] = "env-key";
-    fetchMock.mockResolvedValue({ ok: true, status: 200, headers: { get: () => "att-1" } });
     const sender = new EmailSender();
 
-    const result = await sender.sendWithAttachment("a@x.test", "S", "T", "<p>T</p>", {
-      filename: "report.pdf",
-      content: Buffer.from("PDFDATA"),
-      contentType: "application/pdf",
-    });
+    const result = await sender.sendWithAttachment(
+      "a@x.test",
+      "S",
+      "T",
+      "<p>T</p>",
+      { filename: "report.pdf", content: Buffer.from("PDFDATA"), contentType: "application/pdf" },
+      "org-1"
+    );
 
-    expect(result).toEqual({ success: true, messageId: "att-1" });
-    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
-    expect(body.attachments[0].content).toBe(Buffer.from("PDFDATA").toString("base64"));
-    expect(providerSendMock).not.toHaveBeenCalled(); // attachment path bypasses the provider
+    expect(result).toEqual({ success: true, messageId: "prov-1" });
+    expect(providerSendMock).toHaveBeenCalledTimes(1);
+    const payload = providerSendMock.mock.calls[0]![1] as {
+      to: string[];
+      attachments?: Array<{ filename: string }>;
+    };
+    expect(payload.to).toEqual(["a@x.test"]);
+    expect(payload.attachments?.[0]?.filename).toBe("report.pdf");
   });
 });
