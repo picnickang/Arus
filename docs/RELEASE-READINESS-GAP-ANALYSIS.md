@@ -70,19 +70,20 @@ Effort key: XS ≈ minutes · S ≈ hours · M ≈ 1–3 days · L ≈ multi-day
 ### G3 — Dead-code regression (knip) · C11
 - **Gap:** `check:dead-code` regressed past baseline: files 0→4, dependencies 0→1, devDependencies 0→1,
   exports 2685→2704, types 1122→1153 (+56 atomic). CI `dead-code` job is red.
-- **Root cause (concrete):** an **unwired "Ops" UI feature**. knip flags these as fully unused:
-  - Files: `client/src/components/ops/ActionCard.tsx`, `client/src/components/ops/OpsStatusRail.tsx`,
-    `client/src/core/runtime/opsRuntimeMachine.ts`,
-    `client/src/features/mobile-readiness/__tests__/playwright-mobile-guard.spec.ts`
-  - Unused dependency: **`xstate`** (the state-machine lib behind `opsRuntimeMachine.ts`)
-  - Unused devDependency: **`@yao-pkg/pkg`**
-  - Plus orphaned exports on `OpsShell/OpsSidebar/OpsTopBar` and assorted barrels.
-- **Close it — pick one:**
-  - **(A) Remove** the unwired Ops feature (delete the dead files + `xstate`/`@yao-pkg/pkg` from
-    `package.json`) if it is abandoned. Cleanest; also drops a runtime dependency.
-  - **(B) Wire it up** if the Ops shell is intended (route it in, then knip stops flagging it).
-  - **(C) Re-baseline** (`node scripts/check-knip.mjs --write-baseline`) only if this is deliberate WIP —
-    least preferred, as it normalizes the dead weight.
+- **Root cause (concrete — refined after import-graph check; see remediation plan):** a *mix* of truly
+  dead code and intentional-but-unwired code. Note `UniversalOpsShell` **is** wired (`App.tsx:336`) and
+  imports `OpsShell/OpsSidebar/OpsTopBar` by name, so those files are NOT dead — knip only flags their
+  **redundant `default` exports**. knip's hits break down as:
+  - **Truly orphaned:** `client/src/core/runtime/opsRuntimeMachine.ts` + its sole consumer dependency
+    **`xstate`** (nothing imports the machine); and devDependency **`@yao-pkg/pkg`** (unreferenced anywhere).
+  - **Intentional-but-unwired (decision needed):** `client/src/components/ops/ActionCard.tsx` and
+    `OpsStatusRail.tsx` — planned Phase-2 maritime-HMI compliance components (`docs/compliance/Maritime-HMI-Compliance.md`).
+  - **Redundant exports:** unused `default` exports on `OpsShell/OpsSidebar/OpsTopBar` (imported by name).
+  - Plus a flagged test file `…/playwright-mobile-guard.spec.ts` (likely a knip entry-config gap).
+- **Close it (per item, not a blanket delete):** remove `opsRuntimeMachine.ts` + `xstate` + `@yao-pkg/pkg`
+  if abandoned; drop the redundant `default` exports; **decide** whether to wire or knip-ignore the Phase-2
+  `ActionCard`/`OpsStatusRail`; fix the knip entry for the spec — then `check:dead-code` returns to baseline.
+  Re-baselining (`node scripts/check-knip.mjs --write-baseline`) is the last resort.
 - **Effort S · Risk:** ships an unused state-machine dependency and a half-built feature surface.
 
 ### G4 — Unparsed client wire read · C3
