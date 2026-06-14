@@ -1,13 +1,13 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-export interface TimeWindowOption {
+interface TimeWindowOption {
   label: string;
   value: string;
 }
 
 /** Default presets shared by the PdM Overview tab and the Operations streams. */
-export const DEFAULT_TIME_WINDOW_OPTIONS: TimeWindowOption[] = [
+const DEFAULT_TIME_WINDOW_OPTIONS: TimeWindowOption[] = [
   { label: "1h", value: "1h" },
   { label: "6h", value: "6h" },
   { label: "24h", value: "24h" },

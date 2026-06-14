@@ -389,7 +389,9 @@ jobs:
     name: E2E PdM Visual (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build]
+    # Standalone: the Playwright webServer builds the renderer itself, so this
+    # screenshot-artifact job does not depend on the `build` job (and is not
+    # blocked by unrelated pre-existing failures in lint-and-typecheck).
 
     services:
       postgres:

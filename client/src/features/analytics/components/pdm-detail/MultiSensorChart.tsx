@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SensorBaselineBands } from "../../hooks/useSensorBaselines";
 
-export interface MultiSensorSeries {
+interface MultiSensorSeries {
   sensorType: string;
   unit: string;
   color: string;

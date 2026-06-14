@@ -10,7 +10,7 @@ import { SensorsTab } from "./pdm-detail/SensorsTab";
 import { AnomaliesTab } from "./pdm-detail/AnomaliesTab";
 import { MaintenanceTab } from "./pdm-detail/MaintenanceTab";
 
-export type PdmDetailTab = "overview" | "sensors" | "anomalies" | "maintenance";
+type PdmDetailTab = "overview" | "sensors" | "anomalies" | "maintenance";
 
 interface PdmEquipmentDetailProps {
   /** Overrides the route param; the wrapper screens parse it from the URL. */
