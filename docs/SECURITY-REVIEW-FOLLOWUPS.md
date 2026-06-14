@@ -95,10 +95,16 @@ before a second tenant is onboarded.
       rejected: dropping the feature; reformatting the output.)
 - [ ] **`eng.traineddata` → Git-LFS** — large binary used by the OCR extractor,
       currently tracked. `git-lfs` was unavailable in the review env.
-- [ ] **TensorFlow.js / ONNX advisory chain (HIGH)** — `tar`,
-      `@mapbox/node-pre-gyp` via `@tensorflow/tfjs-node`. npm's only "fix" is a
-      nonsensical downgrade (`tfjs-node@0.1.11`); **upstream-blocked** pending a
-      new tfjs release.
+- [ ] **TensorFlow.js / ONNX advisory chain (HIGH) — upstream-blocked, risk
+      annotated (2026-06).** `tar` / `@mapbox/node-pre-gyp` via
+      `@tensorflow/tfjs-node`. npm's only "fix" is a nonsensical downgrade
+      (`tfjs-node@0.1.11`); **upstream-blocked** pending a new tfjs release.
+      Assessment: this is an internal model-training/inference dependency, not a
+      request-path parser of untrusted input, so the chain is not reachable as an
+      external attack vector — accepted in the interim and annotated at the
+      representative import (`server/ml-lstm-model/architecture.ts`). Action:
+      enable Dependabot (repo Settings) to watch for a `tar`-free tfjs release,
+      then bump + re-audit. Stays open until that release lands.
 - [ ] **Docker `--omit=dev` validation** — prod image now runs
       `npm prune --omit=dev`; validate the resulting image in a full prod build.
 

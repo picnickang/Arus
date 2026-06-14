@@ -116,6 +116,21 @@ describe("LR-3.5 V3 — public-api allowlist negative pins", () => {
     expect(isPublicApiPath(path)).toBe(false);
   });
 
+  // 2026-06 auth-posture finding (docs/SECURITY-REVIEW-FOLLOWUPS.md): these
+  // endpoints were consumed for months with NO Authorization header (a client
+  // bug, since fixed) yet are NOT public paths — production correctly 401s
+  // them. Pinned by name so a future refactor can't quietly make them public.
+  it.each([
+    "/api/crew/rest/import", // STCW hours-of-rest import
+    "/api/crew/rest/check", // HoR compliance check
+    "/api/stcw/import", // STCW import
+    "/api/stcw/compliance/c1/2026/06", // STCW compliance read
+    "/api/analytics/twin-simulations", // digital-twin reads
+    "/api/pdm/twin/def/twins", // digital-twin definitions
+  ])("auth-posture finding route stays NON-public: %s", (path) => {
+    expect(isPublicApiPath(path)).toBe(false);
+  });
+
   it("does not collapse /api/admin/<anything> onto bootstrap allowlist", () => {
     // toApiPath strips the /api prefix; we verify the stripped path
     // is what we expect AND that it is correctly classified.
