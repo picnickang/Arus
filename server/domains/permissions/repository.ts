@@ -27,7 +27,6 @@ import {
   type PermissionAction,
   type PermissionGrant,
   type RoleTemplate,
-  type InsertRoleTemplate,
   type PermissionAuditEntry,
   type UserRoleAssignment,
   type InsertUserRoleAssignment,
@@ -121,15 +120,6 @@ export async function getRoleById(id: string, orgId: string): Promise<Role | und
   return role;
 }
 
-export async function getRoleByName(name: string, orgId: string): Promise<Role | undefined> {
-  const [role] = await db
-    .select()
-    .from(roles)
-    .where(and(eq(roles.name, name), eq(roles.orgId, orgId)))
-    .limit(1);
-  return role;
-}
-
 export async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
   if (!role) {
@@ -219,12 +209,6 @@ export async function listRoleTemplates(): Promise<RoleTemplate[]> {
 
 export async function getRoleTemplateById(id: string): Promise<RoleTemplate | undefined> {
   return staticRoleTemplates().find((t) => t.id === id || t.name === id);
-}
-
-export async function createRoleTemplate(_data: InsertRoleTemplate): Promise<RoleTemplate> {
-  throw new Error(
-    "createRoleTemplate is unsupported: role templates are defined in config/default-role-templates.ts"
-  );
 }
 
 export async function createRoleFromTemplate(
@@ -445,7 +429,6 @@ export const permissionRepository = {
   seedDefaultRoleTemplates,
   listRoles,
   getRoleById,
-  getRoleByName,
   createRole,
   updateRole,
   deleteRole,
@@ -456,7 +439,6 @@ export const permissionRepository = {
   bulkSetPermissionGrants,
   listRoleTemplates,
   getRoleTemplateById,
-  createRoleTemplate,
   createRoleFromTemplate,
   provisionTemplatesForOrg,
   getOrProvisionRolesForOrg,

@@ -13,7 +13,7 @@ import {
   initializeLocalDatabase,
 } from "./bootstrap/index.js";
 
-export interface AppOptions {
+interface AppOptions {
   skipDatabase?: boolean;
   skipAuth?: boolean;
   testAuth?: boolean;

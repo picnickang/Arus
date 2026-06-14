@@ -7,10 +7,10 @@
     "devDependencies": 0,
     "optionalPeerDependencies": 0,
     "exports": 2685,
-    "types": 1122,
+    "types": 1119,
     "enumMembers": 0,
     "duplicates": 46,
     "catalog": 0
   },
-  "totalAtomic": 3853
+  "totalAtomic": 3850
 }

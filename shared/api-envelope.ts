@@ -38,7 +38,6 @@ export const successEnvelopeSchema = z.object({
   meta: z.record(z.unknown()).optional(),
 });
 
-export type ApiErrorDetail = z.infer<typeof apiErrorDetailSchema>;
 export type ErrorEnvelope = z.infer<typeof errorEnvelopeSchema>;
 export interface SuccessEnvelope<T> {
   success: true;

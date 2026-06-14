@@ -470,7 +470,7 @@ export function getAllNavigationItems(): NavigationItem[] {
 }
 
 // Legacy support: homePageGroups format (maps to categories)
-export interface HomePageGroup {
+interface HomePageGroup {
   id: string;
   name: string;
   items: NavigationItem[];
