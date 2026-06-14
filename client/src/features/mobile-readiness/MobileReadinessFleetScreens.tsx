@@ -129,11 +129,15 @@ export function MobileFleetPage() {
 }
 
 export function MobileVesselDetailPage() {
-  const { fleet } = useScreens("admin");
+  // Call the hook once, unconditionally, and reuse the result — React hooks
+  // must run in the same order every render, so it can't be called again
+  // inside the conditional return below or in the JSX further down.
+  const screens = useScreens("admin");
+  const { fleet } = screens;
   const [location] = useLocation();
   const detail = fleet.vesselDetail;
   if (location.includes("/3d") || location.includes("diagram")) {
-    return <MobileVesselDiagramView screens={useScreens("admin")} />;
+    return <MobileVesselDiagramView screens={screens} />;
   }
   return (
     <MobilePageShell>
@@ -190,7 +194,7 @@ export function MobileVesselDetailPage() {
               <MiniState label="Flag" value="Singapore" tone="normal" />
             </div>
           </SectionCard>
-          <VesselDiagramPanel screens={useScreens("admin")} compact />
+          <VesselDiagramPanel screens={screens} compact />
         </Content>
       </div>
     </MobilePageShell>
