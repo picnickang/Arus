@@ -1,9 +1,9 @@
 {
   "_comment": "Domain layering conformance baseline. The 'full' set may only grow; 'partial' and 'flat' may only shrink. Regenerate with: node scripts/check-domain-conformance.mjs --write-baseline. See docs/adr/003-domain-layering-policy.md.",
-  "generatedAt": "2026-06-14T15:38:08.449Z",
+  "generatedAt": "2026-06-14T15:56:32.786Z",
   "counts": {
-    "full": 23,
-    "partial": 7,
+    "full": 24,
+    "partial": 6,
     "flat": 32,
     "total": 62
   },
@@ -29,6 +29,7 @@
     "scheduled-reports",
     "scheduling",
     "schematic-layout",
+    "telemetry",
     "vessel-diagram-registry",
     "work-orders"
   ],
@@ -38,7 +39,6 @@
     "pdm-platform",
     "permissions",
     "system-admin",
-    "telemetry",
     "workflow"
   ],
   "flat": [

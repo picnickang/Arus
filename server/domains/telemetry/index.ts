@@ -1,12 +1,12 @@
 /**
  * Telemetry Domain
+ * DDD Modular Monolith with Hexagonal Architecture
  *
- * Handles all telemetry data operations:
- * - Real-time telemetry ingestion (single and bulk)
- * - Telemetry history and trends
- * - Edge device heartbeats
- * - Sensor configurations
- * - Data cleanup and maintenance
+ * Layers: domain/ application/ infrastructure/ interfaces/
+ * The cross-domain reads (sensor configs, device heartbeats, open alerts) are
+ * injected via composition; ingestion routes remain a separate flat module.
  */
-
-export { registerTelemetryRoutes } from "./routes";
+export * from "./domain";
+export * from "./application";
+export * from "./infrastructure";
+export * from "./interfaces";

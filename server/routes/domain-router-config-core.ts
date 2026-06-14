@@ -45,6 +45,7 @@ import type { DomainRouterConfig } from "./domain-router-config-types";
 import { alertCrewDataProvider } from "../composition/alert-crew-data";
 import { syncInventoryProvider } from "../composition/sync-inventory-data";
 import { schedulingMaintenanceProvider } from "../composition/scheduling-maintenance-data";
+import { telemetryExternalProvider } from "../composition/telemetry-external-data";
 
 export const coreDomainRouters: DomainRouterConfig[] = [
   // Core domain routers (basic CRUD)
@@ -139,6 +140,7 @@ export const coreDomainRouters: DomainRouterConfig[] = [
       criticalOperationRateLimit,
       generalApiRateLimit,
       telemetryRateLimit,
+      external: telemetryExternalProvider,
     }),
   },
   {
