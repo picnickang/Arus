@@ -79,6 +79,7 @@ export default function WorkOrders() {
     getVesselName,
     handleViewOrder,
     handleEditOrder,
+    handleCloneOrder,
     handleDeleteOrder,
     pendingDeleteOrder,
     setPendingDeleteOrder,
@@ -250,9 +251,9 @@ export default function WorkOrders() {
           closeDrawer();
           handleEditOrder(_order);
         }}
-        onClone={(_order) => {
+        onClone={(order) => {
           closeDrawer();
-          closeCloneDialog(true);
+          handleCloneOrder(order);
         }}
         onDelete={handleDeleteOrder}
         isCompleting={completeWorkOrderMutation.isPending}
