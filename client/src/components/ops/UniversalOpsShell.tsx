@@ -30,6 +30,7 @@ import {
 import { OpsShell } from "./OpsShell";
 import { OpsSidebar, type OpsSidebarItem } from "./OpsSidebar";
 import { OpsTopBar } from "./OpsTopBar";
+import { OpsStatusRailContainer } from "./OpsStatusRailContainer";
 
 interface UniversalOpsShellProps {
   currentPath: string;
@@ -329,6 +330,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
           <UniversalSubnav currentPath={currentPath} items={navModel.activeChildren} />
         </>
       }
+      statusRail={<OpsStatusRailContainer />}
     >
       {children}
     </OpsShell>

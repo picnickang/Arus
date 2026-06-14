@@ -1,128 +1,112 @@
-import React from "react";
+import { AlertTriangle, ArrowLeftRight, Cloud, CloudOff, RefreshCw, UploadCloud } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface RiskItem {
+export interface OpsRailRisk {
   id: string;
   label: string;
   severity: "high" | "medium" | "low";
-  confidence?: number;
+  href?: string;
 }
 
 interface OpsStatusRailProps {
-  risks?: RiskItem[];
+  risks?: OpsRailRisk[];
   outboxCount?: number;
   outboxHasConflict?: boolean;
-  handoverMinutes?: number;
-  isVesselLocal?: boolean;
-  cachedSensors?: number;
+  handoverOpenItems?: number;
+  isOnline?: boolean;
   onAction?: (action: string, payload?: unknown) => void;
   className?: string;
 }
 
+const chip = "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium";
+const chipBtn =
+  "inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring";
+
 /**
- * Persistent Ops Status Rail
- * Phase 1 remediation for P0: Always-visible critical operational info
- * Compliant with S-Mode / IEC 62288 visibility principles
+ * Persistent Ops Status Rail — always-visible critical operational info
+ * (top risk, offline outbox, handover) on the admin ops surface. Docked
+ * (wraps; never scrolls critical items off-screen) and theme-token driven,
+ * so it adapts to light/dark/bridge/daylight. S-Mode / IEC 62288 aligned.
  */
-const OpsStatusRail: React.FC<OpsStatusRailProps> = ({
+export default function OpsStatusRail({
   risks = [],
   outboxCount = 0,
   outboxHasConflict = false,
-  handoverMinutes,
-  isVesselLocal = true,
-  cachedSensors = 0,
+  handoverOpenItems,
+  isOnline = true,
   onAction,
-  className = "",
-}) => {
-  const hasCritical = risks.some((r) => r.severity === "high");
+  className,
+}: OpsStatusRailProps) {
   const topRisk = risks[0];
-
   return (
     <div
-      className={`w-full bg-zinc-900/95 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-sm overflow-x-auto whitespace-nowrap ${className}`}
+      className={cn(
+        "flex w-full flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2 text-card-foreground",
+        className
+      )}
       role="region"
       aria-label="Persistent operational status rail"
     >
-      {/* Highest Priority Risk / AI Finding */}
       {topRisk && (
-        <div className="flex items-center gap-2 bg-red-950/70 border border-red-500/60 rounded-lg px-3 py-1.5 text-red-300 flex-shrink-0">
-          <span className="text-base" aria-hidden="true">
-            🔴
-          </span>
-          <span className="font-medium">{topRisk.label}</span>
-          {topRisk.confidence && (
-            <span className="text-xs text-red-400/80">{topRisk.confidence}%</span>
-          )}
-          <div className="flex gap-1 ml-2">
-            <button
-              onClick={() => onAction?.("accept-risk", topRisk)}
-              className="px-2.5 py-1 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
-              aria-label={`Accept work order for ${topRisk.label}`}
-            >
-              Accept WO
-            </button>
-            <button
-              onClick={() => onAction?.("snooze-risk", topRisk)}
-              className="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400"
-            >
-              Snooze
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Offline Outbox Status */}
-      {outboxCount > 0 && (
-        <div className="flex items-center gap-2 bg-amber-950/70 border border-amber-500/60 rounded-lg px-3 py-1.5 text-amber-300 flex-shrink-0">
-          <span className="text-base" aria-hidden="true">
-            📤
-          </span>
-          <span>
-            {outboxCount} item{outboxCount > 1 ? "s" : ""}
-            {outboxHasConflict && <span className="text-amber-400"> (1 conflict)</span>}
-          </span>
+        <div className={cn(chip, "border-destructive/40 bg-destructive/10 text-destructive")}>
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="font-semibold">{topRisk.label}</span>
           <button
-            onClick={() => onAction?.("review-outbox")}
-            className="ml-2 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
-            aria-label="Review offline outbox queue"
+            type="button"
+            onClick={() => onAction?.("open-risk", topRisk)}
+            className={cn(chipBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
           >
             Review
           </button>
         </div>
       )}
 
-      {/* Handover / Next Action */}
-      {handoverMinutes !== undefined && (
-        <div className="flex items-center gap-2 bg-blue-950/70 border border-blue-500/60 rounded-lg px-3 py-1.5 text-blue-300 flex-shrink-0">
-          <span className="text-base" aria-hidden="true">
-            🔀
+      {outboxCount > 0 && (
+        <div className={cn(chip, "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300")}>
+          <UploadCloud className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            {outboxCount} queued{outboxHasConflict ? " · conflict" : ""}
           </span>
-          <span>Handover in {handoverMinutes} min</span>
           <button
-            onClick={() => onAction?.("open-handover-briefing")}
-            className="ml-2 px-2.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
-            aria-label="Open handover briefing"
+            type="button"
+            onClick={() => onAction?.("review-outbox")}
+            className={cn(chipBtn, "bg-amber-500 text-white hover:bg-amber-500/90")}
+          >
+            Outbox
+          </button>
+        </div>
+      )}
+
+      {handoverOpenItems !== undefined && handoverOpenItems > 0 && (
+        <div className={cn(chip, "border-primary/40 bg-primary/10 text-primary")}>
+          <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{handoverOpenItems} before handover</span>
+          <button
+            type="button"
+            onClick={() => onAction?.("open-handover")}
+            className={cn(chipBtn, "bg-primary text-primary-foreground hover:bg-primary/90")}
           >
             Briefing
           </button>
         </div>
       )}
 
-      {/* Vessel / Mode Status - always visible */}
-      <div className="flex items-center gap-2 bg-zinc-800/80 border border-zinc-600 rounded-lg px-3 py-1.5 text-zinc-400 flex-shrink-0 ml-auto">
-        <span>{isVesselLocal ? "🛳️ Vessel-Local" : "☁️ Cloud"}</span>
-        {cachedSensors > 0 && (
-          <span className="text-xs text-emerald-400/80">• {cachedSensors} cached</span>
+      <div className={cn(chip, "ml-auto border-border bg-muted text-muted-foreground")}>
+        {isOnline ? (
+          <Cloud className="h-4 w-4 shrink-0" aria-hidden="true" />
+        ) : (
+          <CloudOff className="h-4 w-4 shrink-0" aria-hidden="true" />
         )}
+        <span>{isOnline ? "Online" : "Offline"}</span>
         <button
+          type="button"
           onClick={() => onAction?.("refresh-status")}
-          className="ml-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="Refresh status"
         >
-          ⟳
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     </div>
   );
-};
-
-export default OpsStatusRail;
+}
