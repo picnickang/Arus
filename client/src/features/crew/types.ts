@@ -11,7 +11,9 @@ export interface CrewMemberRecord {
   hireDate?: Date;
   certifications?: string[];
   skills?: string[];
-  status: "active" | "on_leave" | "off_duty" | "inactive";
+  // Mirrors crew.status in the DB (CHECK crew_status_valid, migration
+  // 0048) and CREW_STATUSES in lib/crewManagementUtils.ts.
+  status: "active" | "onboard" | "on_leave" | "standby";
   vesselId?: string;
   hourlyRate?: number;
   createdAt?: Date;

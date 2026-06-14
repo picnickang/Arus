@@ -6,12 +6,15 @@ import { pgTable, text, varchar, boolean, timestamp, integer, jsonb } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
+import { organizations } from "./core";
 
 export const reportSchedules = pgTable("report_schedules", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id", { length: 36 }).notNull(),
+  orgId: varchar("org_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id),
   name: varchar("name", { length: 100 }).notNull(),
   reportType: varchar("report_type", { length: 50 }).notNull(),
   frequency: varchar("frequency", { length: 20 }).notNull(),
@@ -33,7 +36,9 @@ export const generatedReports = pgTable("generated_reports", {
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   scheduleId: varchar("schedule_id", { length: 36 }).notNull(),
-  orgId: varchar("org_id", { length: 36 }).notNull(),
+  orgId: varchar("org_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id),
   reportType: varchar("report_type", { length: 50 }).notNull(),
   format: varchar("format", { length: 10 }).notNull(),
   filename: varchar("filename", { length: 255 }).notNull(),

@@ -5,7 +5,7 @@
  * This module was split for maintainability (300-line limit per file).
  *
  * Core Tables (ml-analytics-core.ts):
- * - mlModelsLegacy, mlModels, anomalyDetections, failurePredictions
+ * - mlModels, anomalyDetections, failurePredictions
  * - thresholdOptimizations, componentDegradation, failureHistory
  *
  * Advanced Tables (ml-analytics-advanced.ts):

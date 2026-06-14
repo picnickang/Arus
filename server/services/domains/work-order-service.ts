@@ -289,11 +289,11 @@ class WorkOrderService {
               .where(eq(vessels.id, vesselId))
               .limit(1);
             if (vessel) {
-              const currentDowntime = Number.parseFloat(vessel.downtimeDays ?? "0");
+              const currentDowntime = vessel.downtimeDays ?? 0;
               await tx
                 .update(vessels)
                 .set({
-                  downtimeDays: (currentDowntime + downtimeDays).toFixed(2),
+                  downtimeDays: Number((currentDowntime + downtimeDays).toFixed(2)),
                   updatedAt: new Date(),
                 })
                 .where(eq(vessels.id, vesselId));
@@ -534,10 +534,10 @@ class WorkOrderService {
           const vessel = await tx.select().from(vessels).where(eq(vessels.id, vesselId)).limit(1);
           const firstVessel = vessel[0];
           if (firstVessel) {
-            const cd = Number.parseFloat(firstVessel.downtimeDays || "0");
+            const cd = firstVessel.downtimeDays ?? 0;
             await tx
               .update(vessels)
-              .set({ downtimeDays: (cd + downtimeDays).toFixed(2), updatedAt: new Date() })
+              .set({ downtimeDays: Number((cd + downtimeDays).toFixed(2)), updatedAt: new Date() })
               .where(eq(vessels.id, vesselId));
           }
           finalUpdates.vesselDowntimeStartedAt = null;

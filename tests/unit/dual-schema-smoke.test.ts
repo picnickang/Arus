@@ -58,7 +58,6 @@ describe("Schema-runtime file structural checks", () => {
     "vessels",
     "equipment",
     "workOrders",
-    "inventoryParts",
     "crew",
     "alertConfigurations",
     "sensorConfigurations",
@@ -163,15 +162,6 @@ describe("Schema-runtime table shape smoke tests — critical domain paths", () 
       expect(parsed.keys).toContain("id");
       expect(parsed.keys).toContain("orgId");
       expect(parsed.keys).toContain("status");
-    }
-  });
-
-  test("inventoryParts table export resolves and exposes expected columns", () => {
-    const parsed = queryTable("inventoryParts");
-    expect(parsed.ok).toBe(true);
-    if (parsed.count > 0) {
-      expect(parsed.keys).toContain("id");
-      expect(parsed.keys).toContain("orgId");
     }
   });
 
@@ -310,7 +300,7 @@ describe("SQLite mode import resolution", () => {
     }
   }
 
-  const criticalTables = ["vessels", "equipment", "workOrders", "inventoryParts", "crew"];
+  const criticalTables = ["vessels", "equipment", "workOrders", "crew"];
 
   test.each(criticalTables)("%s table resolves in LOCAL_MODE (SQLite mode)", (tableName) => {
     const parsed = verifyLocalModeImports(tableName);

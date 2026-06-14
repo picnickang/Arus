@@ -489,6 +489,8 @@ export const entityOffsets = pgTable(
   {
     vesselId: text("vessel_id").notNull(),
     entity: text("entity").notNull(),
+    // Deliberately string-mode: numeric(20,0) sequence numbers exceed
+    // Number.MAX_SAFE_INTEGER; consumers compare/parse as strings.
     seq: numeric("seq", { precision: 20, scale: 0 })
       .notNull()
       .default(sql`0`),

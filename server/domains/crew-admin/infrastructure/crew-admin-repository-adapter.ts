@@ -631,7 +631,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .values({
         orgId: input.orgId,
         name: input.name,
-        email: input.email,
+        email: input.email.toLowerCase(),
         username: input.username,
         passwordHash: input.passwordHash,
         passwordUpdatedAt: new Date(),

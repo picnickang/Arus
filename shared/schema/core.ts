@@ -16,7 +16,6 @@ import {
   boolean,
   serial,
   index,
-  uniqueIndex,
   createInsertSchema,
   z,
 } from "./base";
@@ -67,8 +66,9 @@ export const users = pgTable(
     username: text("username"),
     name: text("name").notNull(),
     passwordHash: text("password_hash"),
-    passwordResetToken: text("password_reset_token"),
-    passwordResetExpires: timestamp("password_reset_expires", { mode: "date" }),
+    // password_reset_token/_expires dropped in 0049: no reset flow ever
+    // shipped (zero readers/writers). If one is added, store only a hash
+    // of the token from day one.
     passwordUpdatedAt: timestamp("password_updated_at", { mode: "date" }),
     role: text("role").notNull().default("viewer"),
     jobTitle: text("job_title"),
@@ -87,12 +87,12 @@ export const users = pgTable(
     lastLoginAt: timestamp("last_login_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-  },
-  (table) => ({
-    // Tenant-scoped natural key (0039): the same email may exist in
-    // different orgs, never twice within one.
-    orgEmailUq: uniqueIndex("uq_users_org_email").on(table.orgId, table.email),
-  })
+  }
+  // Email uniqueness is migration-managed: 0039's uq_users_org_email was
+  // replaced in 0047 by uq_users_org_email_lower on (org_id, lower(email)),
+  // an expression index Drizzle cannot declare here. Do not re-add a TS
+  // uniqueIndex on email — push would recreate the case-sensitive index
+  // that 0047 drops.
 );
 
 // System settings
@@ -103,7 +103,12 @@ export const systemSettings = pgTable("system_settings", {
   strictUnits: boolean("strict_units").default(false),
   llmEnabled: boolean("llm_enabled").default(true),
   llmModel: text("llm_model").default("gpt-4o-mini"),
+  // Legacy plaintext column — kept for 0043 rollback compatibility; the
+  // boot backfill moves any value into openaiApiKeyEncrypted and NULLs it.
   openaiApiKey: text("openai_api_key"),
+  // AES-256-GCM via server/lib/crypto-service.ts (0043). Never returned
+  // by the API; PUT /api/settings accepts a plaintext key and encrypts.
+  openaiApiKeyEncrypted: text("openai_api_key_encrypted"),
   aiInsightsThrottleMinutes: integer("ai_insights_throttle_minutes").default(2),
   timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5),
 });
@@ -201,8 +206,6 @@ export const insertUserSchema = createInsertSchema(users)
     updatedAt: true,
     lastLoginAt: true,
     passwordHash: true,
-    passwordResetToken: true,
-    passwordResetExpires: true,
     passwordUpdatedAt: true,
     hubAdmin: true,
     hubAccess: true,
@@ -233,7 +236,12 @@ export const setPasswordSchema = z.object({
   password: z.string().min(8).max(100),
 });
 
-export const insertSettingsSchema = createInsertSchema(systemSettings).omit({ id: true });
+// openaiApiKey stays accepted as WRITE-ONLY input (the storage layer
+// encrypts it); the encrypted column is never client-settable.
+export const insertSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  openaiApiKeyEncrypted: true,
+});
 
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings)
   .omit({ id: true, createdAt: true, updatedAt: true, lastTestAt: true, lastTestStatus: true })

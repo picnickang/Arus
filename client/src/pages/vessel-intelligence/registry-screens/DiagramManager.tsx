@@ -113,7 +113,8 @@ export function DiagramManager({
   );
 }
 
-export function DiagramTypeCard({
+// Rendered only by DiagramManager above; not exported (knip dead-export gate).
+function DiagramTypeCard({
   type,
   diagram,
   sectionMap,

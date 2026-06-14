@@ -88,6 +88,7 @@ export const anomalyDetectionsSqlite = sqliteTable(
     resolvedAt: integer("resolved_at", { mode: "timestamp" }),
     metadata: text("metadata"),
     createdAt: integer("created_at", { mode: "timestamp" }),
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentIdx: index("idx_ad_equipment").on(table.equipmentId),

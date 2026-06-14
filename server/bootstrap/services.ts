@@ -1,5 +1,6 @@
 import { createLogger } from "../lib/structured-logger";
 import { runBootMigrations } from "../scripts/migrate";
+import { dbSystemAdminStorage } from "../db/system-admin/index.js";
 const logger = createLogger("Bootstrap:Services");
 /**
  * Service Initialization
@@ -129,6 +130,26 @@ export async function initializeDatabase(): Promise<void> {
         logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
       } catch (err) {
         logger.warn("[FeatureFlags] Override table setup skipped:", {
+          details: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      // 0043 — one-shot move of any legacy plaintext OpenAI key into the
+      // encrypted column, plus a loud production warning while telemetry
+      // ingestion runs without HMAC device authentication.
+      try {
+        await dbSystemAdminStorage.ensureSettingsSecretsMigrated();
+        if (process.env["NODE_ENV"] === "production") {
+          const settings = await dbSystemAdminStorage.getSettings();
+          if (!settings?.hmacRequired) {
+            logger.warn(
+              "⚠ Telemetry HMAC validation is DISABLED — unauthenticated devices can post telemetry. " +
+                "Set hmacRequired=true in system settings to require device signatures."
+            );
+          }
+        }
+      } catch (err) {
+        logger.warn("[SystemSettings] Secret migration/HMAC check skipped:", {
           details: err instanceof Error ? err.message : String(err),
         });
       }
