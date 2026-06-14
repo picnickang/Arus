@@ -1,4 +1,5 @@
-import { AlertTriangle, ArrowLeftRight, Cloud, CloudOff, RefreshCw, UploadCloud } from "lucide-react";
+import { ArrowLeftRight, Cloud, CloudOff, RefreshCw, UploadCloud } from "lucide-react";
+import { ObiAlertCategoryA } from "@oicl/openbridge-webcomponents-react/icons/icon-alert-category-a.js";
 import { cn } from "@/lib/utils";
 
 export interface OpsRailRisk {
@@ -49,7 +50,7 @@ export default function OpsStatusRail({
     >
       {topRisk && (
         <div className={cn(chip, "border-destructive/40 bg-destructive/10 text-destructive")}>
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <ObiAlertCategoryA className="inline-block h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="font-semibold">{topRisk.label}</span>
           <button
             type="button"

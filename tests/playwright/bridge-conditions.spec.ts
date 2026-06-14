@@ -115,6 +115,8 @@ test.describe("Bridge conditions @mobile @visual", () => {
     const [r, g, b] = (bg.match(/\d+/g) ?? ["255", "255", "255"]).map(Number);
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     expect(luminance, `rail background ${bg} should be dark (night-vision) in the bridge theme`).toBeLessThan(60);
+    // The risk chip renders the OpenBridge IEC alert symbol (M2 Phase A icon adoption).
+    await expect(rail.locator("obi-alert-category-a")).toBeVisible();
   });
 
   test("rail action targets are >=44px for gloved use", async ({ page }) => {
