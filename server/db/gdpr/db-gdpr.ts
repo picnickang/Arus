@@ -294,9 +294,7 @@ export class DatabaseGdprStorage {
     const subjectId = request.requesterId ?? null;
     const subjectEmail = request.requesterEmail ?? null;
     if (!subjectId && !subjectEmail) {
-      throw new Error(
-        `DSAR ${dsarId} has no requesterId/requesterEmail to identify the subject`
-      );
+      throw new Error(`DSAR ${dsarId} has no requesterId/requesterEmail to identify the subject`);
     }
     const dryRun = options?.dryRun ?? false;
 
