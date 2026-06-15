@@ -2,6 +2,28 @@
 
 Generated: 2026-06-12T14:06:02.251Z
 
+## Reconciliation — 2026-06-15
+
+The CI lint job stopped running on `main` for a stretch (a `npm_and_yarn`
+Dependabot bump took `vite` to 8 without raising `@types/node`, so every job
+died at `npm ci`). During that window seven files crossed the 500-line ceiling
+without the ratchet catching them. The PR that repaired `npm ci` is the first
+build to re-run this gate, so the hidden drift surfaced there. None of these
+files are introduced or grown by that PR; the ceiling was reconciled `0 -> 7`
+to reflect reality, and they remain open burndown debt:
+
+| File                                                             | Lines |
+| ---------------------------------------------------------------- | ----: |
+| `server/scripts/migrate.ts`                                      |   544 |
+| `client/src/features/mobile-readiness/MobileReadinessShared.tsx` |   543 |
+| `server/db/ml-analytics/db-ml-analytics.ts`                      |   541 |
+| `server/db/equipment/db-equipment.ts`                            |   529 |
+| `server/services/patch-applicator.ts`                            |   527 |
+| `server/routes/vessel-3d-routes.ts`                              |   502 |
+| `server/service-orders/routes.ts`                                |   501 |
+
+The ceiling should resume its downward-only ratchet from 7 as these land.
+
 ## Policy
 
 Long files are no longer treated as an all-at-once release blocker. They are a ratcheted burndown gate:
