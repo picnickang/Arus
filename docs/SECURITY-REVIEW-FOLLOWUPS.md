@@ -349,14 +349,22 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       One console review on a deployed build; then either migrate stragglers or
       close this item.
 
-- [ ] **Auth-posture finding: endpoints were consumed with no Authorization
-      header for months.** STCW hours-of-rest import/export/rest reads, the PdM
-      model-registry version probe, and digital-twin reads sent no Bearer token,
-      yet none are public paths — production returns 401
-      (`server/security/authentication.ts:105-113`; no cookie/session fallback
-      exists). Client side fixed by the apiRequest migrations (2026-06). Open
-      question: were these dead features, or does some deployment run with auth
-      relaxed? Manual smoke on the next real deployment:
+- [ ] **Auth-posture finding — SECURITY side RESOLVED in code; only a functional
+      smoke remains.** STCW hours-of-rest import/export/rest reads, the PdM
+      model-registry version probe, and digital-twin reads sent no Bearer token
+      for months, yet none are public paths. Code investigation (2026-06-15)
+      confirms **production was never running with relaxed auth**:
+      `requireAuthentication` + `requireOrgId` are globally mounted on `/api` via
+      `skipPublicPaths` (middleware.ts:267-268), so every non-allowlisted route
+      is default-deny; `requireAuthentication` has **no cookie/session fallback**
+      (no Bearer ⇒ 401, authentication.ts:99-113); dev-login is **hard-disabled
+      in production** (`isDevLoginEnabled()` returns false as its first check when
+      `NODE_ENV==='production'`); and the named routes are absent from the public
+      allowlist. So the no-auth calls were client-side omissions (now fixed by the
+      apiRequest migrations, 2026-06) that would have 401'd in any auth-enforcing
+      environment — i.e. the features were unused or silently broken, not an
+      exposure. **Residual (needs a real deployment):** functional smoke that they
+      work now that the client sends auth:
   - _Hours of Rest_ — save, load, copy-months, CSV import.
   - _Model registry_ — highlighted-version resolution.
   - _Digital twin_ — templates, state, timeline pages.
