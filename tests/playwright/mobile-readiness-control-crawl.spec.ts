@@ -1,18 +1,13 @@
-import { expect, test, type ConsoleMessage, type Page, type Route } from "@playwright/test";
+import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
-import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
+import { isMobileReadinessReplacementPath } from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 import {
-  getMobileReadinessExpectedScreen,
-  isMobileReadinessReplacementPath,
-} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
-
-type AuditRole = "super_admin" | "system_admin" | "deck_officer" | "crew_member" | "viewer";
-
-interface RoleScenario {
-  role: AuditRole;
-  adminCapable: boolean;
-  startRoutes: string[];
-}
+  hideDevPerfOverlay,
+  installRoleFixtures,
+  loginRole,
+  navigateWithinAuthenticatedSpa,
+} from "./helpers/spa-auth";
+import { ROLE_SCENARIOS, expectedScreenTestId } from "./helpers/roles";
 
 interface RouteControlDescriptor {
   auditId: string;
@@ -30,35 +25,9 @@ interface StateButtonDescriptor {
 }
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
-const adminRoutes = [
-  "/",
-  "/fleet",
-  "/vessel-intelligence/mv-atlas/overview",
-  "/vessel-intelligence/mv-atlas/diagrams",
-  "/pdm-platform",
-  "/pdm/equipment/port-generator",
-  "/pdm/equipment/port-generator/telemetry",
-  "/work-orders",
-  "/work-orders/so-4481",
-  "/logs",
-  "/crew-management",
-  "/logistics",
-  "/system",
-] as const;
 
-const roleScenarios: RoleScenario[] = [
-  { role: "super_admin", adminCapable: true, startRoutes: [...adminRoutes] },
-  { role: "system_admin", adminCapable: true, startRoutes: [...adminRoutes] },
-  {
-    role: "deck_officer",
-    adminCapable: false,
-    startRoutes: ["/", "/logs", "/crew-management", "/pdm-platform"],
-  },
-  { role: "crew_member", adminCapable: false, startRoutes: ["/", "/logs"] },
-  { role: "viewer", adminCapable: false, startRoutes: ["/", "/logs"] },
-];
-
-const documentedStateOnlyButton = /^(?:Open menu|Pull to refresh|Refresh|Legend|Zones|View section|Filters?|Overview|Machinery|Work|Alerts|Crew|Inventory|Documents|Summary|Health|Trend|Maintenance|Info|Telemetry|Events|Advanced Graph|Raw Data|Sensors|1d|7d|30d|Custom|Compare|Actions|Save Draft|Save Draft Offline|Complete Work|Add|View All|History|Logistics|Vendors|Card view|Table view|View More History|Log Out|Details|Linked|Daily|Engine|Deck|Safety|Compliance|All|Mine|My Work|Overdue|Watch|Blocked|Parts|Review|Done|Open|In Progress|Waiting|Ready|Closed|Intake|Triage|Assigned|CSV|Side elevation|Deck plan|Machinery arrangement|Fire safety|Electrical single-line|Engine Log|Deck Watch|Condition Log|Signoff)$/i;
+const documentedStateOnlyButton =
+  /^(?:Open menu|Pull to refresh|Refresh|Legend|Zones|View section|Filters?|Overview|Machinery|Work|Alerts|Crew|Inventory|Documents|Summary|Health|Trend|Maintenance|Info|Telemetry|Events|Advanced Graph|Raw Data|Sensors|1d|7d|30d|Custom|Compare|Actions|Save Draft|Save Draft Offline|Complete Work|Add|View All|History|Logistics|Vendors|Card view|Table view|View More History|Log Out|Details|Linked|Daily|Engine|Deck|Safety|Compliance|All|Mine|My Work|Overdue|Watch|Blocked|Parts|Review|Done|Open|In Progress|Waiting|Ready|Closed|Intake|Triage|Assigned|CSV|Side elevation|Deck plan|Machinery arrangement|Fire safety|Electrical single-line|Engine Log|Deck Watch|Condition Log|Signoff)$/i;
 
 function normalizedStateButtonLabel(label: string): string {
   return label
@@ -67,138 +36,8 @@ function normalizedStateButtonLabel(label: string): string {
     .trim();
 }
 
-async function installRoleFixtures(page: Page, scenario: RoleScenario): Promise<void> {
-  await page.setViewportSize(MOBILE_VIEWPORT);
-  await page.addInitScript(
-    ({ key, role }) => {
-      localStorage.clear();
-      sessionStorage.clear();
-      localStorage.setItem(key, role);
-      localStorage.setItem("arus-ui-theme", "dark");
-      localStorage.setItem("arus-setup-complete", "true");
-      const hidePerfOverlay = () => {
-        document.querySelectorAll('[data-testid="button-show-perf-overlay"]').forEach((button) => {
-          const container = button.parentElement;
-          if (container instanceof HTMLElement) {
-            container.style.display = "none";
-            container.style.pointerEvents = "none";
-          }
-        });
-      };
-      const installPerfOverlayObserver = () => {
-        hidePerfOverlay();
-        if (document.documentElement) {
-          new MutationObserver(hidePerfOverlay).observe(document.documentElement, {
-            childList: true,
-            subtree: true,
-          });
-        }
-      };
-      if (document.documentElement) {
-        installPerfOverlayObserver();
-      } else {
-        window.addEventListener("DOMContentLoaded", installPerfOverlayObserver, { once: true });
-      }
-    },
-    { key: ROLE_STORAGE_KEY, role: scenario.role }
-  );
-
-  await page.route("**/api/**", async (route: Route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname;
-
-    if (path === "/api/portal/login" && request.method() === "POST") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          sessionToken: `playwright-crawl-${scenario.role}`,
-          expiresIn: 3600,
-          mustChangePassword: false,
-          user: { id: `user-${scenario.role}`, name: scenario.role, role: scenario.role },
-        }),
-      });
-      return;
-    }
-
-    if (path === "/api/permissions/me") {
-      const permissions = scenario.adminCapable
-        ? {
-            crew_members: { view: true, create: true, edit: true, delete: true, export: true },
-            inventory: { view: true, create: true, edit: true, delete: true, export: true },
-            permission_management: { view: true, edit: true },
-            safety_bulletins: { view: true, create: true },
-            vessels: { view: true, edit: true },
-            work_orders: { view: true, create: true, edit: true, delete: true, export: true },
-          }
-        : {};
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          userId: `user-${scenario.role}`,
-          orgId: "org-playwright",
-          roles: [{ id: `role-${scenario.role}`, name: scenario.role, displayName: scenario.role }],
-          permissions,
-          hubAdmin: scenario.adminCapable,
-          hubAccess: scenario.adminCapable ? null : [],
-          isDevMode: false,
-        }),
-      });
-      return;
-    }
-
-    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-  });
-}
-
-async function loginScenario(page: Page, scenario: RoleScenario): Promise<void> {
-  await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
-  if (scenario.adminCapable) {
-    await page.getByTestId("button-card-portal-admin").click();
-    await page.getByTestId("input-admin-username").fill(`playwright-${scenario.role}`);
-    await page.getByTestId("input-admin-password").fill("playwright-password");
-    await page.getByTestId("button-admin-login").click();
-  } else {
-    await page.getByTestId("button-card-portal-user").click();
-    await page.getByTestId("input-login-username").fill(`playwright-${scenario.role}`);
-    await page.getByTestId("input-login-password").fill("playwright-password");
-    await page.getByTestId("button-login").click();
-  }
-  await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
-  await page.addStyleTag({
-    content:
-      '[data-testid="button-show-perf-overlay"] { opacity: 0 !important; pointer-events: none !important; }',
-  });
-}
-
-async function hideDevPerfOverlay(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    document.querySelectorAll('[data-testid="button-show-perf-overlay"]').forEach((button) => {
-      const container = button.parentElement;
-      if (container instanceof HTMLElement) {
-        container.style.display = "none";
-        container.style.pointerEvents = "none";
-      }
-    });
-  });
-}
-
-async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
-  await page.evaluate((target) => {
-    window.history.pushState({}, "", target);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, path);
-}
-
 function escapedRouteRegex(path: string): RegExp {
   return new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`);
-}
-
-function markerForPath(path: string): string | null {
-  const marker = getMobileReadinessExpectedScreen(path);
-  return marker ? `mobile-readiness-screen-${marker}` : null;
 }
 
 async function expectHealthyPage(page: Page, expectedPath: string): Promise<void> {
@@ -209,7 +48,7 @@ async function expectHealthyPage(page: Page, expectedPath: string): Promise<void
   await expect(page.getByTestId("text-admin-hubs-title")).toHaveCount(0);
 
   if (isMobileReadinessReplacementPath(expectedPath)) {
-    const marker = markerForPath(expectedPath);
+    const marker = expectedScreenTestId(expectedPath);
     expect(marker).not.toBeNull();
     await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
     await expect(page.getByTestId(marker!)).toBeVisible();
@@ -306,7 +145,8 @@ async function collectStateButtons(page: Page): Promise<StateButtonDescriptor[]>
         const textLabel = (button.textContent ?? "").trim();
         return {
           auditId,
-          label: textLabel || button.getAttribute("aria-label") || button.getAttribute("title") || "",
+          label:
+            textLabel || button.getAttribute("aria-label") || button.getAttribute("title") || "",
           testId: button.getAttribute("data-testid"),
         };
       });
@@ -314,7 +154,7 @@ async function collectStateButtons(page: Page): Promise<StateButtonDescriptor[]>
 }
 
 test.describe("mobile readiness visible control crawl", () => {
-  for (const scenario of roleScenarios) {
+  for (const scenario of ROLE_SCENARIOS) {
     test(`${scenario.role} visible route-bearing controls and state buttons are wired`, async ({
       page,
     }) => {
@@ -328,8 +168,20 @@ test.describe("mobile readiness visible control crawl", () => {
       });
       page.on("pageerror", (error) => pageErrors.push(`${error.name}: ${error.message}`));
 
-      await installRoleFixtures(page, scenario);
-      await loginScenario(page, scenario);
+      await installRoleFixtures(page, {
+        role: scenario.role,
+        adminCapable: scenario.adminCapable,
+        permissions: scenario.permissions,
+        hidePerfOverlay: true,
+        viewport: MOBILE_VIEWPORT,
+        serveDiagnostics: false,
+        orgId: "org-playwright",
+      });
+      await loginRole(page, scenario.role, scenario.adminCapable);
+      await page.addStyleTag({
+        content:
+          '[data-testid="button-show-perf-overlay"] { opacity: 0 !important; pointer-events: none !important; }',
+      });
 
       const auditedRouteControls: RouteControlDescriptor[] = [];
       const auditedStateButtons: StateButtonDescriptor[] = [];
@@ -356,8 +208,10 @@ test.describe("mobile readiness visible control crawl", () => {
         }
 
         const routeControls = await collectRouteControls(page);
-        expect(routeControls.length, `${scenario.role} ${startRoute} should expose route controls`)
-          .toBeGreaterThan(0);
+        expect(
+          routeControls.length,
+          `${scenario.role} ${startRoute} should expose route controls`
+        ).toBeGreaterThan(0);
 
         for (const control of routeControls) {
           await navigateWithinAuthenticatedSpa(page, startRoute);

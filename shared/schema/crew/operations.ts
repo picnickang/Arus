@@ -2,17 +2,7 @@
  * Crew skill, assignment, credential, document, and rest schema tables.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  integer,
-  real,
-  timestamp,
-  boolean,
-  index,
-} from "../base";
+import { sql, pgTable, text, varchar, integer, real, timestamp, boolean, index } from "../base";
 import { organizations } from "../core";
 import { vessels } from "../vessels";
 import { crew } from "./people";

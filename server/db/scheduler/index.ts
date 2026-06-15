@@ -17,7 +17,6 @@
  * Scheduler Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseSchedulerStorage } from "./db-scheduler.js";
 
 import { createLogger } from "../../lib/structured-logger";

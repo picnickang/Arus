@@ -405,9 +405,7 @@ test.describe("mobile core operational smokes @mobile @guard", () => {
     await expectNoMobileOverflow(page);
   });
 
-  test("Universal and replacement routes render their current mobile bodies", async ({
-    page,
-  }) => {
+  test("Universal and replacement routes render their current mobile bodies", async ({ page }) => {
     await installMobileFixtures(page);
 
     const universalRoutes = [
@@ -433,9 +431,7 @@ test.describe("mobile core operational smokes @mobile @guard", () => {
     await expectNoMobileOverflow(page);
   });
 
-  test("replacement mobile routes do not leak the universal admin shell", async ({
-    page,
-  }) => {
+  test("replacement mobile routes do not leak the universal admin shell", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
     await expectMobileReadinessShell(page, "/crew-management");

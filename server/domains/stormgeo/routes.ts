@@ -288,12 +288,12 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
     "/api/stormgeo/snapshots/route/:routeId",
     writeOperationRateLimit,
     withErrorHandling("delete StormGeo snapshots", async (req: Request, res: Response) => {
-      const orgId = req.orgId;
-      void orgId;
       const { routeId } = routeIdParamSchema.parse(req.params);
-      void routeId;
-      await dbStormGeoStorage.deleteStormgeoSnapshotsBefore(new Date());
-      res.json({ success: true });
+      // Delete ONLY this route's snapshots. Previously this discarded routeId
+      // and called deleteStormgeoSnapshotsBefore(now), wiping every route's
+      // historical weather data on any single-route delete.
+      const deleted = await dbStormGeoStorage.deleteStormgeoSnapshotsByRoute(routeId);
+      res.json({ success: true, deleted });
     })
   );
 

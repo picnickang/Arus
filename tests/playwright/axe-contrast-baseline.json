@@ -1,0 +1,10 @@
+{
+  "_comment": "WCAG color-contrast violation nodes on /analytics across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.",
+  "maxContrastViolations": 6,
+  "perTheme": {
+    "light": 4,
+    "dark": 1,
+    "bridge": 1,
+    "daylight": 0
+  }
+}

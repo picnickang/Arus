@@ -38,6 +38,7 @@ import type { Request, Response, NextFunction } from "express";
 import type { PoolClient } from "pg";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzleNeonWs } from "drizzle-orm/neon-serverless";
+import { isTable } from "drizzle-orm/table";
 import * as schema from "@shared/schema-runtime";
 import {
   isLocalMode,
@@ -62,6 +63,14 @@ const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export type DbContextRequest = Request & { orgId?: string };
 
+// Pass only Table objects to drizzle (mirrors db-config's
+// buildDrizzleRuntimeSchema). The raw schema-runtime namespace also exports
+// zod validators and mode flags; handing those to drizzle's schema processor is
+// unnecessary and brittle (it dereferences non-table exports).
+const drizzleSchema = Object.fromEntries(
+  Object.entries(schema).filter(([, value]) => isTable(value))
+) as typeof schema;
+
 function buildClientDrizzle(client: PoolClient): unknown {
   // node-postgres and neon-serverless both accept a PoolClient and
   // return a drizzle handle with the same query-builder shape as the
@@ -70,9 +79,9 @@ function buildClientDrizzle(client: PoolClient): unknown {
   if (connectionMode === "websocket") {
     // neon-serverless WS driver expects its own PoolClient type; the
     // shape is identical at runtime to pg.PoolClient for our use.
-    return drizzleNeonWs(client as never, { schema });
+    return drizzleNeonWs(client as never, { schema: drizzleSchema });
   }
-  return drizzleNodePg(client, { schema });
+  return drizzleNodePg(client, { schema: drizzleSchema });
 }
 
 /**
@@ -139,13 +148,20 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
     }
 
     let released = false;
-    const release = () => {
+    const release = (destroy = false) => {
       if (released) {
         return;
       }
       released = true;
       try {
-        client.release();
+        // `destroy` removes the physical connection from the pool instead of
+        // returning it. Used on the abort path: the route handler may still be
+        // mid-query on this pinned client, and returning it would hand a
+        // still-in-use connection (carrying this request's `SET LOCAL` org
+        // context) to the next request that checks it out — a cross-tenant
+        // hole. Destroying it means the aborted handler's late queries fail
+        // harmlessly instead.
+        client.release(destroy);
       } catch (err) {
         logger.warn(
           `[DB_CONTEXT] client.release() failed: ${err instanceof Error ? err.message : String(err)}`
@@ -189,11 +205,16 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
         return;
       }
       finalized = true;
+      // An aborted request (connection closed before the response was fully
+      // written) may still have the handler running on this client, so the
+      // connection must be destroyed rather than pooled (see `release`). A 5xx
+      // with a fully-written response means the handler has finished, so a
+      // normal release is safe there.
+      const aborted = !res.writableEnded;
       try {
         // 5xx and aborted-mid-flight requests roll back so partial
         // writes are not committed. 4xx are user errors with already-
         // shaped responses — keep their writes (most are no-ops anyway).
-        const aborted = !res.writableEnded;
         if (aborted || res.statusCode >= 500) {
           await client.query("ROLLBACK");
         } else {
@@ -204,7 +225,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
           `[DB_CONTEXT] tx finalize failed: ${err instanceof Error ? err.message : String(err)}`
         );
       } finally {
-        release();
+        release(aborted);
       }
     };
 

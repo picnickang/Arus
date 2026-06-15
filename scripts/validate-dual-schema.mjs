@@ -26,65 +26,87 @@ const root = resolve(__dirname, "..");
 
 const errors = [];
 
+/**
+ * Collapse multi-line `export const X = pickSchema(\n …\n);` statements into a
+ * single logical line so the single-line regexes below see the whole call
+ * (prettier wraps the longer ones). Non-export lines pass through unchanged.
+ */
+function toLogicalExportLines(src) {
+  const physical = src.split("\n");
+  const balance = (s) => (s.match(/\(/g)?.length ?? 0) - (s.match(/\)/g)?.length ?? 0);
+  const out = [];
+  let buf = null;
+  let depth = 0;
+  for (const line of physical) {
+    if (buf === null) {
+      if (/^export const /.test(line)) {
+        buf = line;
+        depth = balance(line);
+        if (depth <= 0 && line.includes(";")) {
+          out.push(buf);
+          buf = null;
+          depth = 0;
+        }
+      } else {
+        out.push(line);
+      }
+    } else {
+      buf += " " + line.trim();
+      depth += balance(line);
+      if (depth <= 0 && line.includes(";")) {
+        out.push(buf);
+        buf = null;
+        depth = 0;
+      }
+    }
+  }
+  if (buf !== null) out.push(buf);
+  return out;
+}
+
 // ============================================================================
 // Layer 1 — Export guard check
 // ============================================================================
 
-// The mode-switched table exports (`export const X = pickSchema(...)` /
-// `cloudOnly(...)`) live in the schema-runtime tables modules that
-// schema-runtime.ts re-exports; the switcher itself now only destructures
-// them. Scan the switcher plus those modules so switched-pair detection and
-// the Layer-2 column-parity check see the real definitions.
-const runtimeSrc = [
+// The per-table mode-aware exports moved out of schema-runtime.ts into the
+// schema-runtime-tables-*.ts files (re-exported from schema-runtime via
+// `export * from "./schema-runtime-tables"`). Scan all of them so Layer 2
+// column parity still sees every switched table pair.
+const runtimeRelPaths = [
   "shared/schema-runtime.ts",
   "shared/schema-runtime-tables-core.ts",
   "shared/schema-runtime-tables-operations.ts",
   "shared/schema-runtime-tables-cloud.ts",
-]
-  .map((rel) => {
-    try {
-      return readFileSync(resolve(root, rel), "utf8");
-    } catch {
-      return "";
-    }
-  })
+];
+const runtimeSrc = runtimeRelPaths
+  .map((p) => resolve(root, p))
+  .filter((p) => existsSync(p))
+  .map((p) => readFileSync(p, "utf8"))
   .join("\n");
 
 const guardedNames = new Set();
 const switchedPairs = [];
-const lines = runtimeSrc.split("\n");
+const lines = toLogicalExportLines(runtimeSrc);
 
 const VALID_NAMESPACES = new Set(["pgSchema", "sqliteVessel", "sqliteSync"]);
 
-for (let li = 0; li < lines.length; li++) {
-  const line = lines[li];
+for (const line of lines) {
   const exportMatch = line.match(/^export const (\w+)\s*=/);
   if (!exportMatch) continue;
   const name = exportMatch[1];
 
-  // A switched/cloud-only export may span multiple lines, e.g.
-  //   export const updateSettings = (
-  //     IS_POSTGRES ? pgSchema.updateSettings : _sqliteUpdateSettings
-  //   ) as typeof pgSchema.updateSettings;
-  // Accumulate the whole statement (until `;`) before classifying it so the
-  // mode guard on a continuation line isn't missed.
-  let stmt = line;
-  for (let j = li + 1; j < lines.length && !stmt.includes(";"); j++) {
-    stmt += "\n" + lines[j];
-  }
-
   const isSwitched =
-    stmt.includes("isLocalMode ?") ||
-    stmt.includes("isEmbedded ?") ||
-    stmt.includes("IS_POSTGRES ?") ||
-    stmt.includes("IS_SQLITE ?") ||
+    line.includes("isLocalMode ?") ||
+    line.includes("isEmbedded ?") ||
+    line.includes("IS_POSTGRES ?") ||
+    line.includes("IS_SQLITE ?") ||
     // Helper-based switched exports introduced to compress dual-mode casts:
     //   export const X = pickSchema(isLocalMode, sqliteX.tableY, pgSchema.tableY);
     //   export const X = cloudOnly(pgSchema.tableY);
-    stmt.includes("pickSchema(") ||
-    stmt.includes("cloudOnly(");
+    line.includes("pickSchema(") ||
+    line.includes("cloudOnly(");
 
-  const isDirectPgExport = stmt.includes("pgSchema.") && !isSwitched;
+  const isDirectPgExport = line.includes("pgSchema.") && !isSwitched;
 
   const isConfigConst =
     name === "DEPLOYMENT_MODE" ||
@@ -98,14 +120,14 @@ for (let li = 0; li < lines.length; li++) {
   }
 
   if (isSwitched) {
-    const pgMatch = stmt.match(/pgSchema\.(\w+)/);
-    const sqliteMatch = stmt.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
+    const pgMatch = line.match(/pgSchema\.(\w+)/);
+    const sqliteMatch = line.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
     if (pgMatch && sqliteMatch) {
       switchedPairs.push({ name, pgExport: pgMatch[1], sqliteExport: sqliteMatch[1] });
     }
   }
 
-  const nsRefs = stmt.matchAll(/(\w+)\.\w+/g);
+  const nsRefs = line.matchAll(/(\w+)\.\w+/g);
   for (const nsRef of nsRefs) {
     const ns = nsRef[1];
     if (
@@ -260,15 +282,15 @@ function extractColumnsFromSource(src) {
 function scanSchemaDir(dir) {
   const result = {};
   if (!existsSync(dir)) return result;
-  // Recurse: schema tables are organised into per-domain subdirectories
-  // (equipment/, crew/, alerts/, …); a flat readdir misses every table
-  // defined there and falsely reports it as a missing PG table.
+  // Recurse: schema files now live in per-domain subdirectories
+  // (shared/schema/{admin,alerts,crew,equipment,...}). A flat scan missed them,
+  // producing false "missing table" pairs and undercounting column parity.
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const filePath = join(dir, entry.name);
+    const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      Object.assign(result, scanSchemaDir(filePath));
+      Object.assign(result, scanSchemaDir(full));
     } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
-      Object.assign(result, extractColumnsFromSource(readFileSync(filePath, "utf8")));
+      Object.assign(result, extractColumnsFromSource(readFileSync(full, "utf8")));
     }
   }
   return result;

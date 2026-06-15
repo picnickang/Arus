@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
@@ -31,6 +32,9 @@ interface SensorRow {
 }
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 function getOrgId(req: Request): string {
   return authenticatedRequest(req).orgId as string;

@@ -244,23 +244,9 @@ async function attemptPromote(
       logger.warn("Cannot promote — candidate missing or no equipmentType", { modelId });
       return false;
     }
-    const all = await dbMlAnalyticsStorage.getMlModels(orgId);
-    const currentlyDeployed = all.filter(
-      (m) =>
-        m.status === "deployed" &&
-        m.equipmentType === candidate.equipmentType &&
-        m.id !== candidate.id
-    );
-    for (const prev of currentlyDeployed) {
-      await dbMlAnalyticsStorage.updateMlModel(
-        prev.id,
-        { status: "archived", archivedOn: new Date() },
-        orgId
-      );
-    }
-    await dbMlAnalyticsStorage.updateMlModel(
+    const { replaced } = await dbMlAnalyticsStorage.promoteMlModel(
       candidate.id,
-      { status: "deployed", deployedOn: new Date(), archivedOn: null },
+      candidate.equipmentType,
       orgId
     );
     logger.info("Candidate promoted", {
@@ -268,7 +254,7 @@ async function attemptPromote(
       modelId,
       mae: metrics.mae,
       psi: metrics.psi,
-      replaced: currentlyDeployed.map((m) => m.id),
+      replaced,
     });
     return true;
   } catch (err) {

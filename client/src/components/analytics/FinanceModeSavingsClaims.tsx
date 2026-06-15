@@ -211,10 +211,7 @@ function SavingsClaimActions({
 
 export function SavingsClaimsSection({ savingsRecords }: { savingsRecords: SavingsRecord[] }) {
   return (
-    <CollapsibleSection
-      title="Savings Claims"
-      summary={`${savingsRecords.length} savings records`}
-    >
+    <CollapsibleSection title="Savings Claims" summary={`${savingsRecords.length} savings records`}>
       {savingsRecords.length === 0 ? (
         <p
           className="text-sm text-muted-foreground text-center py-4"
@@ -247,7 +244,9 @@ export function SavingsClaimsSection({ savingsRecords }: { savingsRecords: Savin
                   <div className="text-xs text-muted-foreground space-x-3">
                     {record.workOrderId && <span>WO: {record.workOrderId.slice(0, 8)}...</span>}
                     <span>Equipment: {record.equipmentId?.slice(0, 8)}...</span>
-                    {record.calculatedAt && <span>{formatDate(new Date(record.calculatedAt))}</span>}
+                    {record.calculatedAt && (
+                      <span>{formatDate(new Date(record.calculatedAt))}</span>
+                    )}
                   </div>
                   {record.validationReason && (
                     <p

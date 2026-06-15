@@ -82,6 +82,10 @@ export function sanitizeRequestBody(obj: unknown, skipLengthLimit = false): unkn
   if (typeof obj === "object") {
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      // Never copy prototype-polluting keys onto the fresh object.
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
       if (typeof value === "string") {
         sanitized[key] = sanitizeInput(value, skipLengthLimit);
       } else if (typeof value === "object") {

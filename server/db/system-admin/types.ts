@@ -3,19 +3,10 @@
  */
 
 export type {
-  AdminAuditEvent,
-  InsertAdminAuditEvent,
-  AdminSession,
-  InsertAdminSession,
-  AdminSystemSetting,
   InsertAdminSystemSetting,
-  IntegrationConfig,
   InsertIntegrationConfig,
-  MaintenanceWindow,
   InsertMaintenanceWindow,
-  SystemHealthCheck,
   InsertSystemHealthCheck,
-  SystemPerformanceMetric,
 } from "@shared/schema-runtime";
 
 export interface SystemHealthResult {

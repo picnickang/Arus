@@ -85,9 +85,7 @@ describe("server tail extractions", () => {
 
   it("keeps crew-extension persistence helpers behind the storage module", () => {
     const storage = read("server/db/crew-extensions/db-crew-extensions.ts");
-    const notifications = read(
-      "server/db/crew-extensions/db-crew-extension-notifications.ts"
-    );
+    const notifications = read("server/db/crew-extensions/db-crew-extension-notifications.ts");
     const scheduling = read("server/db/crew-extensions/db-crew-extension-scheduling.ts");
 
     expect(storage).toContain('from "./db-crew-extension-notifications.js"');
@@ -135,9 +133,7 @@ describe("server tail extractions", () => {
   });
 
   it("keeps vessel-diagram in-memory record helpers beside the store", () => {
-    const store = read(
-      "server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts"
-    );
+    const store = read("server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts");
     const helpers = read(
       "server/domains/vessel-diagram-registry/infrastructure/in-memory-store-helpers.ts"
     );
@@ -268,9 +264,7 @@ describe("server tail extractions", () => {
 
   it("keeps agent orchestrator loop and context behind the facade", () => {
     const orchestrator = read("server/domains/agent/application/orchestrator.ts");
-    const context = read(
-      "server/domains/agent/application/orchestrator-helpers/context.ts"
-    );
+    const context = read("server/domains/agent/application/orchestrator-helpers/context.ts");
     const iterationLoop = read(
       "server/domains/agent/application/orchestrator-helpers/iteration-loop.ts"
     );
@@ -320,7 +314,7 @@ describe("server tail extractions", () => {
     expect(service).toContain("export class MePortalService");
     expect(service).toContain("return buildMePortalTasks(user");
     expect(taskFeed).toContain("export async function buildMePortalTasks");
-    expect(taskFeed).toContain("scopeForSource(configs, \"work_orders\")");
+    expect(taskFeed).toContain('scopeForSource(configs, "work_orders")');
     expect(taskFeed).toContain("link: `/crew-management?taskId=${task.id}`");
   });
 

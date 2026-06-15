@@ -31,11 +31,11 @@ export async function generateFleetComplianceOverviewExcel(
   return renderFleetOverviewExcel(equipmentHealth, workOrders, period);
 }
 
-function renderFleetOverviewExcel(
+async function renderFleetOverviewExcel(
   equipment: EquipmentHealth[],
   workOrders: WorkOrder[],
   period: ReportingPeriod
-): Buffer {
+): Promise<Buffer> {
   const workbook = createWorkbook();
   const counts = countByStatus(equipment);
   const complianceRate =
@@ -122,5 +122,5 @@ function renderFleetOverviewExcel(
   addSheet(workbook, woData, "Maintenance");
   addSheet(workbook, buildStandardsSheet(), "Standards");
 
-  return writeWorkbook(workbook);
+  return await writeWorkbook(workbook);
 }

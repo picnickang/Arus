@@ -493,5 +493,4 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
 
     return result;
   }
-
 }

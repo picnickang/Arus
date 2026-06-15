@@ -14,6 +14,13 @@ import * as path from "node:path";
 import { randomBytes } from "node:crypto";
 import { sql } from "drizzle-orm";
 
+// SECURITY: @dsnp/parquetjs carries a HIGH transitive advisory via `thrift`.
+// Accepted risk (see docs/SECURITY-REVIEW-FOLLOWUPS.md): this is a WRITE-only
+// path over trusted, system-generated data (telemetry rollups → Parquet), not
+// parsing of untrusted input, so the advisory is not reachable here. There is
+// no maintained drop-in Parquet *writer*; Parquet is the deliberate format for
+// downstream analytics consumers. Do not "fix" by downgrading or swapping
+// without a data-warehouse-contract decision.
 import { ParquetSchema, ParquetWriter } from "@dsnp/parquetjs";
 
 import { createLogger } from "../../lib/structured-logger";

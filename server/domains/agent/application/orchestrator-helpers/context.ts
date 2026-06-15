@@ -80,7 +80,10 @@ async function maybeSummarizeConversation(
     return conversation.contextSummary;
   }
 
-  const summary = await generateProgressiveSummary(messagesToSummarize, conversation.contextSummary);
+  const summary = await generateProgressiveSummary(
+    messagesToSummarize,
+    conversation.contextSummary
+  );
   if (!summary) {
     return conversation.contextSummary;
   }

@@ -17,7 +17,6 @@
  * ML Analytics Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseMlAnalyticsStorage } from "./db-ml-analytics.js";
 
 import { createLogger } from "../../lib/structured-logger";

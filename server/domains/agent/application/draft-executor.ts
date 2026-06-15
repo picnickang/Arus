@@ -54,11 +54,18 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
       const sendErrors: string[] = [];
       for (const recipient of recipients) {
         try {
-          await emailSender.sendWithAttachment(recipient, subject, bodyText, `<p>${bodyText}</p>`, {
-            filename: reportArtifact.fileName,
-            content: fileContent,
-            contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
-          });
+          await emailSender.sendWithAttachment(
+            recipient,
+            subject,
+            bodyText,
+            `<p>${bodyText}</p>`,
+            {
+              filename: reportArtifact.fileName,
+              content: fileContent,
+              contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
+            },
+            orgId
+          );
         } catch (err) {
           sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
         }

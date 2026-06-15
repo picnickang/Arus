@@ -60,7 +60,9 @@ export async function rollbackPatchBackup(
   backupDir: string,
   appDir: string
 ): Promise<void> {
-  const backupPath = path.join(backupDir, backupId);
+  // Contain backupId within backupDir so a tampered id (e.g. "../..")
+  // cannot escape the backup root (CWE-22 path traversal).
+  const backupPath = validatePath(backupDir, backupId);
 
   if (!fs.existsSync(backupPath)) {
     throw new Error(`Backup not found: ${backupId}`);
@@ -70,10 +72,16 @@ export async function rollbackPatchBackup(
 
   const manifestPath = path.join(backupPath, "manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+  const files: string[] = Array.isArray(manifest.files) ? manifest.files : [];
 
-  for (const file of manifest.files) {
-    const sourcePath = path.join(backupPath, file);
-    const destPath = path.join(appDir, file);
+  for (const file of files) {
+    // Manifest entries are untrusted (read from disk): iterate the
+    // array-validated `files` view above so a tampered non-array manifest
+    // cannot crash the loop, and contain both source and destination within
+    // their roots via validatePath so a crafted manifest cannot read/write
+    // outside the backup or app dirs.
+    const sourcePath = validatePath(backupPath, file);
+    const destPath = validatePath(appDir, file);
 
     if (fs.existsSync(sourcePath)) {
       const destDir = path.dirname(destPath);

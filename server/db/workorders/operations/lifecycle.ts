@@ -46,17 +46,18 @@ export async function updateWorkOrderWithDowntimeTracking(
         const oldStatus = existing.status;
         const newStatus = postUpdateOrder.status;
 
-        if (
-          newStatus === "in_progress" &&
-          oldStatus !== "in_progress" &&
-          !postUpdateOrder.vesselDowntimeStartedAt
-        ) {
+        // Downtime accrues only while a work order is actively in_progress.
+        // Start the clock on entry, and accrue + clear it on ANY exit from
+        // in_progress (completed, on_hold, cancelled, reopened). Accruing only
+        // on the in_progress->completed transition (as before) silently lost
+        // the segment when a held order completed from on_hold, and counted
+        // hold time as downtime when it resumed and completed from in_progress.
+        const enteringInProgress = newStatus === "in_progress" && oldStatus !== "in_progress";
+        const leavingInProgress = oldStatus === "in_progress" && newStatus !== "in_progress";
+
+        if (enteringInProgress && !postUpdateOrder.vesselDowntimeStartedAt) {
           finalUpdates.vesselDowntimeStartedAt = new Date();
-        } else if (
-          newStatus === "completed" &&
-          oldStatus === "in_progress" &&
-          existing.vesselDowntimeStartedAt
-        ) {
+        } else if (leavingInProgress && existing.vesselDowntimeStartedAt) {
           const startTime = new Date(existing.vesselDowntimeStartedAt);
           const endTime = new Date();
           const downtimeHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
@@ -106,7 +107,9 @@ export async function closeWorkOrderWithInventoryRelease(
     await tx
       .select()
       .from(stock)
-      .where(sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`)
+      .where(
+        sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`
+      )
       .orderBy(stock.id);
 
     const [wo] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
@@ -165,9 +168,15 @@ export async function closeWorkOrderWithInventoryRelease(
   return closedOrder;
 }
 
-export async function closeWorkOrder(id: string, closeData: WorkOrderCloseData): Promise<WorkOrder> {
+export async function closeWorkOrder(
+  id: string,
+  closeData: WorkOrderCloseData
+): Promise<WorkOrder> {
   const closedOrder = await db.transaction(async (tx) => {
-    const txParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
+    const txParts = await tx
+      .select()
+      .from(workOrderParts)
+      .where(eq(workOrderParts.workOrderId, id));
     const partIds = txParts.map((p) => p.partId);
     const partIdsArray =
       partIds.length > 0

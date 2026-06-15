@@ -11,7 +11,10 @@ import {
   type CrewAdminRouteContext,
 } from "./shared";
 
-export function registerCrewAdminDashboardRoutes(app: Express, context: CrewAdminRouteContext): void {
+export function registerCrewAdminDashboardRoutes(
+  app: Express,
+  context: CrewAdminRouteContext
+): void {
   const { generalApiRateLimit, writeLimit } = context;
   /* ----------------------- Dashboard configs ----------------------- */
 

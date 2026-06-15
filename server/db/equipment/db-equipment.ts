@@ -4,7 +4,7 @@ import type { WidenPartial } from "../../lib/widen-partial";
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, sql, lte, or } from "drizzle-orm";
+import { eq, and, sql, lte, or, gte, desc } from "drizzle-orm";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { createLogger } from "../../lib/structured-logger";
@@ -45,6 +45,26 @@ import {
   syncAssociatedEquipment,
   syncUpdatedEquipment,
 } from "./equipment-graph-sync.js";
+
+/**
+ * Operational health status from the data-driven PdM health index. Bands match
+ * the per-equipment health route (server/domains/pdm-platform/health/routes.ts:
+ * healthy >=70, warning >=30, critical <30) so fleet aggregates, compliance
+ * status counts (countByStatus), and risk levels all key off the same scale.
+ * Inactive equipment keeps its operational "inactive" state regardless of score.
+ */
+function deriveHealthStatus(isActive: boolean | null | undefined, healthIndex: number): string {
+  if (!isActive) {
+    return "inactive";
+  }
+  if (healthIndex >= 70) {
+    return "healthy";
+  }
+  if (healthIndex >= 30) {
+    return "warning";
+  }
+  return "critical";
+}
 
 export class DatabaseEquipmentStorage {
   private validateOrgId(orgId: string | undefined, method: string): void {
@@ -411,6 +431,47 @@ export class DatabaseEquipmentStorage {
       );
     return [...new Set(configs.map((c) => c.sensorType))];
   }
+  /**
+   * Latest PdM health index per equipment, keyed by equipmentId.
+   *
+   * Reads pdm_score_logs — the table the daily scoring producer fills
+   * (server/job-processors/pdm-scoring-processor.ts) — and keeps the most
+   * recent non-null health_idx per equipment within a freshness window. The
+   * 30-day window bounds the scan and stops a stale score from masquerading
+   * as current health: the daily cron tolerates an extended outage, but
+   * anything older falls back to the neutral default in getEquipmentHealth.
+   * Dual-mode safe — pdm_score_logs is now a shared schema (cloud Postgres +
+   * vessel SQLite). An optional equipmentId scopes the scan for the
+   * single-equipment health route.
+   */
+  private async getLatestHealthIndexByEquipment(
+    orgId: string,
+    equipmentId?: string
+  ): Promise<Map<string, number>> {
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const conditions = [eq(pdmScoreLogsTable.orgId, orgId), gte(pdmScoreLogsTable.ts, cutoff)];
+    if (equipmentId) {
+      conditions.push(eq(pdmScoreLogsTable.equipmentId, equipmentId));
+    }
+    const rows = await db
+      .select({
+        equipmentId: pdmScoreLogsTable.equipmentId,
+        healthIdx: pdmScoreLogsTable.healthIdx,
+      })
+      .from(pdmScoreLogsTable)
+      .where(and(...conditions))
+      .orderBy(desc(pdmScoreLogsTable.ts));
+    const latest = new Map<string, number>();
+    for (const row of rows) {
+      // Rows arrive newest-first; the first non-null reading per equipment wins.
+      if (row.healthIdx == null || latest.has(row.equipmentId)) {
+        continue;
+      }
+      latest.set(row.equipmentId, Math.round(row.healthIdx));
+    }
+    return latest;
+  }
+
   async getEquipmentHealth(
     orgId: string,
     filters?: EquipmentHealthFilters
@@ -428,19 +489,28 @@ export class DatabaseEquipmentStorage {
       .from(equipment)
       .where(and(...conditions))
       .orderBy(equipment.name);
-    return results.map(
-      (e): EquipmentHealth & { healthIndex: number } =>
-        ({
-          id: e.id,
-          name: e.name,
-          type: e.type,
-          category: e.systemType || e.componentType || undefined,
-          status: e.isActive ? "healthy" : "inactive",
-          healthIndex: 100,
-          vesselId: e.vesselId || undefined,
-          vesselName: e.vesselName || undefined,
-        }) as EquipmentHealth & { healthIndex: number }
+    const latestHealthByEquipment = await this.getLatestHealthIndexByEquipment(
+      orgId,
+      filters?.equipmentId
     );
+    return results.map((e): EquipmentHealth & { healthIndex: number } => {
+      // Data-driven health: the most recent pdm_score_logs.health_idx for this
+      // equipment, falling back to the neutral 100 when no recent PdM score
+      // exists (no model coverage yet, or scores older than the freshness
+      // window) — preserving the prior always-100 behavior for unscored fleets.
+      const healthIndex = latestHealthByEquipment.get(e.id) ?? 100;
+      const status = deriveHealthStatus(e.isActive, healthIndex);
+      return {
+        id: e.id,
+        name: e.name,
+        type: e.type,
+        category: e.systemType || e.componentType || undefined,
+        status,
+        healthIndex,
+        vesselId: e.vesselId || undefined,
+        vesselName: e.vesselName || undefined,
+      } as EquipmentHealth & { healthIndex: number };
+    });
   }
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { z } from "zod";
 import { auditService } from "../immutable-audit.service";
 import { requireAdminAuth, auditAdminAction } from "../../security";
@@ -11,6 +12,9 @@ import { registerDataPrivacyDsarRoutes } from "./data-privacy-dsar-routes";
 const logger = createLogger("Compliance:Routes:DataPrivacyRoutes");
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const exportService = new DataExportImportService("./data-exports");
 const anonymizationLevelSchema = z.enum(["none", "partial", "full"]);
 
@@ -129,10 +133,22 @@ router.get(
       if (!exportId) {
         return res.status(400).json({ error: "Missing exportId" });
       }
+      // exportId is interpolated into a filesystem path below; restrict it to
+      // a safe token so it cannot traverse out of ./data-exports (CWE-22).
+      if (!/^[A-Za-z0-9_-]+$/.test(exportId)) {
+        return res.status(400).json({ error: "Invalid exportId" });
+      }
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const exportPath = `./data-exports/${exportId}.tar.gz`;
+      // Resolve under the exports root and confirm containment so the path
+      // can never escape ./data-exports, even if validation above changes.
+      const pathMod = await import("node:path");
+      const exportsDir = pathMod.resolve("./data-exports");
+      const exportPath = pathMod.join(exportsDir, `${exportId}.tar.gz`);
+      if (!exportPath.startsWith(exportsDir + pathMod.sep)) {
+        return res.status(400).json({ error: "Invalid exportId" });
+      }
       const fs = await import("fs");
       if (!fs.existsSync(exportPath)) {
         return res.status(404).json({ error: "Export not found or expired" });

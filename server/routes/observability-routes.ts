@@ -4,6 +4,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Routes:ObservabilityRoutes");
 import {
@@ -16,11 +17,11 @@ import {
 
 export function registerObservabilityRoutes(app: Express): void {
   // Health check endpoints (no rate limiting for load balancers)
-  app.get("/api/healthz", healthzEndpoint);
-  app.get("/api/readyz", readyzEndpoint);
+  app.get("/api/healthz", generalApiRateLimit, healthzEndpoint);
+  app.get("/api/readyz", generalApiRateLimit, readyzEndpoint);
 
   // Error handling health endpoint
-  app.get("/api/error-health", (req: Request, res: Response) => {
+  app.get("/api/error-health", generalApiRateLimit, (req: Request, res: Response) => {
     try {
       const errorHandlingHealth = getErrorHandlingHealth();
       res.json({
@@ -36,13 +37,13 @@ export function registerObservabilityRoutes(app: Express): void {
   });
 
   // Prometheus metrics endpoint
-  app.get("/api/metrics", metricsEndpoint);
+  app.get("/api/metrics", generalApiRateLimit, metricsEndpoint);
 
   // Database indexes health endpoint (Option A: verify-only, no DDL in prod)
-  app.get("/api/health/db-indexes", dbIndexesHealthEndpoint);
+  app.get("/api/health/db-indexes", generalApiRateLimit, dbIndexesHealthEndpoint);
 
   // Performance stats endpoint (no auth needed for ops monitoring)
-  app.get("/api/performance/stats", async (req: Request, res: Response) => {
+  app.get("/api/performance/stats", generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { performanceStatsHandler } = await import("../middleware/performance");
       return performanceStatsHandler(req, res);
@@ -52,7 +53,7 @@ export function registerObservabilityRoutes(app: Express): void {
   });
 
   // Request span statistics endpoint - shows detailed request tracing (no auth for ops)
-  app.get("/api/performance/spans", async (req: Request, res: Response) => {
+  app.get("/api/performance/spans", generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { getRecentSlowRequests, getRequestSpans, getRequestSpanSummary } = await import(
         "../utils/request-spans"
@@ -84,7 +85,7 @@ export function registerObservabilityRoutes(app: Express): void {
   });
 
   // SLO status endpoint - shows service level objectives and violations (no auth for ops)
-  app.get("/api/performance/slo", async (req: Request, res: Response) => {
+  app.get("/api/performance/slo", generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { getSLOStatus } = await import("../utils/slo-alerts");
       const status = getSLOStatus();

@@ -186,19 +186,24 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
-      # Advisory until the migration-strategy reconcile lands: the SQL
-      # migrations are deltas on a db:push baseline, so the harness (which
-      # applies them on an empty scratch schema) can't pass as-is. Keeping
-      # it non-blocking lets the integration tests below actually run and
-      # provide Postgres coverage. Tracked in docs/SECURITY-REVIEW-FOLLOWUPS.md.
+      # Reconciled (2026-06): the harness seeds the db:push baseline + a
+      # dead-table shim into a throwaway database, then proves the numbered
+      # deltas replay AND reverse cleanly across two down→up cycles. Now
+      # blocking. See scripts/check-migrations-reversible.sh.
       - name: LR-1A — Migration reversibility (up → down → up schema-diff)
         run: bash scripts/check-migrations-reversible.sh
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run integration tests
         run: npm run test:integration
+
+      # PostgreSQL-contract lane (RLS, cross-tenant isolation, tenant quota,
+      # safety-bulletin scoping) — runs against the migrated arus_test above.
+      - name: Run PostgreSQL-contract integration tests
+        run: npm run test:integration:postgres
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
   python-sidecar:
     name: Python ML Sidecar
@@ -377,11 +382,113 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
           PLAYWRIGHT_BASE_URL: http://localhost:5000
 
+      # Authenticated hub smoke (@smoke): the lane needs a real backend AND the
+      # dev-login button, which only exists in a Vite-DEV renderer (the webServer
+      # above serves a production build that hides it). So boot a dev renderer
+      # against the Postgres service and drive the smoke against it. Real /api
+      # responses are exercised; the spec fails on any 5xx or non-benign console
+      # error. Self-skips if dev login is unavailable, so it can never silently
+      # pass on a misconfigured renderer.
+      - name: Authenticated hub smoke (dev renderer + Postgres)
+        run: |
+          NODE_ENV=development ARUS_DEV_LOGIN=1 VITE_ARUS_DEV_LOGIN=1 \
+            DISABLE_AGENT_SCHEDULER=true DISABLE_DIGITAL_TWIN_STARTUP=true DISABLE_EMAIL_WORKER=true \
+            DISABLE_ML_SERVICE_STARTUP=true DISABLE_MODEL_BACKED_INFERENCE=true \
+            DISABLE_OBSERVABILITY_TIMERS=true DISABLE_RATE_LIMITS=true DISABLE_REDIS=true \
+            DISABLE_SECURITY_TIMERS=true DISABLE_TELEMETRY_BATCH_WRITER=true \
+            ENABLE_BACKGROUND_JOBS=false ENABLE_SCHEDULERS=false ENABLE_SYNC_SERVICES=false \
+            ENABLE_UPDATE_SYSTEM=false EVENT_SPINE_DISABLED=1 EVENT_SPINE_WORKER=0 \
+            EVENT_SPINE_ANALYTICS=0 PORT=5000 \
+            SESSION_SECRET=ci-smoke-session-secret-not-for-production \
+            npx tsx server/index.ts > /tmp/arus-dev-renderer.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5000/api/healthz >/dev/null && break
+            sleep 2
+          done
+          npm run test:e2e:smoke
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+          PLAYWRIGHT_SKIP_WEBSERVER: "1"
+          PLAYWRIGHT_LOCAL_BACKEND: "1"
+          PLAYWRIGHT_BASE_URL: http://localhost:5000
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-pdm-visual:
+    name: E2E PdM Visual (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Standalone: the Playwright webServer builds the renderer itself, so this
+    # screenshot-artifact job does not depend on the `build` job (and is not
+    # blocked by unrelated pre-existing failures in lint-and-typecheck).
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      - name: Apply migrations
+        run: |
+          npm run db:push
+          npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+      # Journey specs live outside the core release set, so opt them in.
+      - name: Run PdM visual journey (boots dev server via webServer)
+        run: PLAYWRIGHT_INCLUDE_QUARANTINE=1 npx playwright test tests/playwright/journeys/pdm-equipment-detail.spec.ts --project=chromium
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+          PLAYWRIGHT_BASE_URL: http://localhost:5000
+
+      # Always upload the screenshots — they are the deliverable, on pass or fail.
+      - name: Upload PdM visual screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdm-visual-screenshots
+          path: test-results/pdm-visual/
+          retention-days: 14
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdm-visual-report
           path: playwright-report/
           retention-days: 7
 

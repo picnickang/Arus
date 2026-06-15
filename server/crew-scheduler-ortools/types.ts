@@ -11,6 +11,10 @@ import {
   portCall,
   drydockWindow,
 } from "@shared/schema-runtime";
+// Canonical Assignment / UnfilledShift live in ../crew-scheduler (the greedy engine
+// that originated them); imported here so this module shares one definition instead
+// of a byte-identical copy. `import type` is erased at build — no runtime coupling.
+import type { Assignment, UnfilledShift } from "../crew-scheduler";
 
 // Locally-derived select types — these types historically lived in
 // @shared/schema-runtime as named re-exports but were never actually
@@ -57,22 +61,7 @@ export interface ConstraintScheduleRequest {
   preferences?: SchedulingPreferences | undefined;
 }
 
-export interface Assignment {
-  date: string;
-  shiftId: string;
-  crewId: string;
-  vesselId?: string | undefined;
-  start: string;
-  end: string;
-  role?: string | undefined;
-}
-
-export interface UnfilledShift {
-  day: string;
-  shiftId: string;
-  need: number;
-  reason: string;
-}
+export type { Assignment, UnfilledShift };
 
 export interface ScheduleResult {
   scheduled: Assignment[];

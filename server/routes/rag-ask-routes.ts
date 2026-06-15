@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { z } from "zod";
 import { withErrorHandling } from "../lib/route-utils";
 import { getConversationService, getRagOrchestrator } from "../services/rag";
@@ -27,6 +28,7 @@ const askRequestSchema = z.object({
 export function registerRagAskRoutes(app: Express) {
   app.post(
     "/api/rag/ask",
+    generalApiRateLimit,
     (req, res, next) => ragRateLimitMiddleware(req, res, next),
     (req, res, next) => ragInputSanitizationMiddleware(req, res, next),
     withErrorHandling("ask RAG question", async (req, res) => {
@@ -83,6 +85,7 @@ export function registerRagAskRoutes(app: Express) {
 
   app.get(
     "/api/rag/ask-stream",
+    generalApiRateLimit,
     (req, res, next) => ragRateLimitMiddleware(req, res, next),
     async (req: Request, res: Response) => {
       const { auditLogger, sanitizer, config } = getRagSecurityServices();
@@ -122,8 +125,12 @@ export function registerRagAskRoutes(app: Express) {
           });
         }
 
-        let query = req.query["query"] as string;
-        const conversationId = req.query["conversationId"] as string | undefined;
+        // Coerce to a definite string: Express query params can arrive as
+        // string[] (e.g. ?query=a&query=b), and downstream string ops
+        // (.slice, sanitize) would otherwise misbehave (type confusion).
+        let query = typeof req.query["query"] === "string" ? req.query["query"] : "";
+        const conversationId =
+          typeof req.query["conversationId"] === "string" ? req.query["conversationId"] : undefined;
 
         let conversationHistory: Array<{ role: string; content: string }> | undefined;
         if (conversationId) {

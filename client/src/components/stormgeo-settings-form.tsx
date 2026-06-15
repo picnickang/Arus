@@ -153,9 +153,7 @@ export function StormGeoSettingsForm({ model }: { model: StormGeoSettingsModel }
                             min="5"
                             max="1440"
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(Number.parseInt(e.target.value) || 60)
-                            }
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 60)}
                             className="w-32"
                             data-testid="input-poll-interval"
                           />
@@ -230,7 +228,11 @@ export function StormGeoSettingsForm({ model }: { model: StormGeoSettingsModel }
                         <FormItem>
                           <FormLabel>Username</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="username" data-testid="input-sftp-user" />
+                            <Input
+                              {...field}
+                              placeholder="username"
+                              data-testid="input-sftp-user"
+                            />
                           </FormControl>
                         </FormItem>
                       )}
@@ -284,9 +286,7 @@ export function StormGeoSettingsForm({ model }: { model: StormGeoSettingsModel }
                             min="5"
                             max="1440"
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(Number.parseInt(e.target.value) || 60)
-                            }
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 60)}
                             className="w-32"
                             data-testid="input-sftp-poll-interval"
                           />

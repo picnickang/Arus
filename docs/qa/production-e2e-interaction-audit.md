@@ -49,15 +49,15 @@ The harness is implemented and discoverable. A live run is intentionally blocked
 
 ## Pathways Covered By Harness
 
-| Area | Coverage |
-|---|---|
-| Login | Admin or user portal login with dedicated production credentials |
-| Navigation inventory | Visible route-bearing links and route-target controls on audited routes |
-| Navigation traversal | Click each collected control, wait for route settlement, reject 404/blank/stuck-loading states |
-| Runtime monitoring | Console errors, page errors, failed requests, and 4xx/5xx responses |
-| Write path | Work-order create flow when a visible create control is available for the QA account |
-| Persistence | Created audit-owned work order must be visible after reload/search route return |
-| Cleanup tracking | Any records with the run prefix must be deleted/archived where product controls allow or listed here |
+| Area                 | Coverage                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| Login                | Admin or user portal login with dedicated production credentials                                     |
+| Navigation inventory | Visible route-bearing links and route-target controls on audited routes                              |
+| Navigation traversal | Click each collected control, wait for route settlement, reject 404/blank/stuck-loading states       |
+| Runtime monitoring   | Console errors, page errors, failed requests, and 4xx/5xx responses                                  |
+| Write path           | Work-order create flow when a visible create control is available for the QA account                 |
+| Persistence          | Created audit-owned work order must be visible after reload/search route return                      |
+| Cleanup tracking     | Any records with the run prefix must be deleted/archived where product controls allow or listed here |
 
 ## Latest Run
 
@@ -65,14 +65,13 @@ No live production run has been executed in this repo state.
 
 ## Cleanup Ledger
 
-| Run prefix | Created records | Cleanup status | Notes |
-|---|---:|---|---|
-| Pending | 0 | Not started | Awaiting production credentials and explicit write opt-in |
+| Run prefix | Created records | Cleanup status | Notes                                                     |
+| ---------- | --------------: | -------------- | --------------------------------------------------------- |
+| Pending    |               0 | Not started    | Awaiting production credentials and explicit write opt-in |
 
 ## Repo File Ledger
 
-| File | Purpose |
-|---|---|
-| `tests/playwright/journeys/production-full-write-audit.spec.ts` | Production-gated traversal and write-path harness |
-| `docs/qa/production-e2e-interaction-audit.md` | Durable production audit summary and cleanup ledger |
-
+| File                                                            | Purpose                                             |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| `tests/playwright/journeys/production-full-write-audit.spec.ts` | Production-gated traversal and write-path harness   |
+| `docs/qa/production-e2e-interaction-audit.md`                   | Durable production audit summary and cleanup ledger |

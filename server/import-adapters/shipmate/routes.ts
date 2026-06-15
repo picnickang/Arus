@@ -12,6 +12,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { z } from "zod";
 import { shipmateImport } from "./import-service";
 type ShipmateModuleType =
@@ -27,6 +28,9 @@ import { createLogger } from "../../lib/structured-logger";
 
 const logger = createLogger("shipmate-import-routes");
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const importLimit = RateLimiters.write();
 
 const MODULES: ShipmateModuleType[] = [

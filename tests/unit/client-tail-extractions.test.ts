@@ -14,7 +14,7 @@ describe("client tail component extractions", () => {
     expect(page).toContain("<ActivityRow key={item.id} item={item} />");
     expect(parts).toContain("export function SummaryMetrics");
     expect(parts).toContain("export function ActivityRow");
-    expect(parts).toContain('data-testid={`activity-row-${item.id}`}');
+    expect(parts).toContain("data-testid={`activity-row-${item.id}`}");
   });
 
   it("keeps schedule planner vessel queries in a read-model helper", () => {
@@ -125,6 +125,7 @@ describe("client tail component extractions", () => {
   it("keeps work-order detail drawer presentation behind sibling modules", () => {
     const drawer = read("client/src/components/work-orders/WorkOrderDetailDrawer.tsx");
     const parts = read("client/src/components/work-orders/WorkOrderDetailDrawerParts.tsx");
+    const costTime = read("client/src/components/work-orders/WorkOrderDetailCostTime.tsx");
     const actions = read("client/src/components/work-orders/WorkOrderDetailDrawerActions.tsx");
 
     expect(drawer).toContain('from "./WorkOrderDetailDrawerParts"');
@@ -132,7 +133,9 @@ describe("client tail component extractions", () => {
     expect(drawer).toContain("export function WorkOrderDetailDrawer");
     expect(parts).toContain("export function WorkOrderDetailTabs");
     expect(parts).toContain('data-testid="tab-wo-details"');
-    expect(parts).toContain('data-testid="cost-grand-total"');
+    expect(parts).toContain('from "./WorkOrderDetailCostTime"');
+    expect(costTime).toContain("export function CostBreakdown");
+    expect(costTime).toContain('data-testid="cost-grand-total"');
     expect(actions).toContain("export function WorkOrderDrawerActions");
     expect(actions).toContain('data-testid="button-complete-wo-drawer"');
     expect(actions).toContain('data-testid="button-delete-wo-drawer"');
@@ -149,13 +152,15 @@ describe("client tail component extractions", () => {
     expect(fields).toContain("export function EquipmentFormFields");
     expect(fields).toContain('data-testid={`form-${isCreate ? "create" : "edit"}-equipment`}');
     expect(fields).toContain('data-testid={`button-submit-${isCreate ? "create" : "edit"}`}');
-    expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
+    expect(fields).toContain("data-testid={`input-${testIdPrefix}service-life-hours`}");
   });
 
   it("keeps equipment decommission sections behind the public dialog component", () => {
     const dialog = read("client/src/components/equipment/EquipmentDecommissionDialog.tsx");
     const model = read("client/src/components/equipment/EquipmentDecommissionDialogModel.ts");
-    const sections = read("client/src/components/equipment/EquipmentDecommissionDialogSections.tsx");
+    const sections = read(
+      "client/src/components/equipment/EquipmentDecommissionDialogSections.tsx"
+    );
     const optionalSections = read(
       "client/src/components/equipment/EquipmentDecommissionDialogOptionalSections.tsx"
     );
@@ -183,7 +188,9 @@ describe("client tail component extractions", () => {
     const shared = read("client/src/features/mobile-readiness/MobileReadinessShared.tsx");
     const fleet = read("client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx");
     const pdm = read("client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx");
-    const workLogs = read("client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx");
+    const workLogs = read(
+      "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx"
+    );
     const admin = read("client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx");
 
     expect(route).toContain('from "./MobileReadinessFleetScreens"');
@@ -213,8 +220,8 @@ describe("client tail component extractions", () => {
     expect(tab).toContain("<RotationTemplatesSection />");
     expect(tab).toContain("export function SchedulingSettingsTab");
     expect(rotation).toContain("export function RotationTemplatesSection");
-    expect(rotation).toContain('data-testid={`button-set-default-${template.id}`}');
-    expect(rotation).toContain('data-testid={`button-delete-template-${template.id}`}');
+    expect(rotation).toContain("data-testid={`button-set-default-${template.id}`}");
+    expect(rotation).toContain("data-testid={`button-delete-template-${template.id}`}");
     expect(rotation).toContain('data-testid="button-add-template"');
   });
 
@@ -312,7 +319,9 @@ describe("client tail component extractions", () => {
   it("keeps AI health training tab surfaces behind sibling modules", () => {
     const tab = read("client/src/components/ai-health/TrainingTab.tsx");
     const shell = read("client/src/components/ai-health/TrainingTabShell.tsx");
-    const trainingSections = read("client/src/components/ai-health/TrainingTabTrainingSections.tsx");
+    const trainingSections = read(
+      "client/src/components/ai-health/TrainingTabTrainingSections.tsx"
+    );
     const managementSections = read(
       "client/src/components/ai-health/TrainingTabManagementSections.tsx"
     );
@@ -348,8 +357,8 @@ describe("client tail component extractions", () => {
     expect(card).toContain("<HistoryPanel");
     expect(history).toContain("export function HistoryPanel");
     expect(pins).toContain("export function PinEditor");
-    expect(pins).toContain('data-testid={`pin-editor-${vesselId}`}');
-    expect(pins).toContain('data-testid={`viewer-3d-${vesselId}`}');
+    expect(pins).toContain("data-testid={`pin-editor-${vesselId}`}");
+    expect(pins).toContain("data-testid={`viewer-3d-${vesselId}`}");
   });
 
   it("keeps Copilot admin configuration behind sibling modules", () => {
@@ -385,7 +394,7 @@ describe("client tail component extractions", () => {
     expect(software).toContain("<GitHubSettingsTab />");
     expect(software).toContain('data-testid="button-check-updates"');
     expect(github).toContain("export function GitHubSettingsTab");
-    expect(github).toContain('data-testid={`button-select-repo-${repo.name}`}');
+    expect(github).toContain("data-testid={`button-select-repo-${repo.name}`}");
   });
 
   it("keeps findings page presentation controls behind the route shell", () => {
@@ -420,7 +429,7 @@ describe("client tail component extractions", () => {
     expect(savings).toContain("export function SavingsClaimsSection");
     expect(savings).toContain("export interface SavingsRecord");
     expect(savings).toContain('data-testid="savings-claims-list"');
-    expect(savings).toContain('data-testid={`button-dispute-${savingsId}`}');
+    expect(savings).toContain("data-testid={`button-dispute-${savingsId}`}");
   });
 
   it("keeps crew management utility groups behind compatibility exports", () => {
@@ -470,7 +479,7 @@ describe("client tail component extractions", () => {
     expect(sections).toContain('from "./maintenance-schedules-calendar"');
     expect(sections).toContain("export function MaintenanceScheduleSections");
     expect(sections).toContain('data-testid="input-search-schedules"');
-    expect(sections).toContain('data-testid={`button-view-schedule-${schedule.id}`}');
+    expect(sections).toContain("data-testid={`button-view-schedule-${schedule.id}`}");
     expect(calendar).toContain("export function CalendarView");
     expect(calendar).toContain('data-testid="button-current-week"');
     expect(dialogs).toContain("export function MaintenanceScheduleDialogs");
@@ -490,8 +499,8 @@ describe("client tail component extractions", () => {
     expect(sections).toContain("export function OrganizationManagementSections");
     expect(sections).toContain("function getRoleIcon");
     expect(sections).toContain('data-testid="input-search"');
-    expect(sections).toContain('data-testid={`row-organization-${org.id}`}');
-    expect(sections).toContain('data-testid={`button-password-user-mobile-${user.id}`}');
+    expect(sections).toContain("data-testid={`row-organization-${org.id}`}");
+    expect(sections).toContain("data-testid={`button-password-user-mobile-${user.id}`}");
     expect(dialogs).toContain("export function OrganizationManagementDialogs");
     expect(dialogs).toContain('data-testid="dialog-organization"');
     expect(dialogs).toContain('data-testid="dialog-user"');
@@ -510,7 +519,7 @@ describe("client tail component extractions", () => {
     expect(cards).toContain("export function TemplateCard");
     expect(cards).toContain("export function ChecklistSection");
     expect(cards).toContain("export function ViewTemplateContent");
-    expect(cards).toContain('data-testid={`template-card-${template.id}`}');
+    expect(cards).toContain("data-testid={`template-card-${template.id}`}");
     expect(cards).toContain('data-testid="button-add-item"');
     expect(dialogs).toContain("export function MaintenanceTemplateDialogs");
     expect(dialogs).toContain('data-testid="dialog-title"');
@@ -536,8 +545,8 @@ describe("client tail component extractions", () => {
     expect(summary).toContain('data-testid="stat-active-models"');
     expect(sections).toContain("export function PerformanceDiagnosticSections");
     expect(sections).toContain("export function MarineAndValidationSections");
-    expect(sections).toContain('data-testid={`drift-alert-${idx}`}');
-    expect(sections).toContain('data-testid={`row-validation-${index}`}');
+    expect(sections).toContain("data-testid={`drift-alert-${idx}`}");
+    expect(sections).toContain("data-testid={`row-validation-${index}`}");
     expect(explainability).toContain("export function PerformanceExplainabilitySection");
     expect(explainability).toContain('data-testid="select-filter-equipment"');
   });
@@ -567,7 +576,7 @@ describe("client tail component extractions", () => {
     expect(page).toContain("<VesselManagementDialogs");
     expect(page).toContain("export default function VesselManagement");
     expect(table).toContain("export function VesselFleetOverview");
-    expect(table).toContain('data-testid={`button-view-${vessel.id}`}');
+    expect(table).toContain("data-testid={`button-view-${vessel.id}`}");
     expect(dialogs).toContain("export function VesselManagementActions");
     expect(dialogs).toContain("export function VesselManagementDialogs");
     expect(dialogs).toContain('data-testid="input-vessel-name"');
@@ -602,7 +611,7 @@ describe("client tail component extractions", () => {
     expect(wizard).toContain("export function SensorSetupWizard");
     expect(bundle).toContain("export function BundleStep");
     expect(bundle).toContain('data-testid="bundle-option-custom"');
-    expect(bundle).toContain('data-testid={`checkbox-template-${template.kind}`}');
+    expect(bundle).toContain("data-testid={`checkbox-template-${template.kind}`}");
     expect(bundle).toContain('data-testid="button-next-step"');
   });
 
@@ -622,7 +631,7 @@ describe("client tail component extractions", () => {
     expect(stats).toContain('data-testid="button-add-equipment"');
     expect(tabs).toContain("export function EquipmentRegistryTabs");
     expect(tabs).toContain('data-testid="tab-active-equipment"');
-    expect(tabs).toContain('data-testid={`button-sensors-mobile-${item.id}`}');
+    expect(tabs).toContain("data-testid={`button-sensors-mobile-${item.id}`}");
     expect(dialogs).toContain("export function EquipmentPageDialogs");
     expect(dialogs).toContain("<SensorSetupWizard");
     expect(dialogs).toContain("<EquipmentDecommissionDialog");
@@ -641,8 +650,8 @@ describe("client tail component extractions", () => {
     expect(panel).toContain('data-testid="linked-service-orders-panel"');
     expect(cards).toContain("export function ServiceOrderCard");
     expect(cards).toContain("export function ServiceRequestCard");
-    expect(cards).toContain('data-testid={`linked-so-${so.id}`}');
-    expect(cards).toContain('data-testid={`timeline-${so.id}`}');
+    expect(cards).toContain("data-testid={`linked-so-${so.id}`}");
+    expect(cards).toContain("data-testid={`timeline-${so.id}`}");
     expect(dialog).toContain("export function CreateServiceRequestDialog");
     expect(dialog).toContain('data-testid="button-submit-service-request"');
   });
@@ -664,11 +673,11 @@ describe("client tail component extractions", () => {
     expect(types).toContain("export const OUTCOME_CATEGORIES");
     expect(cards).toContain("export function FindingCard");
     expect(cards).toContain("export function EntityLink");
-    expect(cards).toContain('data-testid={`finding-card-${item.id}`}');
-    expect(cards).toContain('data-testid={`button-assistant-${item.id}`}');
+    expect(cards).toContain("data-testid={`finding-card-${item.id}`}");
+    expect(cards).toContain("data-testid={`button-assistant-${item.id}`}");
     expect(tasks).toContain("export function TaskCard");
     expect(tasks).toContain("export function TasksSection");
-    expect(tasks).toContain('data-testid={`task-card-${task.id}`}');
+    expect(tasks).toContain("data-testid={`task-card-${task.id}`}");
     expect(tasks).toContain('data-testid="tasks-section"');
   });
 
@@ -739,5 +748,4 @@ describe("client tail component extractions", () => {
     expect(imports).toContain('data-testid="input-stormgeo-file"');
     expect(types).toContain("export type StormGeoSettingsModel");
   });
-
 });

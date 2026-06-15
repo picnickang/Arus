@@ -8,11 +8,18 @@ export interface CrewNotificationCheck {
   overrideEmail: string | null;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
 export interface EmailPayload {
   to: string[];
   subject: string;
   text: string;
   html?: string | undefined;
+  attachments?: EmailAttachment[] | undefined;
 }
 
 export interface SendResult {

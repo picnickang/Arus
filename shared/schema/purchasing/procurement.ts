@@ -2,18 +2,7 @@
  * Reservation, purchase order, and purchase request schema tables.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  integer,
-  numeric,
-  timestamp,
-  jsonb,
-  unique,
-  index,
-} from "../base";
+import { sql, pgTable, text, varchar, numeric, timestamp, jsonb, unique, index } from "../base";
 import { organizations } from "../core";
 import { vessels } from "../vessels";
 import { parts, suppliers } from "../inventory";
@@ -117,7 +106,11 @@ export const purchaseOrderItems = pgTable(
       scale: 3,
       mode: "number",
     }).default(0),
-    rejectedQuantity: integer("rejected_quantity").default(0),
+    rejectedQuantity: numeric("rejected_quantity", {
+      precision: 12,
+      scale: 3,
+      mode: "number",
+    }).default(0),
     rejectionReason: text("rejection_reason"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),

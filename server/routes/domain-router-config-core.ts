@@ -114,6 +114,14 @@ export const coreDomainRouters: DomainRouterConfig[] = [
     functionName: "registerAlertSettingsRoutes",
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
   },
+  {
+    // Public (signature-verified) SendGrid event-webhook receiver — updates
+    // alert_email_log delivery status. See public-api-paths.ts allowlist.
+    name: "SendGridWebhook",
+    importPath: "../domains/alerts/index.js",
+    functionName: "registerSendGridWebhookRoutes",
+    getDeps: () => ({ generalApiRateLimit }),
+  },
 
   // Logbook & Telemetry
   {

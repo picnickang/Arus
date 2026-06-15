@@ -116,7 +116,6 @@ export const errorLogsSqlite = sqliteTable(
     timestamp: integer("timestamp", { mode: "timestamp" }),
     category: text("category").notNull().default("application"),
     errorType: text("error_type").notNull(),
-    errorMessage: text("error_message"),
     errorCode: text("error_code"),
     message: text("message").notNull(),
     stackTrace: text("stack_trace"),

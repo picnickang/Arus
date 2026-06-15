@@ -134,8 +134,13 @@ export async function planAndMaybeExecute({
 
     // Persist results
     if (mode === "execute" || mode === "auto") {
-      // Clear old assignments in the date range to prevent conflicts
-      if (mode === "auto" && daysArr.length > 0) {
+      // Clear existing assignments in the date range before writing the new
+      // plan. `scheduled` is a full plan for the whole range (not a delta) and
+      // there is no unique constraint on schedule_assignments, so skipping this
+      // would silently accumulate duplicate assignments on every persisting
+      // run. Applies to BOTH execute and auto (the cleanup metric is already
+      // labelled by mode for exactly this reason).
+      if (daysArr.length > 0) {
         const startDate = new Date(daysArr[0] ?? since);
         const endDate = new Date(daysArr[daysArr.length - 1] ?? since);
         endDate.setHours(23, 59, 59, 999); // End of last day
@@ -147,7 +152,7 @@ export async function planAndMaybeExecute({
         );
         if (deletedCount > 0) {
           logger.info(
-            `[Scheduler] Cleared ${deletedCount} existing auto assignments for date range ${daysArr[0]} to ${daysArr[daysArr.length - 1]}`
+            `[Scheduler] Cleared ${deletedCount} existing ${mode} assignments for date range ${daysArr[0]} to ${daysArr[daysArr.length - 1]}`
           );
           schedCleanupAssignments.labels(orgId, mode).inc(deletedCount);
         }

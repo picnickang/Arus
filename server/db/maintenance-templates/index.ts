@@ -17,7 +17,6 @@
  * Maintenance Templates Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseMaintenanceTemplatesStorage } from "./db-maintenance-templates.js";
 
 import { createLogger } from "../../lib/structured-logger";

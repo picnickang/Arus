@@ -175,11 +175,7 @@ export function CreateScheduleDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                data-testid="button-submit-schedule"
-              >
+              <Button type="submit" disabled={isSubmitting} data-testid="button-submit-schedule">
                 {isSubmitting ? "Creating..." : "Create Schedule"}
               </Button>
             </DialogFooter>

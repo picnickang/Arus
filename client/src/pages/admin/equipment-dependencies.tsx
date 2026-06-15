@@ -67,7 +67,11 @@ export default function EquipmentDependenciesPage() {
             </SelectTrigger>
             <SelectContent>
               {state.vessels.map((vessel) => (
-                <SelectItem key={vessel.id} value={vessel.id} data-testid={`option-vessel-${vessel.id}`}>
+                <SelectItem
+                  key={vessel.id}
+                  value={vessel.id}
+                  data-testid={`option-vessel-${vessel.id}`}
+                >
                   {vessel.name}
                 </SelectItem>
               ))}

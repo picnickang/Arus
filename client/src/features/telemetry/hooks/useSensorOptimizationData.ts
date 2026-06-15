@@ -4,6 +4,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
+type StatusBadgeConfig = {
+  variant: "default" | "secondary" | "destructive" | "outline";
+  icon: typeof AlertTriangle;
+};
+
 export interface SensorOptEquipment {
   id: string;
   name: string;
@@ -172,10 +177,7 @@ export function useSensorOptimizationData() {
       if (!status) {
         return { variant: "outline", icon: AlertTriangle, label: "Unknown" };
       }
-      const variants: Record<
-        string,
-        { variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof AlertTriangle }
-      > = {
+      const variants: Record<string, StatusBadgeConfig> = {
         pending_review: { variant: "secondary", icon: AlertTriangle },
         applied: { variant: "default", icon: CheckCircle2 },
         rejected: { variant: "destructive", icon: XCircle },

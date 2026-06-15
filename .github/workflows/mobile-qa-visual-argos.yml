@@ -2,16 +2,16 @@ name: Mobile QA + Visual Regression + Argos CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'client/src/features/mobile-readiness/**'
-      - 'client/src/components/BottomNav**'
-      - 'client/src/App.tsx'
-      - 'tests/**'
-      - 'playwright.config.ts'
-      - 'docs/qa/mobile-old-ui-route-audit.md'
+      - "client/src/features/mobile-readiness/**"
+      - "client/src/components/BottomNav**"
+      - "client/src/App.tsx"
+      - "tests/**"
+      - "playwright.config.ts"
+      - "docs/qa/mobile-old-ui-route-audit.md"
 
 jobs:
   mobile-qa:
@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

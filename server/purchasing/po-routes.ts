@@ -13,6 +13,7 @@
  */
 
 import { Router } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { z } from "zod";
 import { db } from "../db";
 import { eq, and, sql } from "drizzle-orm";
@@ -31,6 +32,9 @@ import { RateLimiters } from "../lib/rate-limit-factory";
 import { registerPurchaseOrderFulfillmentRoutes } from "./po-fulfillment-routes";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const generalLimit = RateLimiters.general();
 const writeLimit = RateLimiters.write();
 

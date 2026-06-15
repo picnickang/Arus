@@ -53,13 +53,14 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
         }
       }
     });
-    if (timestamp) {
-      const lat = numeric.latitude ?? 0;
-      const lon = numeric.longitude ?? 0;
+    // Require real coordinates: defaulting a missing lat/lon to 0 silently
+    // places the record at (0,0) (Gulf of Guinea), corrupting position-tied
+    // weather data. Skip rows that lack valid coordinates instead.
+    if (timestamp && numeric.latitude != null && numeric.longitude != null) {
       rows.push({
         timestamp,
-        latitude: lat,
-        longitude: lon,
+        latitude: numeric.latitude,
+        longitude: numeric.longitude,
         wind_speed: numeric.wind_speed,
         wind_direction: numeric.wind_direction,
         wave_height: numeric.wave_height,
@@ -101,9 +102,18 @@ export function csvRowToSnapshot(
     longitude: row.longitude,
     windSpeed: row.wind_speed,
     windDirection: row.wind_direction,
-    windForceBeaufort: row.wind_speed ? windSpeedToBeaufort(row.wind_speed) : undefined,
+    // Finite check (not truthiness) so a real 0 (calm/flat) converts to
+    // Beaufort/sea-state 0, and NaN/undefined yields undefined instead of
+    // falling through windSpeedToBeaufort's else-branch to 12 (hurricane).
+    windForceBeaufort:
+      typeof row.wind_speed === "number" && Number.isFinite(row.wind_speed)
+        ? windSpeedToBeaufort(row.wind_speed)
+        : undefined,
     waveHeight: row.wave_height,
-    seaState: row.wave_height ? waveHeightToSeaState(row.wave_height) : undefined,
+    seaState:
+      typeof row.wave_height === "number" && Number.isFinite(row.wave_height)
+        ? waveHeightToSeaState(row.wave_height)
+        : undefined,
     swellHeight: row.swell_height,
     swellDirection: row.swell_direction,
     airTemperature: row.air_temp,
@@ -155,9 +165,15 @@ export function jsonWaypointToSnapshot(
     longitude: waypoint.lon,
     windSpeed: weather.wind_speed,
     windDirection: weather.wind_direction,
-    windForceBeaufort: weather.wind_speed ? windSpeedToBeaufort(weather.wind_speed) : undefined,
+    windForceBeaufort:
+      typeof weather.wind_speed === "number" && Number.isFinite(weather.wind_speed)
+        ? windSpeedToBeaufort(weather.wind_speed)
+        : undefined,
     waveHeight: weather.wave_height,
-    seaState: weather.wave_height ? waveHeightToSeaState(weather.wave_height) : undefined,
+    seaState:
+      typeof weather.wave_height === "number" && Number.isFinite(weather.wave_height)
+        ? waveHeightToSeaState(weather.wave_height)
+        : undefined,
     swellHeight: weather.swell_height,
     swellDirection: weather.swell_direction,
     airTemperature: weather.air_temp,

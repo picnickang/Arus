@@ -42,7 +42,15 @@ router.get("/suppliers", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const typeParam = req.query["type"] as string | undefined;
+    // Express query values can be string | string[]; normalise to a single
+    // comma-joined string so `.includes`/`.split` operate on a string (not
+    // an array) — avoids type confusion through parameter tampering.
+    const rawType = req.query["type"];
+    const typeParam = Array.isArray(rawType)
+      ? rawType.join(",")
+      : typeof rawType === "string"
+        ? rawType
+        : undefined;
     let type: SupplierListFilters["type"] | undefined;
     if (typeParam) {
       if (typeParam.includes(",")) {

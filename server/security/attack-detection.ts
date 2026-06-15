@@ -28,7 +28,10 @@ const ATTACK_PATTERNS = {
     /\bdrop\s+table\b/i,
   ],
   xss: [
-    /<script\b[^<]{0,500}<\/script>/gi,
+    // Detection-only: flag any opening <script tag (incl. `<script src=…`,
+    // `<script\n>`); we don't need to match the closing tag for threat
+    // scoring, which also avoids brittle/bypassable end-tag matching.
+    /<script[\s/>]/i,
     /javascript:\s{0,10}[^;]/i,
     /on(?:load|error|click|focus|blur)\s{0,10}=/i,
   ],

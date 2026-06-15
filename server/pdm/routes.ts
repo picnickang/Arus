@@ -26,8 +26,12 @@ import {
 import { registerPdmEquipmentLiveRoutes } from "./equipment-live-routes";
 import { registerPdmExportRoutes } from "./export-routes";
 import { dashboardFiltersSchema, filterRiskQueue, scheduleFiltersSchema } from "./routes-shared";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 const getDashboardUseCase = createGetDashboardUseCase(pdmPostgresRepository);
 const getRiskQueueUseCase = createGetRiskQueueUseCase(pdmPostgresRepository);

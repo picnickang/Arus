@@ -3,6 +3,7 @@
  */
 
 import type { Express, Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
@@ -12,6 +13,7 @@ import { requireOrgId } from "../../../middleware/auth.js";
 export function registerModeRoutes(app: Express, _config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/operating-mode",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling("detect operating mode", async (req: AuthenticatedRequest, res: Response) => {
       const { id: vesselId } = req.params;
