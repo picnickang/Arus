@@ -130,19 +130,17 @@ async function contrastAcrossThemes(
 
 function assertWithinBaseline(baselinePath: string, surface: string, perTheme: Record<string, number>, total: number): void {
   if (process.env.AXE_CONTRAST_UPDATE === "1") {
-    fs.writeFileSync(
-      baselinePath,
-      JSON.stringify(
-        {
-          _comment: `WCAG color-contrast violation nodes on ${surface} across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.`,
-          maxContrastViolations: total,
-          perTheme,
-        },
-        null,
-        2
-      ) + "\n"
+    const body = JSON.stringify(
+      {
+        _comment: `WCAG color-contrast violation nodes on ${surface} across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.`,
+        maxContrastViolations: total,
+        perTheme,
+      },
+      null,
+      2
     );
-    console.log(`[axe-contrast] ${surface} baseline written: ${total}`);
+    fs.writeFileSync(baselinePath, `${body}\n`);
+    console.info(`[axe-contrast] ${surface} baseline written: ${total}`);
     return;
   }
   const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
@@ -154,12 +152,12 @@ function assertWithinBaseline(baselinePath: string, surface: string, perTheme: R
 
 test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoOpsChrome);
-  console.log(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
+  console.info(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(OPS_BASELINE_PATH, "/analytics", perTheme, total);
 });
 
 test("mobile-readiness screens meet WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoMobileFleet);
-  console.log(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
+  console.info(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(MOBILE_BASELINE_PATH, "/fleet", perTheme, total);
 });
