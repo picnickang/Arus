@@ -329,7 +329,7 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
       );
   }
 
-  async createWorkOrderFromRisk(orgId: string, itemId: string, userId: string): Promise<string> {
+  async createWorkOrderFromRisk(orgId: string, itemId: string, _userId: string): Promise<string> {
     const prediction = await db
       .select()
       .from(failurePredictions)

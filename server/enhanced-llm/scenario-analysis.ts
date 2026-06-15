@@ -12,7 +12,7 @@ import type { EnhancedAnalysisOutput, ModelConfig } from "./types.js";
  */
 export async function generateScenarios(
   context: ReportContext,
-  modelConfig: ModelConfig
+  _modelConfig: ModelConfig
 ): Promise<EnhancedAnalysisOutput["scenarios"]> {
   const scenarios: EnhancedAnalysisOutput["scenarios"] = [];
 

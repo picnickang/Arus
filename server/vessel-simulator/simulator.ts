@@ -115,8 +115,8 @@ export class VesselSimulator {
     signals: string[],
     config: SimulationConfig,
     state: { oilTemp: number; coolantTemp: number; faultDrift: number },
-    faultStart: number,
-    faultSeverity: number
+    _faultStart: number,
+    _faultSeverity: number
   ): SimulatedTelemetryPoint {
     const rpm = OperationalPatternGenerator.generateRpm(t, preset.pattern, preset.maxRpm);
     const torque = PhysicsEngine.clamp(
