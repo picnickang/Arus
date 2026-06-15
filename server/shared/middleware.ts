@@ -77,7 +77,7 @@ export function createRateLimitBundle(): RateLimitBundle {
   };
 }
 
-export function createLoggerMiddleware(domain: string): RequestHandler {
+export function createLoggerMiddleware(_domain: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
     const requestId = req.headers["x-request-id"] || crypto.randomUUID().slice(0, 8);

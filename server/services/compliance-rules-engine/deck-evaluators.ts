@@ -90,7 +90,7 @@ export async function evaluateDeckMissingHourly(
 
 export async function evaluateDeckUnsigned(
   ctx: RuleContext,
-  config: Record<string, unknown>
+  _config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
 
@@ -124,7 +124,7 @@ export async function evaluateDeckUnsigned(
 
 export async function evaluateDeckMissingPosition(
   ctx: RuleContext,
-  config: Record<string, unknown>
+  _config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
 

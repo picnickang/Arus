@@ -112,7 +112,7 @@ export class WorkOrderRepository {
     return dbEquipmentStorage.getEquipmentWithSensorIssues(orgId);
   }
 
-  async suggestPartsForSensorIssue(equipmentId: string, sensorType: string, orgId: string) {
+  async suggestPartsForSensorIssue(_equipmentId: string, _sensorType: string, _orgId: string) {
     return [];
   }
 

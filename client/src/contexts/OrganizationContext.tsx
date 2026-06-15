@@ -28,47 +28,6 @@ const ORG_STORAGE_KEY = "arus_current_org_id";
 const USER_STORAGE_KEY = "currentUser";
 const TOKEN_STORAGE_KEY = "authToken";
 
-interface StoredUser {
-  orgId?: string;
-  organizationName?: string;
-}
-
-const devFallbackWarningShown = false;
-
-interface JWTPayload {
-  orgId?: string;
-  organizationName?: string;
-  exp?: number;
-}
-function parseJWT(token: string): JWTPayload | null {
-  try {
-    const base64Url = token.split(".")[1];
-    if (!base64Url) {
-      return null;
-    }
-
-    const base64 = base64Url.replaceAll("-", "+").replaceAll("_", "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
-        .join("")
-    );
-
-    const claims = JSON.parse(jsonPayload);
-
-    if (claims.exp && claims.exp * 1000 < Date.now()) {
-      console.warn("[OrgContext] JWT token expired");
-      return null;
-    }
-
-    return claims;
-  } catch (error) {
-    console.warn("[OrgContext] Failed to parse JWT:", error);
-    return null;
-  }
-}
-
 /**
  * SINGLE-TENANT MODE: Always returns default-org-id
  * Multi-tenant isolation is handled by permissions/RBAC instead

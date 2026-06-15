@@ -65,7 +65,7 @@ export class WorkOrderApplicationService {
     return this.deps.workOrderRepository.findByCriteria(criteria);
   }
 
-  async createWorkOrder(data: InsertWorkOrder, userId?: string): Promise<SelectWorkOrder> {
+  async createWorkOrder(data: InsertWorkOrder, _userId?: string): Promise<SelectWorkOrder> {
     // True transactional outbox: the WO insert and the outbox enqueue
     // commit or roll back together. The in-process bus emit is
     // deferred — `publisher.publish(event, tx)` returns a thunk that
@@ -294,7 +294,7 @@ export class WorkOrderApplicationService {
     return { status: "ok", workOrder: updated };
   }
 
-  async deleteWorkOrder(id: string, orgId?: string, userId?: string): Promise<void> {
+  async deleteWorkOrder(id: string, _orgId?: string, _userId?: string): Promise<void> {
     await workOrderRepository.delete(id);
   }
 

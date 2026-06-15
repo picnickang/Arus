@@ -18,24 +18,9 @@ interface AnomalyRecord {
 interface PredictionRecord {
   confidence?: number;
 }
-interface CostTrendRecord {
-  totalCost?: number;
-}
 interface EquipmentRecord {
   healthIndex?: number;
   trend?: number;
-}
-interface EquipmentHealthResponseShape {
-  results?: EquipmentRecord[];
-}
-interface AnomalyResponseShape {
-  results?: AnomalyRecord[];
-}
-interface FailurePredictionResponseShape {
-  results?: PredictionRecord[];
-}
-interface ModelPerformanceResponseShape {
-  result?: { currentAccuracy?: number; averageAccuracy?: number };
 }
 
 export function useMissionOverviewData() {

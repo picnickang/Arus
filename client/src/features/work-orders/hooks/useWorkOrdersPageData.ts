@@ -22,13 +22,6 @@ export {
   getWorkOrderDuration,
 } from "../lib/page-formatters";
 
-interface PartUsageRecord {
-  partId: string;
-  quantityUsed: number;
-}
-interface CostRecord {
-  amount?: number;
-}
 interface WorkOrderFormData extends Partial<InsertWorkOrder> {
   templateId?: string;
 }

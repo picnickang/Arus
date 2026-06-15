@@ -1,13 +1,13 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-06-15T07:01:15.890Z",
+  "generatedAt": "2026-06-15T07:32:51.787Z",
   "errors": 0,
-  "warnings": 1942,
+  "warnings": 1912,
   "summary": {
     "byTopRules": {
       "@typescript-eslint/prefer-nullish-coalescing": 644,
       "no-nested-ternary": 363,
-      "@typescript-eslint/no-unused-vars": 193,
+      "@typescript-eslint/no-unused-vars": 163,
       "complexity": 143,
       "max-nested-callbacks": 141,
       "@typescript-eslint/explicit-function-return-type": 132,
@@ -26,12 +26,12 @@
       "/home/user/Arus/server/db/inventory/index.ts": 22,
       "/home/user/Arus/client/src/features/crew/hooks/useUnifiedCrewData.ts": 20,
       "/home/user/Arus/server/db/workorders/index.ts": 20,
-      "/home/user/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 19,
-      "/home/user/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19,
       "/home/user/Arus/server/db/crew/index.ts": 19,
       "/home/user/Arus/tests/unit/lr35-bottom-nav-override-leak.test.ts": 19,
+      "/home/user/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 17,
       "/home/user/Arus/client/src/components/MultiPartSelector.tsx": 14,
-      "/home/user/Arus/client/src/features/analytics/hooks/useFinanceModeData.ts": 14
+      "/home/user/Arus/client/src/features/analytics/hooks/useFinanceModeData.ts": 14,
+      "/home/user/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 14
     }
   }
 }

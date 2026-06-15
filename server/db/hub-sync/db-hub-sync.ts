@@ -373,7 +373,7 @@ export class DatabaseHubSyncStorage {
     return r;
   }
 
-  async getDeviceByDeviceId(deviceId: string): Promise<Device | undefined> {
+  async getDeviceByDeviceId(_deviceId: string): Promise<Device | undefined> {
     // SCHEMA GAP: the `devices` table has no `deviceId` column (its primary
     // key is `id`). The previous implementation cast to `any` and queried a
     // non-existent column, which silently returned undefined. This method is
@@ -410,7 +410,7 @@ export class DatabaseHubSyncStorage {
     await db.delete(devices).where(eq(devices.id, id));
   }
 
-  async updateDeviceLastSeen(deviceId: string): Promise<void> {
+  async updateDeviceLastSeen(_deviceId: string): Promise<void> {
     // SCHEMA GAP: the `devices` table has neither a `deviceId` column nor a
     // `lastSeenAt` column. The previous implementation cast both to `any`,
     // so this method silently no-op'd / mis-queried. It is currently

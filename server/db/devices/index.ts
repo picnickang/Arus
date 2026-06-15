@@ -38,10 +38,10 @@ export class DatabaseDevicesStorage {
   private getEffectiveOrgId(orgId?: string): string {
     return orgId?.trim() || "default-org";
   }
-  async getDevices(orgId?: string): Promise<Device[]> {
+  async getDevices(_orgId?: string): Promise<Device[]> {
     return db.select().from(devices);
   }
-  async getDevice(id: string, orgId?: string): Promise<Device | undefined> {
+  async getDevice(id: string, _orgId?: string): Promise<Device | undefined> {
     const r = await db.select().from(devices).where(eq(devices.id, id));
     return r[0];
   }
@@ -55,19 +55,19 @@ export class DatabaseDevicesStorage {
   async updateDevice(
     id: string,
     data: WidenPartial<InsertDevice>,
-    orgId?: string
+    _orgId?: string
   ): Promise<Device | undefined> {
     const r = await db.update(devices).set(data).where(eq(devices.id, id)).returning();
     return r[0];
   }
-  async deleteDevice(id: string, orgId?: string): Promise<boolean> {
+  async deleteDevice(id: string, _orgId?: string): Promise<boolean> {
     const r = await db.delete(devices).where(eq(devices.id, id)).returning();
     return r.length > 0;
   }
-  async getHeartbeatsByOrg(orgId?: string): Promise<EdgeHeartbeat[]> {
+  async getHeartbeatsByOrg(_orgId?: string): Promise<EdgeHeartbeat[]> {
     return db.select().from(edgeHeartbeatsTable);
   }
-  async getHeartbeats(deviceId: string, orgId?: string): Promise<EdgeHeartbeat[]> {
+  async getHeartbeats(deviceId: string, _orgId?: string): Promise<EdgeHeartbeat[]> {
     return db
       .select()
       .from(edgeHeartbeatsTable)
@@ -84,7 +84,7 @@ export class DatabaseDevicesStorage {
     }
     return r[0];
   }
-  async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
+  async getPdmScores(equipmentId?: string, _orgId?: string): Promise<PdmScoreLog[]> {
     if (equipmentId) {
       return db
         .select()
