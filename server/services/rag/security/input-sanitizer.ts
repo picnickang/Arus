@@ -36,7 +36,11 @@ export class InputSanitizer {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
-  sanitize(input: string): SanitizationResult {
+  sanitize(rawInput: string | string[]): SanitizationResult {
+    // Express query params can arrive as string[] at runtime even when typed
+    // `string`; normalise to a single string so downstream length/slice/replace
+    // are well-defined (guards type confusion through parameter tampering).
+    const input = Array.isArray(rawInput) ? rawInput.join(" ") : rawInput;
     if (!this.config.enabled || !this.config.sanitizeUserInput) {
       return {
         sanitized: input,

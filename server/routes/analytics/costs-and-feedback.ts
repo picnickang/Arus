@@ -86,9 +86,13 @@ export function mountCostsAndFeedbackRoutes(router: Router) {
               week: () => new Date(now.setDate(now.getDate() - 7)),
               month: () => new Date(now.setMonth(now.getMonth() - 1)),
             };
-            const startDate = (
-              periodOffsets[period as string] ?? (() => new Date(now.setDate(now.getDate() - 30)))
-            )();
+            // Guard the dynamic lookup against prototype keys so a tampered
+            // `period` can only dispatch to an own, known offset calculator.
+            const periodOffset =
+              typeof period === "string" && Object.hasOwn(periodOffsets, period)
+                ? periodOffsets[period]
+                : undefined;
+            const startDate = (periodOffset ?? (() => new Date(now.setDate(now.getDate() - 30))))();
             filters.push(gte(llmCostTracking.createdAt, startDate));
           }
           const results = await db

@@ -6,6 +6,7 @@
 
 import type { Express } from "express";
 import { logger } from "../utils/logger";
+import { generalApiRateLimit as apiRateLimit } from "../middleware/rate-limiters";
 import { ragAuthMiddleware } from "../services/rag/security/middleware";
 import { initializeRagSecurity } from "../services/rag/security";
 import { registerRagAskRoutes } from "./rag-ask-routes";
@@ -16,6 +17,8 @@ import type { RagRouteRateLimiters } from "./rag-route-utils";
 export function registerRagRoutes(app: Express, rateLimiters: RagRouteRateLimiters) {
   initializeRagSecurity();
 
+  // Rate-limit the whole /api/rag router family (CWE-770) before auth.
+  app.use("/api/rag", apiRateLimit);
   app.use("/api/rag", (req, res, next) => ragAuthMiddleware(req, res, next));
   registerRagAskRoutes(app);
   registerRagConversationRoutes(app, {

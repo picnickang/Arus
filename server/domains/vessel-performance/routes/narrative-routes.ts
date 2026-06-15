@@ -3,6 +3,7 @@
  */
 
 import type { Express, Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { requireOrgId } from "../../../middleware/auth.js";
@@ -14,6 +15,7 @@ export function registerNarrativeRoutes(
 ): void {
   app.post(
     "/api/analytics/narrative-summary",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling(
       "generate narrative summary",

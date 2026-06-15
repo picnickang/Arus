@@ -35,6 +35,9 @@ export async function loadPartUsageHistory(
   const now = new Date();
 
   for (const partNo of partNumbers) {
+    if (partNo === "__proto__" || partNo === "constructor" || partNo === "prototype") {
+      continue;
+    }
     const monthlyData: number[] = [];
 
     // Get part details to estimate usage
@@ -84,6 +87,9 @@ export async function loadPartCosts(
   const costs: Record<string, { orderingCost: number; holdingCostRate: number }> = {};
 
   for (const partNo of partNumbers) {
+    if (partNo === "__proto__" || partNo === "constructor" || partNo === "prototype") {
+      continue;
+    }
     const part = await storage.getPartByNumber(partNo, orgId);
 
     // Estimate costs based on part data
@@ -110,6 +116,9 @@ export async function loadCurrentStock(
   const currentStock: Record<string, number> = {};
 
   for (const partNo of partNumbers) {
+    if (partNo === "__proto__" || partNo === "constructor" || partNo === "prototype") {
+      continue;
+    }
     const stockRecords = await storage.getStockByParts([partNo], orgId);
     const totalStock = stockRecords.reduce((sum, stock) => sum + (stock.quantityOnHand ?? 0), 0);
     currentStock[partNo] = totalStock;

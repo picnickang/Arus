@@ -6,6 +6,7 @@
  */
 
 import { Router } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { z } from "zod";
 import { getLineageRecords, getModelLineage, compareModels, recordPromotion } from "./lineage.js";
 import { getProvenanceEvents, verifyChain } from "./provenance.js";
@@ -15,6 +16,9 @@ import { requireRole } from "../middleware/role-auth";
 import { authenticatedRequest } from "../middleware/auth";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 // Validation schemas
 const lineageQuerySchema = z.object({

@@ -3,6 +3,7 @@
  */
 
 import type { Express, Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { requireOrgId } from "../../../middleware/auth.js";
@@ -15,6 +16,7 @@ async function getCIIService() {
 export function registerCIIRoutes(app: Express, _config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/compliance/cii/:vesselId",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling("calculate CII rating", async (req: AuthenticatedRequest, res: Response) => {
       const { vesselId = "" } = req.params;
@@ -48,6 +50,7 @@ export function registerCIIRoutes(app: Express, _config: VesselPerformanceRoutes
 
   app.get(
     "/api/compliance/cii/:vesselId/trend",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling("get CII trend", async (req: AuthenticatedRequest, res: Response) => {
       const { vesselId = "" } = req.params;

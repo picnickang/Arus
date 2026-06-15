@@ -1,10 +1,14 @@
 import { Router, type Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import { ModelRegistryAdapter } from "./adapter";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { requirePermission } from "../../../lib/permissions/middleware";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const registry = new ModelRegistryAdapter();
 
 const createVersionSchema = z.object({

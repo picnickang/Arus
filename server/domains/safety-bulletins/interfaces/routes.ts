@@ -4,6 +4,8 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { Router } from "express";
+import { generalApiRateLimit as apiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import { safetyBulletinService } from "../service";
 import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
@@ -45,6 +47,11 @@ export function registerSafetyBulletinRoutes(
   }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;
+  // Real (directly-imported) limiter so CodeQL recognises rate limiting
+  // on every handler below (CWE-770); the DI'd limiters above are kept.
+  const rlRouter = Router();
+  rlRouter.use(apiRateLimit);
+  app.use(rlRouter);
   const writeLimit = writeOperationRateLimit || generalApiRateLimit;
 
   // Authorization decision (confirmed): the LIST endpoint is intentionally
@@ -55,7 +62,7 @@ export function registerSafetyBulletinRoutes(
   // a deliberate read-all + write-gated model: only the portal-admin roles
   // in SAFETY_BULLETIN_WRITE_ROLES may POST. Frontend gating matches this
   // (list visible to all; create gated), so there is no UI/API mismatch.
-  app.get(
+  rlRouter.get(
     "/api/safety-bulletins",
     requireOrgId,
     generalApiRateLimit,
@@ -80,7 +87,7 @@ export function registerSafetyBulletinRoutes(
     })
   );
 
-  app.post(
+  rlRouter.post(
     "/api/safety-bulletins",
     requireOrgId,
     requireSafetyBulletinWriteRole,
