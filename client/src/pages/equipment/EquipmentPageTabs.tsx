@@ -214,10 +214,17 @@ export function EquipmentRegistryTabs({
                 </div>
               ) : (
                 m.paginatedEquipment.map((item) => (
-                  <button
+                  <div
                     key={item.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => m.handleView(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        m.handleView(item);
+                      }
+                    }}
                     className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent/70 transition-colors"
                     data-testid={`card-equipment-${item.id}`}
                   >
@@ -288,7 +295,7 @@ export function EquipmentRegistryTabs({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

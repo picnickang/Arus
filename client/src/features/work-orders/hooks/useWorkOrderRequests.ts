@@ -7,15 +7,21 @@ import type { PartsRequestCardData } from "../components/PartsRequestCard";
 export function useWorkOrderRequests(workOrderId: string) {
   const { toast } = useToast();
 
-  const serviceOrdersQuery = useQuery<ServiceOrderCardData[]>({
+  // Cache the raw `{ workOrderId, serviceOrders, count }` envelope the backend
+  // returns — the SAME shape useWorkOrderServiceOrders (useWoSoBridge) caches
+  // under this exact key. Unwrapping here would make the two collide (whichever
+  // ran first won), so a cache hit from the bridge could hand this consumer the
+  // object and crash `serviceOrders.map`. We derive the array at the return.
+  const serviceOrdersQuery = useQuery<{
+    serviceOrders?: ServiceOrderCardData[];
+    count?: number;
+  }>({
     queryKey: ["/api/work-orders", workOrderId, "service-orders"],
-    queryFn: async () => {
-      // Backend wraps the array as { workOrderId, serviceOrders, count }.
-      const resp = await apiRequest<
-        { serviceOrders?: ServiceOrderCardData[] } | ServiceOrderCardData[]
-      >("GET", `/api/work-orders/${workOrderId}/service-orders`);
-      return Array.isArray(resp) ? resp : (resp?.serviceOrders ?? []);
-    },
+    queryFn: () =>
+      apiRequest<{ serviceOrders?: ServiceOrderCardData[]; count?: number }>(
+        "GET",
+        `/api/work-orders/${workOrderId}/service-orders`
+      ),
   });
 
   const purchaseRequestsQuery = useQuery<PartsRequestCardData[]>({
@@ -306,7 +312,7 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   return {
-    serviceOrders: serviceOrdersQuery.data || [],
+    serviceOrders: serviceOrdersQuery.data?.serviceOrders ?? [],
     isLoadingServiceOrders: serviceOrdersQuery.isLoading,
     purchaseRequests: purchaseRequestsQuery.data || [],
     isLoadingPurchaseRequests: purchaseRequestsQuery.isLoading,
