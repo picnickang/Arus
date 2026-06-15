@@ -5,6 +5,10 @@
 > effort, residual risk, and a prioritized close-out sequence.
 > Scored at commit a54c17e, branch `claude/elegant-noether-g8jez5`, 2026-06-14.
 
+> **STATUS — 2026-06-14 @ `e7f37a1`: all 4 blocking gaps CLOSED** (G1 `212c75c`, G4 `0f1c82f`,
+> G3 `3946087`+`038a9cf`, G2 `e7f37a1`). Verdict **HOLD → SHIP WITH CAVEATS**. Caveat gaps G5–G10
+> remain (see §Recommended close-out sequence, step 4).
+
 ## Summary
 
 Closing the gap to a **SHIP** verdict requires clearing **4 blocking gaps** (CI hard-fail gates that

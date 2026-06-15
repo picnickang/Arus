@@ -4,6 +4,10 @@
 > (sequenced, executable close-out). Turns the 4 blocking + 6 caveat gaps into tasks, each with an
 > **acceptance gate** (the exact command that must exit 0). Verified against commit a54c17e.
 
+> **STATUS — 2026-06-14: Phase 1 (G1/G3/G4) and Phase 2 (G2) COMPLETE** on `claude/elegant-noether-g8jez5`
+> (`212c75c`, `0f1c82f`, `3946087`+`038a9cf`, `e7f37a1`). All 4 blocking gates green → **SHIP WITH CAVEATS**.
+> Remaining: Phase 4 caveats (G5–G10).
+
 ## Working rules
 
 - **Acceptance = the gate is green**, not "looks done". Every task names the command that must exit 0.
