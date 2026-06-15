@@ -49,7 +49,12 @@ function vibrationDegradation(): MlAnalyticsTelemetryReading[] {
     out.push({ sensorType: "vibration", avgValue: 2, anomalyScore: 0, windowStart: new Date() });
   }
   for (let i = 0; i < 5; i++) {
-    out.push({ sensorType: "vibration", avgValue: 25, anomalyScore: 0.95, windowStart: new Date() });
+    out.push({
+      sensorType: "vibration",
+      avgValue: 25,
+      anomalyScore: 0.95,
+      windowStart: new Date(),
+    });
   }
   return out;
 }
@@ -105,7 +110,9 @@ afterAll(async () => {
       }
     }
   } catch (err) {
-    console.warn(`[pg-anomaly] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(
+      `[pg-anomaly] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`
+    );
   } finally {
     await pool.end().catch(() => undefined);
   }
@@ -151,7 +158,9 @@ describe("asset anomaly E2E (Postgres) — real date_trunc baseline + ML repos",
     expect(series.length).toBeGreaterThanOrEqual(10);
     expect(series.every((r) => r.sensorType === SENSOR)).toBe(true);
 
-    const prediction = statisticalFailurePrediction(calculateDegradationMetrics(vibrationDegradation()));
+    const prediction = statisticalFailurePrediction(
+      calculateDegradationMetrics(vibrationDegradation())
+    );
     expect(prediction.riskLevel).toBe("critical");
     await recordFailurePrediction(ORG_ID, EQUIP_ID, prediction);
 

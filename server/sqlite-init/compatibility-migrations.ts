@@ -373,7 +373,9 @@ export async function runPdmScoreLogsCompatibilityMigration(client: LibsqlClient
   }
 }
 
-export async function runAnomalyDetectionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+export async function runAnomalyDetectionsCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
   const cols = await getTableColumns(client, "anomaly_detections");
   if (!cols.length) {
     return;
@@ -400,7 +402,9 @@ export async function runAnomalyDetectionsCompatibilityMigration(client: LibsqlC
   }
 }
 
-export async function runFailurePredictionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+export async function runFailurePredictionsCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
   const cols = await getTableColumns(client, "failure_predictions");
   if (!cols.length) {
     return;
@@ -425,7 +429,9 @@ export async function runFailurePredictionsCompatibilityMigration(client: Libsql
   }
 }
 
-export async function runComponentDegradationCompatibilityMigration(client: LibsqlClient): Promise<void> {
+export async function runComponentDegradationCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
   const cols = await getTableColumns(client, "component_degradation");
   if (!cols.length) {
     return;
