@@ -90,7 +90,9 @@ export default function AIStudioPage() {
   });
 
   // Fetch accuracy trend data
-  const { data: accuracyData = [] } = useQuery({
+  const { data: accuracyData = [] } = useQuery<
+    React.ComponentProps<typeof AccuracyTrendChart>["data"]
+  >({
     queryKey: ["/api/ml/accuracy-trend", accuracyTimeRange],
   });
 
@@ -275,32 +277,30 @@ export default function AIStudioPage() {
         {/* Insights */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InsightCard
-            {...({
-              title: "Model Performance",
-              message:
-                avgAccuracy >= 85
-                  ? "Excellent model performance across the fleet"
-                  : avgAccuracy >= 70
-                    ? "Good performance, but some models need attention"
-                    : "Several models require retraining",
-              type: avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning",
-            } as object as React.ComponentProps<typeof InsightCard>)}
+            title="Model Performance"
+            description={
+              avgAccuracy >= 85
+                ? "Excellent model performance across the fleet"
+                : avgAccuracy >= 70
+                  ? "Good performance, but some models need attention"
+                  : "Several models require retraining"
+            }
+            status={avgAccuracy >= 85 ? "normal" : avgAccuracy >= 70 ? "pending" : "warning"}
           />
           <InsightCard
-            {...({
-              title: "System Status",
-              message:
-                trainingModels > 0
-                  ? `${trainingModels} model(s) currently training`
-                  : "No active training jobs",
-              type: "info",
-            } as object as React.ComponentProps<typeof InsightCard>)}
+            title="System Status"
+            description={
+              trainingModels > 0
+                ? `${trainingModels} model(s) currently training`
+                : "No active training jobs"
+            }
+            status={trainingModels > 0 ? "training" : "normal"}
           />
         </div>
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          data={accuracyData as object as React.ComponentProps<typeof AccuracyTrendChart>["data"]}
+          data={accuracyData}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}
           data-testid="accuracy-trend-chart"

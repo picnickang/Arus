@@ -14,6 +14,82 @@ import { vesselService } from "../../../repositories.js";
 
 export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies): void {
   app.get(
+    "/api/hor/fatigue/fleet",
+    withErrorHandling("calculate fleet fatigue overview", async (req: Request, res: Response) => {
+      const orgId = authenticatedRequest(req).orgId;
+      const { days = "14" } = req.query;
+      const lookbackDays = Number.parseInt(days as string) || 14;
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - lookbackDays);
+
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
+
+      const vessels = await vesselService.getVessels(orgId);
+      const {
+        calculateFatigueRisk,
+        calculateVesselFatigueSummary,
+        normalizeRestDays: normalizeForFatigue,
+      } = await import("../../../stcw-compliance");
+
+      const vesselSummaries = await Promise.all(
+        vessels.map(async (vessel) => {
+          const crewMembers = await dbCrewStorage.getCrew(undefined, vessel.id);
+
+          const fatigueResults = await Promise.all(
+            crewMembers.map(async (crew) => {
+              const { days: restDays } = await dbStcwStorage.getCrewRestRange(
+                crew.id,
+                startDateStr,
+                endDateStr
+              );
+              const normalizedDays = normalizeForFatigue(restDays);
+              return calculateFatigueRisk(crew.id, normalizedDays, crew.name);
+            })
+          );
+
+          const summary = calculateVesselFatigueSummary(fatigueResults);
+          return {
+            vesselId: vessel.id,
+            vesselName: vessel.name,
+            ...summary,
+          };
+        })
+      );
+
+      type VS = {
+        highestRiskCrew?: Array<{ score: number; [k: string]: unknown }>;
+        totalCrew?: number;
+        criticalCount?: number;
+        highCount?: number;
+        mediumCount?: number;
+        lowCount?: number;
+      };
+      const summaries = vesselSummaries as object as VS[];
+      const allCrew = summaries.flatMap((v) => v.highestRiskCrew ?? []);
+      const fleetSummary = {
+        totalVessels: vessels.length,
+        totalCrew: summaries.reduce((sum, v) => sum + (v.totalCrew ?? 0), 0),
+        criticalCount: summaries.reduce((sum, v) => sum + (v.criticalCount ?? 0), 0),
+        highCount: summaries.reduce((sum, v) => sum + (v.highCount ?? 0), 0),
+        mediumCount: summaries.reduce((sum, v) => sum + (v.mediumCount ?? 0), 0),
+        lowCount: summaries.reduce((sum, v) => sum + (v.lowCount ?? 0), 0),
+        highestRiskCrew: allCrew.sort((a, b) => b.score - a.score).slice(0, 10),
+      };
+
+      res.json({
+        lookbackDays,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        fleetSummary,
+        vesselSummaries,
+      });
+    })
+  );
+
+  app.get(
     "/api/hor/fatigue/:crewId",
     withErrorHandling("calculate fatigue risk", async (req: Request, res: Response) => {
       const { crewId = "" } = req.params;
@@ -88,82 +164,6 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
         endDate: endDateStr,
         summary,
         crewFatigue: fatigueResults,
-      });
-    })
-  );
-
-  app.get(
-    "/api/hor/fatigue/fleet",
-    withErrorHandling("calculate fleet fatigue overview", async (req: Request, res: Response) => {
-      const orgId = authenticatedRequest(req).orgId;
-      const { days = "14" } = req.query;
-      const lookbackDays = Number.parseInt(days as string) || 14;
-
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - lookbackDays);
-
-      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
-      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
-
-      const vessels = await vesselService.getVessels(orgId);
-      const {
-        calculateFatigueRisk,
-        calculateVesselFatigueSummary,
-        normalizeRestDays: normalizeForFatigue,
-      } = await import("../../../stcw-compliance");
-
-      const vesselSummaries = await Promise.all(
-        vessels.map(async (vessel) => {
-          const crewMembers = await dbCrewStorage.getCrew(undefined, vessel.id);
-
-          const fatigueResults = await Promise.all(
-            crewMembers.map(async (crew) => {
-              const { days: restDays } = await dbStcwStorage.getCrewRestRange(
-                crew.id,
-                startDateStr,
-                endDateStr
-              );
-              const normalizedDays = normalizeForFatigue(restDays);
-              return calculateFatigueRisk(crew.id, normalizedDays, crew.name);
-            })
-          );
-
-          const summary = calculateVesselFatigueSummary(fatigueResults);
-          return {
-            vesselId: vessel.id,
-            vesselName: vessel.name,
-            ...summary,
-          };
-        })
-      );
-
-      type VS = {
-        highestRiskCrew?: Array<{ score: number; [k: string]: unknown }>;
-        totalCrew?: number;
-        criticalCount?: number;
-        highCount?: number;
-        mediumCount?: number;
-        lowCount?: number;
-      };
-      const summaries = vesselSummaries as object as VS[];
-      const allCrew = summaries.flatMap((v) => v.highestRiskCrew ?? []);
-      const fleetSummary = {
-        totalVessels: vessels.length,
-        totalCrew: summaries.reduce((sum, v) => sum + (v.totalCrew ?? 0), 0),
-        criticalCount: summaries.reduce((sum, v) => sum + (v.criticalCount ?? 0), 0),
-        highCount: summaries.reduce((sum, v) => sum + (v.highCount ?? 0), 0),
-        mediumCount: summaries.reduce((sum, v) => sum + (v.mediumCount ?? 0), 0),
-        lowCount: summaries.reduce((sum, v) => sum + (v.lowCount ?? 0), 0),
-        highestRiskCrew: allCrew.sort((a, b) => b.score - a.score).slice(0, 10),
-      };
-
-      res.json({
-        lookbackDays,
-        startDate: startDateStr,
-        endDate: endDateStr,
-        fleetSummary,
-        vesselSummaries,
       });
     })
   );

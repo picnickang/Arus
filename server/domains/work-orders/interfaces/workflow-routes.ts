@@ -52,6 +52,9 @@ const predictionFeedbackSchema = z.object({
 
 export const completeWithFeedbackSchema = z
   .object({
+    // Tolerate the org-scoping middleware injecting orgId into the body; without
+    // this the .strict() schema 400s every complete-with-feedback call.
+    orgId: z.string().optional(),
     completionNotes: z.string().max(MAX_NOTES_LEN).optional(),
     actualHours: z.number().finite().min(0).max(MAX_HOURS).optional(),
     actualDowntimeHours: z.number().finite().min(0).max(MAX_HOURS).optional(),

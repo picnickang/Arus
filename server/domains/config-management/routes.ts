@@ -94,6 +94,30 @@ export function registerConfigManagementRoutes(
   );
 
   app.get(
+    "/api/admin/config/audit",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_CONFIG_AUDIT"),
+    withErrorHandling("fetch config audit log", async (req: Request, res: Response) => {
+      const orgId = DEFAULT_ORG_ID;
+      const { key, limit } = req.query;
+
+      const auditLogs = await db
+        .select()
+        .from(configAuditLog)
+        .where(
+          key
+            ? sql`${configAuditLog.orgId} = ${orgId} AND ${configAuditLog.key} = ${key}`
+            : sql`${configAuditLog.orgId} = ${orgId}`
+        )
+        .orderBy(sql`${configAuditLog.changedAt} DESC`)
+        .limit(limit ? Number.parseInt(limit as string) : 100);
+
+      return res.json(auditLogs);
+    })
+  );
+
+  app.get(
     "/api/admin/config/:key",
     requireAdminAuth,
     generalApiRateLimit,
@@ -188,30 +212,6 @@ export function registerConfigManagementRoutes(
       }
 
       return res.json(result);
-    })
-  );
-
-  app.get(
-    "/api/admin/config/audit",
-    requireAdminAuth,
-    generalApiRateLimit,
-    auditAdminAction("VIEW_CONFIG_AUDIT"),
-    withErrorHandling("fetch config audit log", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
-      const { key, limit } = req.query;
-
-      const auditLogs = await db
-        .select()
-        .from(configAuditLog)
-        .where(
-          key
-            ? sql`${configAuditLog.orgId} = ${orgId} AND ${configAuditLog.key} = ${key}`
-            : sql`${configAuditLog.orgId} = ${orgId}`
-        )
-        .orderBy(sql`${configAuditLog.changedAt} DESC`)
-        .limit(limit ? Number.parseInt(limit as string) : 100);
-
-      return res.json(auditLogs);
     })
   );
 

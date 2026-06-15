@@ -111,7 +111,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   // because rag-security carries roles on `session.roles[]` instead
   // of `req.user.role` — same admin contract, different attach shape.
   const userRoles = session.roles ?? [];
-  const isAdmin = userRoles.some((role) => role.name === "admin");
+  const isAdmin = userRoles.some((role) => role.name === "admin" || role.name === "super_admin");
 
   if (!isAdmin) {
     logger.warn("RagSecurityRoutes", "Unauthorized access attempt to security config", {

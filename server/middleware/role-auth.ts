@@ -82,6 +82,12 @@ export function requireRole(...allowedRoles: AuthCrewRole[]) {
 
     const userRole = user.role?.toLowerCase() as AuthCrewRole;
 
+    // super_admin has all-access across the RBAC surface (consistency with the
+    // session-roles checks elsewhere); never gate it behind per-route role lists.
+    if (userRole === "super_admin") {
+      return next();
+    }
+
     if (!userRole || !allowedRoles.includes(userRole)) {
       logger.warn("[RBAC] Access denied", {
         userId: user.id,

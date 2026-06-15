@@ -89,6 +89,57 @@ export function registerDataPrivacyDsarRoutes(router: Router): void {
   );
 
   router.get(
+    "/dsar/statistics",
+    requireAdminAuth,
+    requireComplianceAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const orgId = requestOrgId(req);
+        if (!orgId) {
+          return res.status(401).json({ error: "Organization ID required" });
+        }
+        const allRequests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, {});
+        const byStatus: Record<string, number> = Object.create(null);
+        const byType: Record<string, number> = Object.create(null);
+        const stats = {
+          total: allRequests.length,
+          byStatus,
+          byType,
+          avgCompletionDays: 0,
+          overdueCount: 0,
+        };
+        let completedDays = 0,
+          completedCount = 0;
+        const now = new Date();
+        for (const req of allRequests) {
+          stats.byStatus[req.status] = (stats.byStatus[req.status] ?? 0) + 1;
+          stats.byType[req.requestType] = (stats.byType[req.requestType] ?? 0) + 1;
+          if (req.completedAt && req.createdAt) {
+            completedDays +=
+              (new Date(req.completedAt).getTime() - new Date(req.createdAt).getTime()) /
+              (1000 * 60 * 60 * 24);
+            completedCount++;
+          }
+          if (
+            req.status !== "completed" &&
+            req.status !== "rejected" &&
+            req.dueDate &&
+            new Date(req.dueDate) < now
+          ) {
+            stats.overdueCount++;
+          }
+        }
+        stats.avgCompletionDays =
+          completedCount > 0 ? Math.round((completedDays / completedCount) * 10) / 10 : 0;
+        return res.json({ success: true, data: stats });
+      } catch (error) {
+        logger.error("[Compliance] DSAR statistics error:", undefined, error);
+        return res.status(500).json({ error: "Failed to retrieve DSAR statistics" });
+      }
+    }
+  );
+
+  router.get(
     "/dsar/:id",
     requireAdminAuth,
     auditAdminAction("dsar_view"),
@@ -412,57 +463,6 @@ export function registerDataPrivacyDsarRoutes(router: Router): void {
       } catch (error) {
         logger.error("[Compliance] DSAR reject error:", undefined, error);
         return res.status(500).json({ error: "Failed to reject DSAR request" });
-      }
-    }
-  );
-
-  router.get(
-    "/dsar/statistics",
-    requireAdminAuth,
-    requireComplianceAccess,
-    async (req: Request, res: Response) => {
-      try {
-        const orgId = requestOrgId(req);
-        if (!orgId) {
-          return res.status(401).json({ error: "Organization ID required" });
-        }
-        const allRequests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, {});
-        const byStatus: Record<string, number> = Object.create(null);
-        const byType: Record<string, number> = Object.create(null);
-        const stats = {
-          total: allRequests.length,
-          byStatus,
-          byType,
-          avgCompletionDays: 0,
-          overdueCount: 0,
-        };
-        let completedDays = 0,
-          completedCount = 0;
-        const now = new Date();
-        for (const req of allRequests) {
-          stats.byStatus[req.status] = (stats.byStatus[req.status] ?? 0) + 1;
-          stats.byType[req.requestType] = (stats.byType[req.requestType] ?? 0) + 1;
-          if (req.completedAt && req.createdAt) {
-            completedDays +=
-              (new Date(req.completedAt).getTime() - new Date(req.createdAt).getTime()) /
-              (1000 * 60 * 60 * 24);
-            completedCount++;
-          }
-          if (
-            req.status !== "completed" &&
-            req.status !== "rejected" &&
-            req.dueDate &&
-            new Date(req.dueDate) < now
-          ) {
-            stats.overdueCount++;
-          }
-        }
-        stats.avgCompletionDays =
-          completedCount > 0 ? Math.round((completedDays / completedCount) * 10) / 10 : 0;
-        return res.json({ success: true, data: stats });
-      } catch (error) {
-        logger.error("[Compliance] DSAR statistics error:", undefined, error);
-        return res.status(500).json({ error: "Failed to retrieve DSAR statistics" });
       }
     }
   );
