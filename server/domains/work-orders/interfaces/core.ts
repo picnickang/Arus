@@ -29,6 +29,7 @@ import {
   sendBadRequest,
   sendForbidden,
   sendUnauthorized,
+  sendConflict,
 } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 
@@ -205,6 +206,8 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
           return sendBadRequest(res, "This work order is not assigned to a crew member");
         case "forbidden":
           return sendForbidden(res, "This work order is not assigned to you");
+        case "invalid_state":
+          return sendConflict(res, `Cannot respond to this assignment: ${result.reason}`);
       }
     })
   );

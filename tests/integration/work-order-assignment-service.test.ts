@@ -322,6 +322,41 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     expect(res.status).toBe("forbidden");
   });
 
+  it("returns 'invalid_state' when the assignment was already accepted (no silent revert)", async () => {
+    store.set("wo1", {
+      id: "wo1",
+      orgId: ORG,
+      assignedCrewId: "crew-1",
+      assignmentStatus: "accepted",
+      status: "in_progress",
+    });
+    nextCrewResult = [{ id: "crew-1", name: "Alice" }];
+
+    const res = await service.respondToAssignment("wo1", "user-alice", ORG, "decline", "changed mind");
+
+    expect(res.status).toBe("invalid_state");
+    // The work order must NOT have been reverted to open.
+    expect(store.get("wo1")?.status).toBe("in_progress");
+    expect(store.get("wo1")?.assignmentStatus).toBe("accepted");
+  });
+
+  it("returns 'invalid_state' when responding to an already-completed work order", async () => {
+    store.set("wo1", {
+      id: "wo1",
+      orgId: ORG,
+      assignedCrewId: "crew-1",
+      assignmentStatus: "assigned",
+      status: "completed",
+    });
+    nextCrewResult = [{ id: "crew-1", name: "Alice" }];
+
+    const res = await service.respondToAssignment("wo1", "user-alice", ORG, "accept");
+
+    expect(res.status).toBe("invalid_state");
+    // A terminal work order must not be reopened into progress.
+    expect(store.get("wo1")?.status).toBe("completed");
+  });
+
   it("returns 'not_crew' when the user is not a registered crew member", async () => {
     store.set("wo1", {
       id: "wo1",

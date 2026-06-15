@@ -124,6 +124,10 @@ export class DatabaseStormGeoStorage {
     const r = await db.delete(stormgeoSnapshots).where(lte(stormgeoSnapshots.forecastTime, date));
     return r.rowCount ?? 0;
   }
+  async deleteStormgeoSnapshotsByRoute(routeId: string): Promise<number> {
+    const r = await db.delete(stormgeoSnapshots).where(eq(stormgeoSnapshots.routeId, routeId));
+    return r.rowCount ?? 0;
+  }
 
   async getStormgeoImportHistory(
     orgId?: string,

@@ -186,19 +186,24 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
-      # Advisory until the migration-strategy reconcile lands: the SQL
-      # migrations are deltas on a db:push baseline, so the harness (which
-      # applies them on an empty scratch schema) can't pass as-is. Keeping
-      # it non-blocking lets the integration tests below actually run and
-      # provide Postgres coverage. Tracked in docs/SECURITY-REVIEW-FOLLOWUPS.md.
+      # Reconciled (2026-06): the harness seeds the db:push baseline + a
+      # dead-table shim into a throwaway database, then proves the numbered
+      # deltas replay AND reverse cleanly across two down→up cycles. Now
+      # blocking. See scripts/check-migrations-reversible.sh.
       - name: LR-1A — Migration reversibility (up → down → up schema-diff)
         run: bash scripts/check-migrations-reversible.sh
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run integration tests
         run: npm run test:integration
+
+      # PostgreSQL-contract lane (RLS, cross-tenant isolation, tenant quota,
+      # safety-bulletin scoping) — runs against the migrated arus_test above.
+      - name: Run PostgreSQL-contract integration tests
+        run: npm run test:integration:postgres
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
   python-sidecar:
     name: Python ML Sidecar

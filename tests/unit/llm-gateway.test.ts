@@ -182,6 +182,43 @@ describe("DefaultLLMGateway", () => {
     expect(meter.events).toHaveLength(0);
   });
 
+  it("charges budget + meter on a mid-stream error so a failing stream cannot bypass accounting", async () => {
+    // Provider yields one delta then throws before the terminal usage chunk.
+    const provider: LLMProviderPort = {
+      name: "fake",
+      isAvailable: async () => true,
+      chat: async () => makeResponse(),
+      async *chatStream() {
+        yield { contentDelta: "partial", raw: {} };
+        throw new Error("connection reset mid-stream");
+      },
+    };
+    const meter = new RecordingMeter();
+    const budgetCharges: Array<{ orgId: string; model: string; tokens: number }> = [];
+    const budgetGuard: BudgetGuardPort = {
+      preflight: () => undefined,
+      record: (orgId, model, tokens) => budgetCharges.push({ orgId, model, tokens }),
+    };
+    const gateway = new DefaultLLMGateway({ provider, meter, budgetGuard });
+
+    const got: string[] = [];
+    await expect(
+      (async () => {
+        for await (const c of gateway.chatStream(baseParams)) {
+          got.push(c.contentDelta);
+        }
+      })()
+    ).rejects.toThrow("connection reset mid-stream");
+
+    expect(got.join("")).toBe("partial");
+    // Despite the error, the consumed tokens are charged (fallback estimate).
+    expect(budgetCharges).toHaveLength(1);
+    expect(budgetCharges[0]?.orgId).toBe("org-1");
+    expect(budgetCharges[0]?.tokens).toBeGreaterThan(0);
+    expect(meter.events).toHaveLength(1);
+    expect(meter.events[0]?.streamed).toBe(true);
+  });
+
   it("exposes the provider name via gateway.name", () => {
     const gateway = new DefaultLLMGateway({ provider: new FakeProvider(makeResponse()) });
     expect(gateway.name).toBe("fake");
@@ -318,6 +355,62 @@ describe("DefaultLLMGateway — PII redaction", () => {
     });
 
     expect(provider.lastParams?.messages[0]?.content).toBe("alice@example.com");
+  });
+});
+
+describe("redactMessages — multipart content (B5)", () => {
+  it("redacts text parts and leaves non-text parts untouched", () => {
+    const { messages, totalHits } = redactMessages([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "reach me at alice@example.com" },
+          { type: "image_url", image_url: { url: "data:image/png;base64,AAA" } },
+        ],
+      },
+    ]);
+
+    const parts = messages[0]!.content as Array<Record<string, unknown>>;
+    expect(parts[0]!["text"]).toBe("reach me at [REDACTED_EMAIL]");
+    expect(parts[1]).toEqual({
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,AAA" },
+    });
+    expect(totalHits).toBe(1);
+  });
+
+  it("leaves the message reference untouched when no text part contains PII", () => {
+    const input = [{ role: "user", content: [{ type: "text", text: "all clear" }] }];
+    const { messages, totalHits } = redactMessages(input);
+
+    expect(messages[0]).toBe(input[0]); // same reference — no needless copy
+    expect(totalHits).toBe(0);
+  });
+
+  it("redacts PII in tool-call arguments but leaves the function name and id intact", () => {
+    const { messages, totalHits } = redactMessages([
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [
+          {
+            id: "call_123",
+            type: "function",
+            function: { name: "lookup_crew", arguments: '{"email":"alice@example.com"}' },
+          },
+        ],
+      },
+    ]);
+
+    const tc = (
+      messages[0] as {
+        toolCalls: Array<{ id: string; function: { name: string; arguments: string } }>;
+      }
+    ).toolCalls;
+    expect(tc[0]!.function.arguments).toBe('{"email":"[REDACTED_EMAIL]"}');
+    expect(tc[0]!.function.name).toBe("lookup_crew"); // routing name untouched
+    expect(tc[0]!.id).toBe("call_123"); // correlation id untouched
+    expect(totalHits).toBe(1);
   });
 });
 

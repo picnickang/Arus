@@ -12,11 +12,15 @@ import request from "supertest";
 const getStoredResponse = jest.fn<(key: string) => Promise<unknown>>();
 const storeResponse = jest.fn<(entry: Record<string, unknown>) => Promise<void>>();
 const deleteExpiredResponses = jest.fn<() => Promise<void>>();
+const claimKey = jest.fn<(entry: Record<string, unknown>) => Promise<boolean>>();
+const releaseClaim = jest.fn<(key: string) => Promise<void>>();
 
 jest.unstable_mockModule("../../server/storage/idempotency-repository", () => ({
   getStoredResponse,
   storeResponse,
   deleteExpiredResponses,
+  claimKey,
+  releaseClaim,
   // Deterministic stand-in: same key+body → same hash, different body → different hash.
   hashIdempotentRequest: (fullKey: string, body: unknown) =>
     `${fullKey}|${JSON.stringify(body ?? null)}`,
@@ -53,8 +57,12 @@ function buildApp(options?: { required?: boolean; doubleMount?: boolean }) {
 
 beforeEach(() => {
   _internals.processedKeys.clear();
+  _internals.inFlightKeys.clear();
   getStoredResponse.mockReset().mockResolvedValue(undefined);
   storeResponse.mockReset().mockResolvedValue(undefined);
+  // Default: this process wins the durable claim (no competing replica).
+  claimKey.mockReset().mockResolvedValue(true);
+  releaseClaim.mockReset().mockResolvedValue(undefined);
 });
 
 describe("idempotencyMiddleware (WS1)", () => {
@@ -190,6 +198,140 @@ describe("idempotencyMiddleware (WS1)", () => {
 
   it("proceeds normally when the durable lookup fails (availability over strictness)", async () => {
     getStoredResponse.mockRejectedValue(new Error("db unavailable"));
+    const { app, handler } = buildApp();
+    const res = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+    expect(res.status).toBe(201);
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounces a concurrent same-key request with a retryable 425 while the first is in flight (B2)", async () => {
+    let releaseHandler!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseHandler = resolve;
+    });
+    let markEntered!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      markEntered = resolve;
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use("/api/work-orders", idempotencyMiddleware());
+    const handler = jest.fn(async (_req: express.Request, res: express.Response) => {
+      markEntered();
+      await gate;
+      res.status(201).json({ created: true });
+    });
+    app.post("/api/work-orders/:id/parts", handler);
+
+    // Start the first request and hold it inside the handler (key reserved).
+    const firstP = request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" })
+      .then((r) => r);
+    await entered;
+
+    // Second concurrent request with the same key must NOT run the handler.
+    const second = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+
+    expect(second.status).toBe(425);
+    expect(second.body.error.code).toBe("IDEMPOTENCY_IN_PROGRESS");
+    expect(second.headers["retry-after"]).toBe("1");
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    releaseHandler();
+    const first = await firstP;
+    expect(first.status).toBe(201);
+
+    // Reservation released on completion: a later retry is served, not bounced.
+    expect(_internals.inFlightKeys.size).toBe(0);
+    const third = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+    expect(third.status).toBe(201);
+  });
+
+  it("bounces a cross-replica double-submit with 425 when another replica holds the claim (B2 residual)", async () => {
+    // No in-process request is in flight, but the durable claim is lost — a
+    // sibling replica reserved the key first and has not finished yet.
+    claimKey.mockResolvedValue(false);
+    getStoredResponse.mockResolvedValue(undefined);
+
+    const { app, handler } = buildApp();
+    const res = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+
+    expect(res.status).toBe(425);
+    expect(res.body.error.code).toBe("IDEMPOTENCY_IN_PROGRESS");
+    expect(handler).not.toHaveBeenCalled();
+    expect(_internals.inFlightKeys.size).toBe(0);
+    // We never owned the claim, so we must not release the sibling's row.
+    expect(releaseClaim).not.toHaveBeenCalled();
+  });
+
+  it("serves the durable response when the claim is lost but the sibling already completed", async () => {
+    const fullKey = "org-1:POST:/api/work-orders/1/parts:key-1";
+    // First durable read (L2) misses; the sibling completes during our claim,
+    // so the post-claim re-check finds the stored response.
+    claimKey.mockResolvedValue(false);
+    getStoredResponse.mockReset().mockResolvedValueOnce(undefined).mockResolvedValue({
+      statusCode: 201,
+      body: { created: true, fromSibling: true },
+      requestHash: `${fullKey}|${JSON.stringify({ part: "impeller" })}`,
+    });
+
+    const { app, handler } = buildApp();
+    const res = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.fromSibling).toBe(true);
+    expect(handler).not.toHaveBeenCalled();
+    expect(releaseClaim).not.toHaveBeenCalled();
+  });
+
+  it("releases the durable claim when the handler fails, so a retry can re-claim", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use("/api/work-orders", idempotencyMiddleware());
+    const handler = jest.fn((_req: express.Request, res: express.Response) => {
+      res.status(500).json({ error: { code: "BOOM" } });
+    });
+    app.post("/api/work-orders/:id/parts", handler);
+
+    const res = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+
+    expect(res.status).toBe(500);
+    // Non-2xx: the claim is released and nothing is persisted as completed.
+    expect(releaseClaim).toHaveBeenCalledWith("org-1:POST:/api/work-orders/1/parts:key-1");
+    expect(storeResponse).not.toHaveBeenCalled();
+    expect(_internals.inFlightKeys.size).toBe(0);
+  });
+
+  it("proceeds when the durable claim fails (availability over strictness)", async () => {
+    claimKey.mockRejectedValue(new Error("db unavailable"));
     const { app, handler } = buildApp();
     const res = await request(app)
       .post("/api/work-orders/1/parts")

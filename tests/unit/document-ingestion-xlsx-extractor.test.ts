@@ -1,23 +1,27 @@
 /**
  * XLSX extractor hardening (security follow-up).
  *
- * `xlsx` ships unfixed prototype-pollution / ReDoS advisories with no upstream
- * patch. The document-ingestion extractor is the only path that parses
- * attacker-controlled spreadsheets, so it caps input size and disables
- * formula/HTML/VBA parsing. These pins keep that hardening in place:
+ * The extractor uses `exceljs` (the `xlsx` package shipped unfixed
+ * prototype-pollution / ReDoS advisories with no upstream patch and has been
+ * removed). The document-ingestion extractor is the only path that parses
+ * attacker-controlled spreadsheets, so it caps input size and never evaluates
+ * formulas. These pins keep that hardening in place:
  *   - oversize buffers are rejected before the parser runs (ReDoS / zip-bomb bound);
  *   - clean workbooks still extract their cell text;
  *   - formula cells surface only their cached value, never the formula text;
  *   - empty workbooks raise the existing "no extractable text" error.
  */
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
-function makeXlsx(rows: Array<Array<string | number>>, sheetName = "Sheet1"): Buffer {
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+async function makeXlsx(
+  rows: Array<Array<string | number>>,
+  sheetName = "Sheet1"
+): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(sheetName);
+  ws.addRows(rows);
+  return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
 async function loadExtractor() {
@@ -33,7 +37,7 @@ afterEach(() => {
 describe("xlsxExtractor — hardening", () => {
   it("extracts cell text from a clean workbook", async () => {
     const extractor = await loadExtractor();
-    const buf = makeXlsx([
+    const buf = await makeXlsx([
       ["Name", "Value"],
       ["Pump A", 42],
     ]);
@@ -48,20 +52,19 @@ describe("xlsxExtractor — hardening", () => {
     jest.resetModules();
     process.env["MAX_XLSX_INGEST_BYTES"] = "16";
     const extractor = await loadExtractor();
-    const buf = makeXlsx([["a", "b"]]);
+    const buf = await makeXlsx([["a", "b"]]);
     await expect(extractor.extract(buf)).rejects.toThrow(/too large|exceeds/i);
   });
 
   it("surfaces a formula cell's cached value, not the formula text", async () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([["base", "calc"]]);
-    // A formula cell with a cached value. With cellFormula:false on read, the
-    // formula string must not appear; the cached value still does.
-    ws["B2"] = { t: "n", f: "1+1", v: 2 };
-    ws["A2"] = { t: "n", v: 7 };
-    ws["!ref"] = "A1:B2";
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Sheet1");
+    ws.addRow(["base", "calc"]);
+    // A formula cell with a cached value. The extractor must surface the cached
+    // result and never the formula expression.
+    ws.getCell("A2").value = 7;
+    ws.getCell("B2").value = { formula: "1+1", result: 2 };
+    const buf = Buffer.from(await wb.xlsx.writeBuffer());
 
     const extractor = await loadExtractor();
     const text = await extractor.extract(buf);
@@ -71,7 +74,9 @@ describe("xlsxExtractor — hardening", () => {
 
   it("throws the existing error for an empty workbook", async () => {
     const extractor = await loadExtractor();
-    const buf = makeXlsx([[]]);
-    await expect(extractor.extract(buf)).rejects.toThrow(/no extractable text|extraction failed/i);
+    const buf = await makeXlsx([[]]);
+    await expect(extractor.extract(buf)).rejects.toThrow(
+      /no extractable text|extraction failed/i
+    );
   });
 });

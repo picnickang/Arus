@@ -199,10 +199,14 @@ export class StormGeoIntegrationService {
             : undefined,
           windForce:
             snapshot.windForceBeaufort ??
-            (snapshot.windSpeed ? windSpeedToBeaufort(snapshot.windSpeed) : undefined),
+            (typeof snapshot.windSpeed === "number" && Number.isFinite(snapshot.windSpeed)
+              ? windSpeedToBeaufort(snapshot.windSpeed)
+              : undefined),
           seaState:
             snapshot.seaState ??
-            (snapshot.waveHeight ? waveHeightToSeaState(snapshot.waveHeight) : undefined),
+            (typeof snapshot.waveHeight === "number" && Number.isFinite(snapshot.waveHeight)
+              ? waveHeightToSeaState(snapshot.waveHeight)
+              : undefined),
           swellDirection: snapshot.swellDirection
             ? bearingToDirection(snapshot.swellDirection)
             : undefined,

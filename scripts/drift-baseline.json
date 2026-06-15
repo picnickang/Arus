@@ -1,6 +1,6 @@
 {
   "_comment": "Auto-generated baseline of known PG/SQLite drift. Do not edit manually — regenerate with: node scripts/regen-drift-baseline.mjs",
-  "generatedAt": "2026-06-14T20:12:49.428Z",
+  "generatedAt": "2026-06-14T21:16:43.822Z",
   "missingTables": [
     "organizations",
     "syncConflicts",
@@ -1562,11 +1562,7 @@
     "immutableAuditTrail": {
       "sqliteOnly": [
         "action",
-        "actor",
-        "actorRole",
         "data",
-        "dataAfter",
-        "dataBefore",
         "dataHash",
         "id",
         "orgId",
@@ -1732,7 +1728,6 @@
     "errorLogs": {
       "sqliteOnly": [
         "endpoint",
-        "errorMessage",
         "errorType",
         "requestId",
         "userId"

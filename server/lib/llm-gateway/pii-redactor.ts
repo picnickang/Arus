@@ -72,17 +72,96 @@ export interface RedactedMessage {
   content: string | unknown;
 }
 
+function sumHits(hits: RedactionResult["hits"]): number {
+  return hits.emails + hits.phones + hits.longDigits + hits.ssns;
+}
+
+function isTextPart(part: unknown): part is { type: "text"; text: string } {
+  return (
+    typeof part === "object" &&
+    part !== null &&
+    "type" in part &&
+    "text" in part &&
+    part.type === "text" &&
+    typeof part.text === "string"
+  );
+}
+
+/**
+ * Redact one message's content. Handles both plain strings and multipart
+ * arrays (e.g. `[{type:"text", text}, {type:"image_url", …}]`): text parts are
+ * redacted, non-text parts (images, etc.) are left untouched. Returns the same
+ * reference when nothing changed so the caller can skip a needless copy.
+ */
+function redactContent(content: unknown): { content: unknown; hits: number } {
+  if (typeof content === "string") {
+    const { redacted, hits } = redactPII(content);
+    return { content: redacted, hits: sumHits(hits) };
+  }
+  if (Array.isArray(content)) {
+    let hits = 0;
+    let changed = false;
+    const parts = content.map((part) => {
+      if (!isTextPart(part)) {
+        return part;
+      }
+      const { redacted, hits: partHits } = redactPII(part.text);
+      hits += sumHits(partHits);
+      if (redacted !== part.text) {
+        changed = true;
+      }
+      return { ...part, text: redacted };
+    });
+    return { content: changed ? parts : content, hits };
+  }
+  return { content, hits: 0 };
+}
+
+/**
+ * Redact PII inside an assistant message's tool calls. Only the model-emitted
+ * `function.arguments` JSON string is scrubbed; `function.name` and the tool
+ * call `id` are routing/correlation identifiers and are left intact so the
+ * provider can still dispatch and correlate the call. Returns the same
+ * reference when nothing changed.
+ */
+function redactToolCalls(toolCalls: unknown): { toolCalls: unknown; hits: number; changed: boolean } {
+  if (!Array.isArray(toolCalls)) {
+    return { toolCalls, hits: 0, changed: false };
+  }
+  let hits = 0;
+  let changed = false;
+  const out = toolCalls.map((tc) => {
+    const fn = (tc as { function?: { arguments?: unknown } })?.function;
+    if (!fn || typeof fn.arguments !== "string") {
+      return tc;
+    }
+    const { redacted, hits: argHits } = redactPII(fn.arguments);
+    hits += sumHits(argHits);
+    if (redacted === fn.arguments) {
+      return tc;
+    }
+    changed = true;
+    return { ...(tc as object), function: { ...fn, arguments: redacted } };
+  });
+  return { toolCalls: changed ? out : toolCalls, hits, changed };
+}
+
 export function redactMessages<T extends { role: string; content: unknown }>(
   messages: readonly T[]
 ): { messages: T[]; totalHits: number } {
   let totalHits = 0;
   const out = messages.map((m) => {
-    if (typeof m.content !== "string") {
+    const next = redactContent(m.content);
+    const tc = redactToolCalls((m as { toolCalls?: unknown }).toolCalls);
+    totalHits += next.hits + tc.hits;
+    if (next.content === m.content && !tc.changed) {
       return m;
     }
-    const { redacted, hits } = redactPII(m.content);
-    totalHits += hits.emails + hits.phones + hits.longDigits + hits.ssns;
-    return { ...m, content: redacted } as T;
+    return {
+      ...m,
+      content: next.content,
+      ...(tc.changed ? { toolCalls: tc.toolCalls } : {}),
+    } as T;
   });
   return { messages: out, totalHits };
 }

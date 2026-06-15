@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import type {
   InsertWorkOrder,
   InsertWorkOrderCompletion,
@@ -47,9 +47,20 @@ export async function completeWorkOrderInTx(
         actualDowntimeHours: downtimeHours,
         downtimeCostPerHour,
       } satisfies Partial<InsertWorkOrder>)
-      .where(eq(workOrders.id, workOrderId))
+      // Fail closed if already completed: completing twice would insert a
+      // second completion row, double-consume inventory, and fire a second
+      // WORK_ORDER_COMPLETED event. Guarding here protects every caller, not
+      // just the ones that pre-check status.
+      .where(and(eq(workOrders.id, workOrderId), ne(workOrders.status, "completed")))
       .returning();
     if (!updatedWorkOrder) {
+      const [existing] = await tx
+        .select({ status: workOrders.status })
+        .from(workOrders)
+        .where(eq(workOrders.id, workOrderId));
+      if (existing) {
+        throw new Error(`Work order ${workOrderId} is already completed`);
+      }
       throw new Error(`Work order ${workOrderId} not found`);
     }
     const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();

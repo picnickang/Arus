@@ -48,13 +48,13 @@ export async function generateRegulatoryComplianceExcel(
   );
 }
 
-function renderRegulatoryExcel(
+async function renderRegulatoryExcel(
   equipment: EquipmentHealth[],
   workOrders: WorkOrder[],
   framework: string,
   standardCodes: string[],
   period: ReportingPeriod
-): Buffer {
+): Promise<Buffer> {
   const workbook = createWorkbook();
   const counts = countByStatus(equipment);
 
@@ -118,5 +118,5 @@ function renderRegulatoryExcel(
   addSheet(workbook, woData, "Maintenance History");
   addSheet(workbook, buildStandardsSheet(standardCodes), "Standards");
 
-  return writeWorkbook(workbook);
+  return await writeWorkbook(workbook);
 }

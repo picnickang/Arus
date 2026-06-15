@@ -201,6 +201,12 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain(
       "ALTER TABLE immutable_audit_trail ADD COLUMN data_hash TEXT NOT NULL DEFAULT ''"
     );
+    // Legacy duplicate columns are retired (each only ever mirrored a canonical
+    // column and is not part of the audit hash chain) so PG and SQLite converge.
+    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN actor");
+    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN actor_role");
+    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN data_before");
+    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN data_after");
   });
 
   it("exposes local error log columns used after portal login", () => {
@@ -208,8 +214,12 @@ describe("SQLite users auth schema", () => {
     expect(errorLogsSqlite.timestamp).toBeDefined();
     expect(errorLogsSqlite.category).toBeDefined();
     expect(errorLogsSqlite.errorType).toBeDefined();
-    expect(errorLogsSqlite.errorMessage).toBeDefined();
     expect(errorLogsSqlite.errorCode).toBeDefined();
+    // `error_message` was a legacy duplicate of `message` and has been reconciled
+    // away (folded into the canonical `message`) so PG and SQLite converge.
+    expect(
+      (errorLogsSqlite as Record<string, unknown>).errorMessage
+    ).toBeUndefined();
     expect(errorLogsSqlite.message).toBeDefined();
     expect(errorLogsSqlite.userId).toBeDefined();
     expect(errorLogsSqlite.requestId).toBeDefined();
@@ -255,5 +265,41 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN user_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN request_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN endpoint TEXT");
+  });
+
+  it("folds legacy error_message into message and drops it on existing tables", async () => {
+    const executed: string[] = [];
+    // Two-phase table_info: the first read (column probe) still has the legacy
+    // `error_message` without `message`; the refreshed read (after the add-loop)
+    // has both, so the reconciliation can backfill then drop.
+    let probed = false;
+    const baseRows = [
+      { name: "id" },
+      { name: "org_id" },
+      { name: "error_type" },
+      { name: "error_message" },
+      { name: "severity" },
+      { name: "created_at" },
+    ];
+    const client = {
+      execute: jest.fn(async (statement: string) => {
+        executed.push(statement);
+        if (statement.startsWith("PRAGMA table_info(error_logs)")) {
+          if (!probed) {
+            probed = true;
+            return { rows: baseRows };
+          }
+          return { rows: [...baseRows, { name: "message" }] };
+        }
+        return { rows: [], rowsAffected: 0 };
+      }),
+    };
+
+    await runErrorLogsCompatibilityMigration(client as never);
+
+    expect(executed).toContain(
+      "UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL"
+    );
+    expect(executed).toContain("ALTER TABLE error_logs DROP COLUMN error_message");
   });
 });
