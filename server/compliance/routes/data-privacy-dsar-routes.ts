@@ -293,14 +293,16 @@ export function registerDataPrivacyDsarRoutes(router: Router): void {
         if (!id) {
           return res.status(400).json({ error: "Missing id" });
         }
-        const { confirmErasure, reason } = req.body;
+        const { confirmErasure, reason, dryRun } = req.body;
         if (!orgId) {
           return res.status(401).json({ error: "Organization ID required" });
         }
-        if (!confirmErasure) {
+        // dryRun previews affected rows without writing or changing status, so
+        // it doesn't require the destructive-action confirmation.
+        if (dryRun !== true && !confirmErasure) {
           return res.status(400).json({
             error: "Erasure must be explicitly confirmed",
-            message: "Set confirmErasure: true to proceed with data erasure",
+            message: "Set confirmErasure: true to proceed (or dryRun: true to preview)",
           });
         }
         const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
@@ -314,7 +316,9 @@ export function registerDataPrivacyDsarRoutes(router: Router): void {
           });
         }
         const erasedBy = requestActorId(req);
-        const result = await dbGdprStorage.executeDataErasure(id, orgId, erasedBy, reason);
+        const result = await dbGdprStorage.executeDataErasure(id, orgId, erasedBy, reason, {
+          dryRun: dryRun === true,
+        });
         await auditService.logEvent({
           orgId,
           eventCategory: "compliance_event",
