@@ -24,6 +24,7 @@ const MOBILE_MODEL_PATHS = [
 const MOBILE_SCREEN_PATHS = [
   "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
   "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/mobile-readiness-bottom-nav.tsx",
   "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
   "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
   "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
