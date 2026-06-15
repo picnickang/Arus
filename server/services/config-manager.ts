@@ -12,6 +12,11 @@ import type { InsertConfigAuditLog } from "../../shared/schema";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Services:ConfigManager");
 
+/** Narrow a caught value to a Node fs error without an `as` assertion. */
+function isErrnoException(err: unknown): err is NodeJS.ErrnoException {
+  return err instanceof Error && "code" in err;
+}
+
 export interface ConfigChange {
   key: string;
   oldValue: string | undefined;
@@ -351,7 +356,7 @@ export class ConfigManager {
       try {
         envContent = fs.readFileSync(this.envFilePath, "utf-8");
       } catch (readErr) {
-        if ((readErr as NodeJS.ErrnoException).code !== "ENOENT") {
+        if (!isErrnoException(readErr) || readErr.code !== "ENOENT") {
           throw readErr;
         }
       }
@@ -416,7 +421,7 @@ export class ConfigManager {
       try {
         envContent = fs.readFileSync(this.envFilePath, "utf-8");
       } catch (readErr) {
-        if ((readErr as NodeJS.ErrnoException).code === "ENOENT") {
+        if (isErrnoException(readErr) && readErr.code === "ENOENT") {
           return {
             success: false,
             changed: [],

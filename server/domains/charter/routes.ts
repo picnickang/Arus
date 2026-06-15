@@ -92,7 +92,13 @@ const kpiSchema = z.object({
 
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { vesselId, status, charterer } = req.query;
+    // Express query values can be string | string[]; coerce to a definite
+    // string so the SQL parameters are well-typed (avoids type confusion and
+    // the `as string` assertions that papered over it).
+    const vesselId = typeof req.query["vesselId"] === "string" ? req.query["vesselId"] : undefined;
+    const status = typeof req.query["status"] === "string" ? req.query["status"] : undefined;
+    const charterer =
+      typeof req.query["charterer"] === "string" ? req.query["charterer"] : undefined;
     let q = sql`
       SELECT cp.*, v.name as vessel_name
       FROM charter_parties cp
@@ -100,10 +106,10 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE cp.org_id = ${getOrgId(req)}
     `;
     if (vesselId) {
-      q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;
+      q = sql`${q} AND cp.vessel_id = ${vesselId}`;
     }
     if (status) {
-      q = sql`${q} AND cp.status = ${status as string}`;
+      q = sql`${q} AND cp.status = ${status}`;
     }
     if (charterer) {
       q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${`%${charterer}%`})`;
