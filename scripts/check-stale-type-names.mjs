@@ -94,8 +94,26 @@ function readExportedNames(filePath, visited = new Set()) {
     }
   }
 
-  // export * from "..." → resolve recursively if relative; otherwise count opaque
-  const wildcard = /export\s*\*\s*from\s*["']([^"']+)["']/g;
+  // export const { a, b: c } = expr;  — destructured re-exports, e.g. the
+  // dual-DB runtime switcher's `export const { ... } = runtimeTables`. The
+  // bound names (or their aliases after `:`) are the exported identifiers.
+  const destructured = /export\s+const\s*\{([^}]+)\}\s*=/g;
+  for (const m of content.matchAll(destructured)) {
+    for (const part of m[1].split(",")) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      // `a: b` binds b; `a = default` binds a — strip default first, then alias.
+      const bound = trimmed.includes(":") ? trimmed.split(":")[1] : trimmed.replace(/=.*$/, "");
+      const simple = bound.trim().match(/^([A-Za-z_$][\w$]*)/);
+      if (simple) names.add(simple[1]);
+    }
+  }
+
+  // export [type] * from "..." → resolve recursively if relative; otherwise
+  // count opaque. `export type * from "./schema"` re-exports every type from
+  // the target, so its names must be followed too (the runtime switcher uses
+  // this to surface all schema entity types).
+  const wildcard = /export\s+(?:type\s+)?\*\s*from\s*["']([^"']+)["']/g;
   for (const m of content.matchAll(wildcard)) {
     const spec = m[1];
     if (spec.startsWith(".") || spec.startsWith("/")) {

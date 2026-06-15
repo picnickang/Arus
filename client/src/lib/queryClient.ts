@@ -1,20 +1,14 @@
-import { MutationCache, QueryCache, QueryClient, QueryFunction } from "@tanstack/react-query";
-import { isSuccessEnvelope } from "@shared/api-envelope";
-import { ApiError, apiErrorFromResponse } from "@/lib/api-error";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api-error";
+import { computeBackoffDelay } from "@/lib/backoff";
+import { backendCircuit } from "@/lib/circuit-breaker";
 import { toast } from "@/hooks/use-toast";
-import { getCurrentDeviceId } from "@/hooks/useDeviceId";
-import { getCurrentOrgId } from "@/contexts/OrganizationContext";
-import { getBackendUrlSync } from "@/lib/desktopFetch";
-import { getApiSessionToken } from "@/lib/sessionToken";
 import {
   addConflict,
-  generateClientMutationId,
   getPendingOperations,
   getUnresolvedConflictOperationIds,
   isOnline,
-  isQueueableMutation,
   markOperationFailed,
-  queueApiOperation,
   removeOperation,
   setLastSyncTime,
   type PendingOperation,
@@ -25,345 +19,29 @@ import {
   notifyQuotaExceeded,
   parseQuotaExceeded,
 } from "@/lib/tenant-quota-notifications";
+import {
+  createHeaders,
+  DEFAULT_GET_TIMEOUT_MS,
+  getQueryFn,
+  resolveUrl,
+  retryUnlessClientError,
+  TenantQuotaExceededError,
+} from "@/lib/queryClient-request";
 
-export class TenantQuotaExceededError extends Error {
-  readonly status = 429;
-  readonly code = "TENANT_QUOTA_EXCEEDED";
-  readonly metric: string;
-  readonly retryAfterSeconds: number;
-  readonly limit?: number | undefined;
-  readonly used?: number | undefined;
-
-  constructor(info: {
-    metric: string;
-    retryAfterSeconds: number;
-    limit?: number | undefined;
-    used?: number | undefined;
-  }) {
-    super(formatQuotaExceededMessage(info));
-    this.name = "TenantQuotaExceededError";
-    this.metric = info.metric;
-    this.retryAfterSeconds = info.retryAfterSeconds;
-    this.limit = info.limit;
-    this.used = info.used;
-  }
-}
-
-export function resolveUrl(url: string): string {
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  const base = getBackendUrlSync();
-  if (!base) {
-    return url;
-  }
-  const separator = url.startsWith("/") ? "" : "/";
-  return `${base}${separator}${url}`;
-}
-
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-
-    let errorData: unknown;
-    try {
-      errorData = JSON.parse(text);
-    } catch {
-      errorData = undefined;
-    }
-
-    if (res.status === 429) {
-      const exceeded = parseQuotaExceeded(res, errorData);
-      if (exceeded) {
-        notifyQuotaExceeded(exceeded);
-        throw new TenantQuotaExceededError(exceeded);
-      }
-    }
-
-    throw apiErrorFromResponse(res.status, text, errorData);
-  }
-}
-
-export function createHeaders(includeContentType: boolean = false): Record<string, string> {
-  const headers: Record<string, string> = {};
-
-  if (includeContentType) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const orgId = getCurrentOrgId();
-  if (orgId) {
-    headers["x-org-id"] = orgId;
-  }
-
-  const deviceId = getCurrentDeviceId();
-  if (deviceId) {
-    headers["X-Device-Id"] = deviceId;
-  }
-
-  const sessionToken = getApiSessionToken();
-  if (sessionToken) {
-    // Workflow guard marker: headers.Authorization is intentionally represented
-    // with bracket access because headers has an index signature.
-    headers["Authorization"] = `Bearer ${sessionToken}`;
-  }
-
-  return headers;
-}
-
-export interface ApiRequestOptions {
-  signal?: AbortSignal;
-  headers?: Record<string, string>;
-  /** Abort the request after this many ms. GETs default to 30s; pass 0 to disable. */
-  timeoutMs?: number;
-}
-
-export const DEFAULT_GET_TIMEOUT_MS = 30_000;
-
-/**
- * Composes a caller/TanStack signal with a default timeout. Falls back
- * gracefully where AbortSignal.timeout/any are unavailable (older webviews).
- */
-function composeSignal(
-  signal: AbortSignal | undefined,
-  timeoutMs: number | undefined
-): AbortSignal | undefined {
-  const timeoutSignal =
-    timeoutMs !== undefined &&
-    timeoutMs > 0 &&
-    typeof AbortSignal !== "undefined" &&
-    typeof AbortSignal.timeout === "function"
-      ? AbortSignal.timeout(timeoutMs)
-      : undefined;
-  if (signal && timeoutSignal) {
-    return typeof AbortSignal.any === "function"
-      ? AbortSignal.any([signal, timeoutSignal])
-      : signal;
-  }
-  return signal ?? timeoutSignal;
-}
-
-export interface ApiRequestInit extends ApiRequestOptions {
-  method?: string;
-  body?: unknown;
-}
-export interface QueuedApiResponse {
-  queuedForSync: true;
-  offline: true;
-  id: string;
-  entityType: string;
-  entityId: string;
-  message: string;
-}
-
-function isNetworkFailure(error: unknown): boolean {
-  return (
-    error instanceof TypeError ||
-    (error instanceof DOMException && error.name === "AbortError") ||
-    String(error).toLowerCase().includes("failed to fetch") ||
-    String(error).toLowerCase().includes("network")
-  );
-}
-
-function asPayloadRecord(data: unknown): Record<string, unknown> | undefined {
-  return data && typeof data === "object" && !Array.isArray(data)
-    ? (data as Record<string, unknown>)
-    : undefined;
-}
-
-const legacyBodyUrls = new Set<string>();
-
-/**
- * Unwraps the canonical {success: true, data} envelope (shared/api-envelope).
- * Every /api response is enveloped since the WS4 endgame flip except the
- * pinned exclusions, so a non-envelope object body is logged once per URL as
- * a burndown signal before being passed through unchanged.
- */
-function unwrapEnvelope<T>(result: unknown, url: string): T {
-  if (isSuccessEnvelope(result)) {
-    return result.data as T;
-  }
-  if (result && typeof result === "object" && !legacyBodyUrls.has(url)) {
-    legacyBodyUrls.add(url);
-    console.info(`[api] non-envelope body from ${url} (excluded or legacy endpoint)`);
-  }
-  return result as T;
-}
-
-async function queueOfflineApiRequest(
-  method: string,
-  url: string,
-  data: unknown,
-  clientMutationId?: string
-): Promise<QueuedApiResponse> {
-  const payload = asPayloadRecord(data);
-  const operation = await queueApiOperation(
-    method,
-    url,
-    clientMutationId ? { ...(payload ?? {}), __clientMutationId: clientMutationId } : payload
-  );
-  return {
-    queuedForSync: true,
-    offline: true,
-    id: operation.id,
-    entityType: operation.entityType,
-    entityId: operation.entityId,
-    message: "Saved to the offline outbox. It will sync when the vessel is connected.",
-  };
-}
-
-export async function apiRequest<T = unknown>(
-  method: string,
-  url: string,
-  data?: unknown,
-  options?: ApiRequestOptions
-): Promise<T>;
-export async function apiRequest<T = unknown>(url: string, init?: ApiRequestInit): Promise<T>;
-export async function apiRequest<T = unknown>(
-  first: string,
-  second?: string | ApiRequestInit,
-  third?: unknown,
-  fourth?: ApiRequestOptions
-): Promise<T> {
-  const method = typeof second === "string" ? first : (second?.method ?? "GET");
-  const url = typeof second === "string" ? second : first;
-  const data = typeof second === "string" ? third : second?.body;
-  const options = typeof second === "string" ? fourth : second;
-  const body =
-    typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
-  const includeContentType = body !== undefined;
-
-  const shouldQueueOffline = isQueueableMutation(method, url);
-
-  // Queueable mutations carry an idempotency key from the very first attempt, so a
-  // request that succeeds server-side but fails client-side (timeout, dropped link)
-  // replays to the same cached response instead of double-writing.
-  const payloadRecord = shouldQueueOffline ? asPayloadRecord(data) : undefined;
-  const clientMutationId = shouldQueueOffline
-    ? ((payloadRecord?.["clientMutationId"] as string | undefined) ??
-      (payloadRecord?.["__clientMutationId"] as string | undefined) ??
-      generateClientMutationId())
-    : undefined;
-
-  if (shouldQueueOffline && !isOnline()) {
-    return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
-  }
-
-  // GETs time out by default; mutations only when the caller opts in —
-  // aborting a long-running write client-side doesn't stop it server-side.
-  const effectiveSignal = composeSignal(
-    options?.signal,
-    options?.timeoutMs ?? (method === "GET" ? DEFAULT_GET_TIMEOUT_MS : undefined)
-  );
-
-  let res: Response;
-  try {
-    res = await fetch(resolveUrl(url), {
-      method,
-      headers: {
-        ...createHeaders(includeContentType),
-        ...(clientMutationId ? { "Idempotency-Key": clientMutationId } : {}),
-        ...(options?.headers ?? {}),
-      },
-      ...(body !== undefined ? { body } : {}),
-      credentials: "include",
-      ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
-    });
-  } catch (error) {
-    if (shouldQueueOffline && isNetworkFailure(error)) {
-      return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
-    }
-    throw error;
-  }
-
-  inspectQuotaWarning(res);
-  await throwIfResNotOk(res);
-
-  if (res.status === 204) {
-    return null as T;
-  }
-
-  const text = await res.text();
-  const result = text ? JSON.parse(text) : null;
-  return unwrapEnvelope<T>(result, url);
-}
-
-export async function apiFormDataRequest<T = unknown>(
-  method: string,
-  url: string,
-  body: FormData,
-  options?: ApiRequestOptions
-): Promise<T> {
-  const res = await fetch(resolveUrl(url), {
-    method,
-    headers: { ...createHeaders(false), ...(options?.headers ?? {}) },
-    body,
-    credentials: "include",
-    ...(options?.signal !== undefined ? { signal: options.signal } : {}),
-  });
-
-  inspectQuotaWarning(res);
-  await throwIfResNotOk(res);
-
-  if (res.status === 204) {
-    return null as T;
-  }
-
-  const text = await res.text();
-  const result = text ? JSON.parse(text) : null;
-  return unwrapEnvelope<T>(result, url);
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFunction<T> {
-  const { on401: unauthorizedBehavior } = options;
-  return async ({ queryKey, signal }) => {
-    let url: string;
-
-    if (queryKey.length === 1) {
-      url = queryKey[0] as string;
-    } else if (queryKey.length === 2 && typeof queryKey[1] === "object" && queryKey[1] !== null) {
-      const baseUrl = queryKey[0] as string;
-      const params = queryKey[1] as Record<string, string | number | boolean | null | undefined>;
-      const searchParams = new URLSearchParams();
-
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          searchParams.append(key, String(value));
-        }
-      });
-
-      const queryString = searchParams.toString();
-      url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-    } else {
-      url = queryKey.join("/");
-      if (import.meta.env.DEV) {
-        console.warn(
-          `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
-        );
-      }
-    }
-
-    // Forwarding TanStack's signal lets unmounted/superseded queries cancel
-    // their in-flight fetches instead of completing into a dead cache entry.
-    const effectiveSignal = composeSignal(signal, DEFAULT_GET_TIMEOUT_MS);
-    const res = await fetch(resolveUrl(url), {
-      headers: createHeaders(false),
-      credentials: "include",
-      ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      // Callers opting into returnNull type their useQuery data as nullable.
-      return null as T;
-    }
-
-    inspectQuotaWarning(res);
-    await throwIfResNotOk(res);
-    const result: unknown = await res.json();
-    return unwrapEnvelope<T>(result, url);
-  };
-}
+export {
+  apiFormDataRequest,
+  apiRequest,
+  createHeaders,
+  DEFAULT_GET_TIMEOUT_MS,
+  getQueryFn,
+  resolveUrl,
+  retryUnlessClientError,
+  TenantQuotaExceededError,
+  type ApiRequestInit,
+  type ApiRequestOptions,
+  type QueuedApiResponse,
+  type UnauthorizedBehavior,
+} from "@/lib/queryClient-request";
 
 export const CACHE_TIMES = {
   REALTIME: 30000,
@@ -445,7 +123,10 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: CACHE_TIMES.MODERATE,
-      retry: 1,
+      // A 4xx (auth/not-found/validation) is terminal — retrying it only fires
+      // redundant failing requests. Transient errors (network/5xx) still retry once.
+      retry: retryUnlessClientError(1),
+      retryDelay: (attempt) => computeBackoffDelay(attempt),
     },
     mutations: {
       // Never auto-retry mutations: most POSTs are not idempotent, and queueable
@@ -489,6 +170,7 @@ async function doReplayQueuedApiRequests(): Promise<{
   const operations = await getPendingOperations();
   const unresolvedConflictIds = await getUnresolvedConflictOperationIds();
   const apiOperations = operations.filter((op: PendingOperation) => op.request);
+  const now = Date.now();
   let synced = 0;
   let failed = 0;
   let conflicts = 0;
@@ -500,6 +182,12 @@ async function doReplayQueuedApiRequests(): Promise<{
       op.conflictPaused ||
       unresolvedConflictIds.has(op.id)
     ) {
+      continue;
+    }
+
+    // Previously-failed ops wait out a jittered backoff window before being
+    // retried, so a flaky link doesn't get hammered by every replay pass.
+    if (op.retryCount > 0 && now < (op.lastAttemptedAt ?? 0) + computeBackoffDelay(op.retryCount)) {
       continue;
     }
 
@@ -518,6 +206,12 @@ async function doReplayQueuedApiRequests(): Promise<{
         ? op.payload["__clientMutationId"]
         : undefined);
 
+    // A replay must not hang forever on a half-open link; bound each attempt.
+    const replaySignal =
+      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+        ? AbortSignal.timeout(DEFAULT_GET_TIMEOUT_MS)
+        : undefined;
+
     try {
       const response = await fetch(resolveUrl(op.request.url), {
         method: op.request.method,
@@ -527,8 +221,11 @@ async function doReplayQueuedApiRequests(): Promise<{
         },
         ...(op.request.method !== "DELETE" ? { body: JSON.stringify(payload) } : {}),
         credentials: "include",
+        ...(replaySignal !== undefined ? { signal: replaySignal } : {}),
       });
 
+      // Got a response — the backend is reachable even if it returns an error.
+      backendCircuit.recordSuccess();
       inspectQuotaWarning(response);
 
       if (response.status === 429) {
@@ -582,6 +279,9 @@ async function doReplayQueuedApiRequests(): Promise<{
       await removeOperation(op.id);
       synced++;
     } catch (error) {
+      // fetch only rejects on connection/abort failures (not HTTP status), so a
+      // throw here means the backend is unreachable — count it against the breaker.
+      backendCircuit.recordFailure();
       await markOperationFailed(
         op.id,
         error instanceof Error ? error.message : "Unknown sync error"

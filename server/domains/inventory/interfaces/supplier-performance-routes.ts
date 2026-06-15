@@ -8,6 +8,9 @@ export const supplierPerformanceRouter = Router();
 
 const generalLimit = RateLimiters.general();
 
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+supplierPerformanceRouter.use(generalLimit);
+
 supplierPerformanceRouter.get(
   "/suppliers/performance-summary",
   requireOrgId,

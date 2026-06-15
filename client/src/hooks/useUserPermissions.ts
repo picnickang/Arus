@@ -6,6 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { retryUnlessClientError } from "@/lib/queryClient";
 
 export interface PermissionRole {
   id: string;
@@ -24,7 +25,8 @@ export function useUserPermissions() {
   const { data, isLoading, error } = useQuery<UserPermissionsResponse>({
     queryKey: ["/api/permissions/me"],
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    // Don't retry a 401 (unauthenticated probe); transient errors retry once.
+    retry: retryUnlessClientError(1),
   });
 
   const hasPermission = (resource: string, action: string): boolean => {

@@ -1,24 +1,9 @@
 /**
- * Admin no-hubs overview contract (Task #359 — supersedes the #309 blank
- * fallback).
+ * Mobile readiness replacement supersedes the legacy admin no-hubs overview.
  *
- * An admin-portal account whose hub allow-list is a populated-but-empty
- * set (granted admin access, zero hubs) must NOT see a blank command
- * center, and must NOT be hidden from the hubs either. The overview lists
- * EVERY admin hub — all rendered as LOCKED — with an explicit banner
- * explaining that nothing is unlocked yet, plus a logout affordance.
- *
- * Two layers are pinned here:
- *   1. Policy layer — `filterCategoriesByHubAccess(cats, [])` returns an
- *      empty set (zero hubs OPENABLE), distinct from `null` (all hubs).
- *   2. Source contract — `home.tsx` maps over the full hub set, renders
- *      locked hubs non-actionably, and shows the `banner-no-hubs` notice
- *      when `accessibleCount === 0` (the old `shell-admin-no-hubs` blank
- *      fallback is gone).
- *
- * This is a source-scan (not a DOM render) on purpose: the admin
- * `HomePage` pulls in the full command-center dependency graph, which is
- * out of reach for a lightweight unit test.
+ * The security policy still distinguishes an empty hub allow-list from
+ * unrestricted admin access, but the impacted /home UI is no longer the
+ * legacy admin hub launcher. It is now the role-aware mobile command queue.
  */
 
 import { readFile } from "node:fs/promises";
@@ -28,49 +13,59 @@ import {
   filterCategoriesByHubAccess,
 } from "@/application/navigation/role-navigation-policy";
 
-async function readSrc(p: string): Promise<string> {
-  return readFile(resolve(process.cwd(), p), "utf8");
+async function readSrc(path: string): Promise<string> {
+  return readFile(resolve(process.cwd(), path), "utf8");
 }
 
-describe("Phase 2 — admin no-hubs safe fallback", () => {
-  it("policy: an empty hub allow-list yields zero admin categories", () => {
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
+describe("Phase 2 — mobile readiness replaces admin no-hubs fallback", () => {
+  it("policy: an empty hub allow-list still yields zero admin categories", () => {
     const cats = getAdminPrimaryCategories();
     expect(cats.length).toBe(8);
-    // [] = granted admin access, no hubs assigned → nothing to launch.
     expect(filterCategoriesByHubAccess(cats, [])).toEqual([]);
-    // null = unrestricted (super-admin / dev) → all hubs survive.
     expect(filterCategoriesByHubAccess(cats, null).length).toBe(8);
   });
 
-  describe("home.tsx source contract", () => {
-    let homeSrc = "";
+  it("home.tsx delegates entirely to the mobile command center", async () => {
+    const homeSrc = await readSrc("client/src/pages/home.tsx");
 
-    beforeAll(async () => {
-      homeSrc = await readSrc("client/src/pages/home.tsx");
-    });
+    expect(homeSrc).toContain("MobileCommandCenterPage");
+    expect(homeSrc).toContain("return <MobileCommandCenterPage />");
+    expect(homeSrc).not.toMatch(/shell-admin-no-hubs|banner-no-hubs|card-hub-|allHubs\.map/);
+  });
 
-    it("lists every admin hub (accessible or locked), not just the granted ones", () => {
-      expect(homeSrc).toMatch(/const allHubs/);
-      expect(homeSrc).toMatch(/allHubs\.map\(/);
-      expect(homeSrc).toMatch(/data-testid={`card-hub-\$\{hub\.id\}`}/);
-    });
+  it("the replacement command center carries the actionable status-reason-action contract", async () => {
+    const screenSrc = await readMobileScreenSrc();
+    const modelSrc = await readMobileModelSrc();
 
-    it("renders locked hubs as non-actionable with a Locked pill", () => {
-      expect(homeSrc).toMatch(/data-testid={`pill-locked-\$\{hub\.id\}`}/);
-      expect(homeSrc).toMatch(/aria-disabled="true"/);
-    });
-
-    it("shows an explicit banner when the admin has zero accessible hubs", () => {
-      expect(homeSrc).toMatch(/accessibleCount === 0/);
-      expect(homeSrc).toMatch(/data-testid="banner-no-hubs"/);
-    });
-
-    it("no longer renders the old blank no-hubs fallback shell", () => {
-      expect(homeSrc).not.toMatch(/data-testid="shell-admin-no-hubs"/);
-    });
-
-    it("keeps a logout affordance available on the overview", () => {
-      expect(homeSrc).toMatch(/<LogoutButton\b/);
-    });
+    expect(screenSrc).toContain("MobileCommandCenterPage");
+    expect(screenSrc).toContain("today-card-");
+    expect(modelSrc).toContain("Command Queue");
+    expect(modelSrc).toContain("Status -> Reason -> Action");
+    expect(modelSrc).toContain("Engine room fire alarm");
   });
 });

@@ -28,7 +28,18 @@
  * intentional, e.g. a removed legacy page).
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -36,6 +47,7 @@ import { spawnSync } from "node:child_process";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CLIENT_DIR = join(ROOT, "client", "src");
 const BASELINE_FILE = join(ROOT, "scripts", "route-contract-baseline.json");
+const ROUTE_DUMP_MAX_BUFFER = 128 * 1024 * 1024;
 
 function walkFiles(dir, exts, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -78,19 +90,60 @@ export function collectClientPaths() {
 }
 
 export function collectServerPaths() {
-  const result = spawnSync("npx", ["tsx", join(ROOT, "scripts", "dump-routes.ts")], {
-    cwd: ROOT,
-    encoding: "utf8",
-    timeout: 180_000,
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    console.error(result.stderr?.slice(-2000));
-    throw new Error(`dump-routes.ts failed with status ${result.status}`);
+  const tempDir = mkdtempSync(join(tmpdir(), "arus-route-contract-"));
+  const routeDumpFile = join(tempDir, "routes.json");
+  const stdoutFd = openSync(routeDumpFile, "w");
+  let result;
+  try {
+    result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", join(ROOT, "scripts", "dump-routes.ts")],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        timeout: 180_000,
+        env: process.env,
+        maxBuffer: ROUTE_DUMP_MAX_BUFFER,
+        stdio: ["ignore", stdoutFd, "pipe"],
+      }
+    );
+  } finally {
+    closeSync(stdoutFd);
   }
-  const lines = result.stdout.trim().split("\n");
-  const routes = JSON.parse(lines[lines.length - 1]);
-  return new Set(routes.map(normalize));
+
+  try {
+    if (result.error) {
+      if (result.error.code === "ENOBUFS") {
+        throw new Error(
+          `dump-routes.ts exceeded ${ROUTE_DUMP_MAX_BUFFER} bytes of stderr; increase ROUTE_DUMP_MAX_BUFFER`
+        );
+      }
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      console.error(result.stderr?.slice(-2000));
+      throw new Error(
+        `dump-routes.ts failed with status ${result.status}${result.signal ? ` signal ${result.signal}` : ""}`
+      );
+    }
+    const stdout = readFileSync(routeDumpFile, "utf8");
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    if (lines.length === 0) {
+      throw new Error("dump-routes.ts produced no stdout; expected a JSON route table");
+    }
+    let routes;
+    try {
+      routes = JSON.parse(lines[lines.length - 1]);
+    } catch (error) {
+      const tail = stdout.slice(-2000);
+      throw new Error(
+        `dump-routes.ts stdout did not end with parseable JSON (${error.message}). stdout tail:\n${tail}`
+      );
+    }
+    return new Set(routes.map(normalize));
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 function pathMatches(clientSegs, serverSegs) {

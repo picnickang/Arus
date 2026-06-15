@@ -22,6 +22,10 @@ BEGIN
 
   ALTER TABLE equipment_telemetry RENAME TO equipment_telemetry_part;
   -- Free the schema-global index names for recreation on the plain table.
+  -- The PK is index-backed, so its name (equipment_telemetry_pkey) is
+  -- schema-global too and must be freed before the plain table recreates it.
+  ALTER TABLE equipment_telemetry_part
+    RENAME CONSTRAINT equipment_telemetry_pkey TO equipment_telemetry_part_pkey;
   ALTER INDEX uq_equipment_telemetry_natural RENAME TO uq_equipment_telemetry_natural_part;
   ALTER INDEX IF EXISTS idx_equipment_telemetry_equipment_ts RENAME TO idx_eqts_part;
   ALTER INDEX IF EXISTS idx_equipment_telemetry_sensor_ts RENAME TO idx_snts_part;

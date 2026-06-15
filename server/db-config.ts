@@ -387,7 +387,7 @@ export const db = new Proxy({} as object as DbType, {
 export type DbTransaction = Parameters<Parameters<DbType["transaction"]>[0]>[0];
 
 // Type-safe database type alias for downstream consumers
-export type Database = DbType;
+type Database = DbType;
 
 export const pool = pgPool;
 

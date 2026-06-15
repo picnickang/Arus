@@ -6,6 +6,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { authenticatedRequest } from "../middleware/auth";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
@@ -135,6 +136,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.get(
     "/api/rag/security/config",
+    generalApiRateLimit,
     withErrorHandling("get RAG security config", async (req: Request, res: Response) => {
       const config = getRagSecurityConfig();
 
@@ -157,6 +159,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.get(
     "/api/rag/security/config/full",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("get full RAG security config", async (req: Request, res: Response) => {
       const config = getRagSecurityConfig();
@@ -170,6 +173,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.put(
     "/api/rag/security/config",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("update RAG security config", async (req: Request, res: Response) => {
       // Parse and validate with strict schema
@@ -222,6 +226,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.post(
     "/api/rag/security/streaming-token",
+    generalApiRateLimit,
     withErrorHandling("generate streaming token", async (req: Request, res: Response) => {
       const { tokenService, config } = getRagSecurityServices();
 
@@ -249,6 +254,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.get(
     "/api/rag/security/audit",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("get RAG audit logs", async (req: Request, res: Response) => {
       const { auditLogger } = getRagSecurityServices();
@@ -272,6 +278,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.get(
     "/api/rag/security/audit/stats",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("get RAG audit stats", async (req: Request, res: Response) => {
       const { auditLogger } = getRagSecurityServices();
@@ -287,6 +294,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.get(
     "/api/rag/security/rate-limit/status",
+    generalApiRateLimit,
     withErrorHandling("get rate limit status", async (req: Request, res: Response) => {
       const { rateLimiter, config } = getRagSecurityServices();
 
@@ -311,6 +319,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.post(
     "/api/rag/security/test/sanitize",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("test input sanitization", async (req: Request, res: Response) => {
       const { sanitizer } = getRagSecurityServices();
@@ -331,6 +340,7 @@ export function registerRagSecurityRoutes(app: Express): void {
    */
   app.post(
     "/api/rag/security/test/validate-file",
+    generalApiRateLimit,
     requireAdminAuth,
     withErrorHandling("test file validation", async (req: Request, res: Response) => {
       const { fileValidator } = getRagSecurityServices();
@@ -341,8 +351,16 @@ export function registerRagSecurityRoutes(app: Express): void {
         return;
       }
 
-      // Create a dummy buffer for size checking
-      const dummyBuffer = Buffer.alloc(sizeBytes || 1024);
+      // Create a dummy buffer for size checking. Reject a tampered/oversized
+      // `sizeBytes` up-front so it cannot drive an unbounded allocation and
+      // exhaust memory (CWE-400) — this endpoint only needs a sample buffer.
+      const MAX_DUMMY_BYTES = 10 * 1024 * 1024; // 10 MB
+      const requestedSize = Number(sizeBytes);
+      if (!Number.isFinite(requestedSize) || requestedSize < 0 || requestedSize > MAX_DUMMY_BYTES) {
+        res.status(400).json({ error: `sizeBytes must be between 0 and ${MAX_DUMMY_BYTES}` });
+        return;
+      }
+      const dummyBuffer = Buffer.alloc(requestedSize || 1024);
       const result = await fileValidator.validate(filename, dummyBuffer, mimeType);
 
       res.json(result);

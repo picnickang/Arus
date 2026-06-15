@@ -30,6 +30,9 @@ export function sanitizeRequestData(req: Request, res: Response, next: NextFunct
 
   if (req.query) {
     for (const [key, value] of Object.entries(req.query)) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
       if (typeof value === "string") {
         req.query[key] = sanitizeInput(value, isTelemetryEndpoint);
       } else if (Array.isArray(value)) {
@@ -42,6 +45,9 @@ export function sanitizeRequestData(req: Request, res: Response, next: NextFunct
 
   if (req.params) {
     for (const [key, value] of Object.entries(req.params)) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
       if (typeof value === "string") {
         req.params[key] = sanitizeInput(value, isTelemetryEndpoint);
       }

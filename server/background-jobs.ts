@@ -26,6 +26,7 @@ import { withTenantContext } from "./middleware/db-context";
 import { requireTenantAuth } from "@shared/config/tenant";
 import { supportsPinnedConnection } from "./db-config";
 import { ensureQueue, extractOrgId } from "./lib/pg-boss-utils";
+import { scheduleTelemetryLifecycleJobs } from "./telemetry-cron-schedules.js";
 
 const logger = createLogger("BackgroundJobs");
 
@@ -50,6 +51,7 @@ export const JOB_TYPES = {
   TELEMETRY_RETENTION: "telemetry-retention-daily",
   TELEMETRY_PARTITION_MAINTENANCE: "telemetry-partition-maintenance-daily",
   DLQ_REPLAY: "dlq-replay-hourly",
+  PDM_SCORING_DAILY: "pdm-scoring-daily",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -271,10 +273,22 @@ class BackgroundJobQueue {
         logger.warn(`Failed to register telemetry warehouse export schedule: ${msg}`);
       }
 
+      // Daily PdM scoring sweep — derives a health score per equipment from
+      // recent telemetry and writes pdm_score_logs (the producer for
+      // GET /api/pdm/health and the fleet health surfaces). 01:30 UTC, after
+      // the hourly rollups but before the morning shift.
+      try {
+        await ensureQueue(boss, JOB_TYPES.PDM_SCORING_DAILY);
+        await boss.schedule(JOB_TYPES.PDM_SCORING_DAILY, "30 1 * * *", {}, { retryLimit: 1 });
+        logger.info(`Scheduled daily cron: ${JOB_TYPES.PDM_SCORING_DAILY} @ 30 1 * * * UTC`);
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register PdM scoring schedule: ${msg}`);
+      }
+
       // Telemetry lifecycle crons (rollup / partition maintenance /
       // retention) — schedules and ordering rationale live in
       // telemetry-cron-schedules.ts.
-      const { scheduleTelemetryLifecycleJobs } = await import("./telemetry-cron-schedules.js");
       await scheduleTelemetryLifecycleJobs(boss, JOB_TYPES, ensureQueue);
     } catch (err: unknown) {
       this.fallback = true;

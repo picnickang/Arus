@@ -41,12 +41,12 @@ export async function generateMaintenanceComplianceExcel(
   return renderMaintenanceComplianceExcel(vesselWorkOrders, vesselEquipment, period, options);
 }
 
-function renderMaintenanceComplianceExcel(
+async function renderMaintenanceComplianceExcel(
   workOrders: WorkOrder[],
   equipmentHealth: EquipmentHealth[],
   period: ReportingPeriod,
   options: MaintenanceComplianceOptions
-): Buffer {
+): Promise<Buffer> {
   const workbook = createWorkbook();
 
   const completedWOs = workOrders.filter((wo) => wo.status === "completed");
@@ -136,5 +136,5 @@ function renderMaintenanceComplianceExcel(
     addSheet(workbook, healthData, "Equipment Health");
   }
 
-  return writeWorkbook(workbook);
+  return await writeWorkbook(workbook);
 }

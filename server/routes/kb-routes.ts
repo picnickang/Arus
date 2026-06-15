@@ -6,14 +6,12 @@
  * Files are processed asynchronously and removed after ingestion.
  * In production, consider a secure application-owned directory.
  */
-import { Router, type Express, type RequestHandler } from "express";
-import multer from "multer";
+import { Router, type Express } from "express";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import path from "node:path";
-import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import { requireOrgId } from "../middleware/auth";
+import { generalApiRateLimit as apiRateLimit } from "../middleware/rate-limiters";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";
 import { additionalSecurityHeaders, sanitizeRequestData } from "../security";
@@ -26,6 +24,7 @@ import { kbDocs, equipment } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Routes:KbRoutes");
+import { asyncUpload, handleSingleFileUpload, syncUpload } from "./kb-upload-middleware";
 import {
   updateDocumentVersion,
   getDocumentVersionHistory,
@@ -33,7 +32,6 @@ import {
   listDocumentsWithAccess,
 } from "../services/document-ingestion/repository";
 import {
-  isAllowedKbUploadMimeType,
   validateMagicBytesFromBuffer,
   validateMagicBytesFromPath,
 } from "../services/kb-upload-validation";
@@ -56,80 +54,6 @@ async function validateEquipmentOwnership(
   return !!equip;
 }
 
-// P2 #12 — Harden the staging directory. Without this, /tmp/kb-uploads
-// inherits the system umask (typically 0022 → 0755) so any local user
-// could enumerate / replace in-flight uploads before the ingestion
-// worker picks them up. We create the dir 0700 + chown to the current
-// process owner; subsequent writes inherit the directory ACL.
-const KB_UPLOAD_DIR = "/tmp/kb-uploads";
-try {
-  fs.mkdirSync(KB_UPLOAD_DIR, { recursive: true, mode: 0o700 });
-  // mkdirSync's mode is masked by umask; chmod explicitly to be sure.
-  fs.chmodSync(KB_UPLOAD_DIR, 0o700);
-} catch (err) {
-  // Don't crash boot on permission errors — log + continue; uploads
-  // will surface a clear 500 with the underlying ENOENT/EACCES.
-  logger.warn(
-    `[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${err instanceof Error ? err.message : String(err)}`
-  );
-}
-
-// Configure multer for disk storage (async processing)
-// NOSONAR: S5443 - /tmp used for temporary upload processing; files processed immediately
-const asyncUpload = multer({
-  storage: multer.diskStorage({
-    destination: KB_UPLOAD_DIR,
-    filename: (req, file, cb) => {
-      const uniqueName = `${Date.now()}-${randomUUID()}${path.extname(file.originalname)}`;
-      cb(null, uniqueName);
-    },
-  }),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max
-  },
-  fileFilter: (req, file, cb) => {
-    if (isAllowedKbUploadMimeType(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));
-    }
-  },
-});
-
-// Configure multer for in-memory file uploads (sync processing)
-const syncUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max
-  },
-  fileFilter: (req, file, cb) => {
-    if (isAllowedKbUploadMimeType(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));
-    }
-  },
-});
-
-function handleSingleFileUpload(upload: multer.Multer): RequestHandler {
-  return (req, res, next) => {
-    upload.single("file")(req, res, (error: unknown) => {
-      if (!error) {
-        next();
-        return;
-      }
-
-      const isMulterError = error instanceof multer.MulterError;
-      const status = isMulterError && error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-      const message = error instanceof Error ? error.message : "File upload rejected";
-      res.status(status).json({
-        error: message,
-        code: isMulterError ? error.code : "INVALID_FILE",
-      });
-    });
-  };
-}
-
 // Request validation schemas
 const searchQuerySchema = z.object({
   q: z.string().min(1).max(500),
@@ -147,7 +71,10 @@ export async function registerKnowledgeBaseRoutes(
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimits;
   const router = Router();
 
-  // Apply middleware to all KB routes
+  // Apply middleware to all KB routes. The directly-imported limiter runs
+  // first so CodeQL recognises every handler as rate-limited (CWE-770); the
+  // DI'd generalApiRateLimit stays available for per-route use below.
+  router.use(apiRateLimit);
   router.use(requireOrgId);
   router.use(additionalSecurityHeaders);
   router.use(sanitizeRequestData);

@@ -11,6 +11,8 @@ export {
   initializeDatabase,
   runMigrationsOnBoot,
   seedDevelopmentUser,
+} from "./services";
+export {
   initializeJobQueue,
   initializeMLServices,
   applyTimescaleOptimizations,
@@ -21,7 +23,7 @@ export {
   initializeFmccPolling,
   initializePatchingSystem,
   startEventLoopMonitoring,
-} from "./services";
+} from "./services-runtime";
 export { initializeSchedulers, initializeBackgroundJobs } from "./schedulers";
 export { configureStaticServing, configureFinalErrorHandlers } from "./static-serving";
 export { setupShutdownHandlers, trackConnection, isServerShuttingDown } from "./shutdown";

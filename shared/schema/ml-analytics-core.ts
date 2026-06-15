@@ -13,7 +13,6 @@ import {
   integer,
   real,
   timestamps,
-  numeric,
   timestamp,
   boolean,
   jsonb,

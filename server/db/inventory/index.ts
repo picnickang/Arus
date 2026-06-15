@@ -33,9 +33,8 @@ import type { WidenPartial } from "../../lib/widen-partial";
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Inventory:Index");
 import { randomUUID } from "node:crypto";
-import { projectInventoryMovement } from "../../graph/projector";
-import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
-import { db, type DbTransaction } from "../../db-config";
+import { eq, and, or, ilike, sql, desc, type SQL } from "drizzle-orm";
+import { db } from "../../db-config";
 import {
   workOrderParts,
   workOrderHistory,
@@ -44,14 +43,12 @@ import {
   stock,
   parts as partsTable,
 } from "@shared/schema-runtime";
-import { failureHistory } from "@shared/schema-runtime";
 import type {
   WorkOrderParts,
   WorkOrderHistory,
   InsertWorkOrderHistory,
   InventoryMovement,
   PartsInventory,
-  Part,
   Stock,
   InsertStock,
   InsertSupplier,
@@ -59,239 +56,23 @@ import type {
 } from "@shared/schema-runtime";
 import { DbPartsStorage, partAndStockToPartsInventory } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
-
-/**
- * Push A2 — Pending graph projection captured INSIDE a DB transaction
- * but FIRED only after the transaction commits. The reviewer caught
- * the original in-tx fire-and-forget as a divergence hazard: if the
- * SQL transaction rolls back, in-flight graph writes would leave the
- * graph ahead of relational truth. The post-commit pattern below
- * guarantees the graph only ever reflects committed rows.
- *
- * Supplier / part name are resolved lazily here (post-commit) by a
- * single batched lookup against the `parts` table so the SUPPLIED_BY
- * edge is populated on live writes — backfill is no longer the only
- * path that produces supplier linkage.
- */
-export interface PendingMovementProjection {
-  movementId: string;
-  partId: string;
-  workOrderId: string | null | undefined;
-  /**
-   * Movement direction. Only forward-consumption types ('reserve',
-   * 'consume') count toward REQUIRES_PART semantics. 'release' /
-   * 'return' are reversals and must NOT contribute to the
-   * failure→part edge (otherwise the live path would flip-count
-   * vs. the backfill, which the reviewer flagged on the fourth
-   * pass).
-   */
-  movementType: string;
-}
-
-export async function fireInventoryMovementProjections(
-  orgId: string,
-  pending: PendingMovementProjection[]
-): Promise<void> {
-  return fireProjectionsAfterCommit(orgId, pending);
-}
-
-async function fireProjectionsAfterCommit(
-  orgId: string,
-  pending: PendingMovementProjection[]
-): Promise<void> {
-  if (pending.length === 0) {
-    return;
-  }
-  try {
-    const partIds = Array.from(new Set(pending.map((p) => p.partId)));
-    // Statically imported `partsTable` (was dynamic import + escape-hatch cast
-    // shape — reviewer asked for typed schema bindings on this hot
-    // path). Drizzle infers column types from the schema runtime
-    // module directly.
-    const partRows = await db
-      .select({
-        id: partsTable.id,
-        name: partsTable.name,
-        primarySupplierId: partsTable.primarySupplierId,
-      })
-      .from(partsTable)
-      .where(and(eq(partsTable.orgId, orgId), sql`${partsTable.id} = ANY(${partIds})`));
-    const partMeta = new Map<string, { name?: string | null; supplierId?: string | null }>();
-    for (const r of partRows as Array<{
-      id: string;
-      name: string | null;
-      primarySupplierId: string | null;
-    }>) {
-      partMeta.set(r.id, {
-        name: r.name,
-        supplierId: r.primarySupplierId,
-      });
-    }
-    // Resolve failureMode per workOrderId so REQUIRES_PART edges are
-    // produced on live writes (not just backfill). Limited to
-    // forward-consumption movement types — `release`/`return` are
-    // reversals and would flip-count the edge. Reviewer's fifth-pass
-    // blocker: without this, the most important counting edge for
-    // operational reasoning drifted immediately after bootstrap.
-    const consumingPending = pending.filter(
-      (p) => p.workOrderId && (p.movementType === "reserve" || p.movementType === "consume")
-    );
-    const woIds = Array.from(
-      new Set(consumingPending.map((p) => p.workOrderId).filter((id): id is string => !!id))
-    );
-    const failureModeByWo = new Map<string, string>();
-    if (woIds.length > 0) {
-      const fhRows = await db
-        .select({
-          workOrderId: failureHistory.workOrderId,
-          failureMode: failureHistory.failureMode,
-        })
-        .from(failureHistory)
-        .where(
-          and(eq(failureHistory.orgId, orgId), sql`${failureHistory.workOrderId} = ANY(${woIds})`)
-        );
-      for (const r of fhRows as Array<{ workOrderId: string | null; failureMode: string | null }>) {
-        if (r.workOrderId && r.failureMode) {
-          failureModeByWo.set(r.workOrderId, r.failureMode);
-        }
-      }
-    }
-    await Promise.all(
-      pending.map((p) => {
-        const meta = partMeta.get(p.partId) ?? {};
-        const isConsuming = p.movementType === "reserve" || p.movementType === "consume";
-        const failureMode =
-          isConsuming && p.workOrderId ? (failureModeByWo.get(p.workOrderId) ?? null) : null;
-        return projectInventoryMovement(orgId, {
-          movementId: p.movementId,
-          partId: p.partId,
-          workOrderId: p.workOrderId,
-          partName: meta.name ?? null,
-          supplierId: meta.supplierId ?? null,
-          failureMode,
-        }).catch((err) => {
-          logger.warn(`[Graph] projectInventoryMovement(${p.movementId}) failed`, {
-            orgId,
-            partId: p.partId,
-            details: err instanceof Error ? err.message : String(err),
-          });
-        });
-      })
-    );
-  } catch (err) {
-    // best-effort by contract; never fail the caller for graph errors,
-    // but emit a structured warning so projector drift is observable.
-    logger.warn(`[Graph] fireProjectionsAfterCommit failed`, {
-      orgId,
-      pendingCount: pending.length,
-      details: err instanceof Error ? err.message : String(err),
-    });
-  }
-}
+import { partAndStockAsPartsInventory as partAndStockAsPartsInventoryQuery } from "./parts-inventory-query.js";
+import {
+  addBulkPartsAndReserveInventory as addBulkPartsAndReserveInventoryForWorkOrder,
+  addBulkPartsToWorkOrder as addBulkPartsToWorkOrderRows,
+  releasePartsFromWorkOrder as releaseWorkOrderPartReservations,
+  removePartAndRestoreInventory as removeWorkOrderPartAndRestoreInventory,
+  reservePartsForWorkOrder as reserveWorkOrderParts,
+} from "./work-order-parts.js";
 
 export * from "./types.js";
-export { DbPartsStorage } from "./db-parts.js";
-export { DbStockStorage } from "./db-stock.js";
+export { fireInventoryMovementProjections } from "./inventory-projections.js";
+export type { PendingMovementProjection } from "./inventory-projections.js";
 
 // StockFilters used by DbStockStorage.getStock
 interface StockFilters {
   search?: string | undefined;
   location?: string | undefined;
-}
-
-async function allocateReservation(
-  tx: DbTransaction,
-  partId: string,
-  orgId: string,
-  quantity: number
-): Promise<{
-  rows: { stockId: string; reserved: number; onHand: number; prevReserved: number }[];
-}> {
-  const allStock = await tx
-    .select()
-    .from(stock)
-    .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)))
-    .orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
-  if (allStock.length === 0) {
-    throw new Error(`Part ${partId} not found in stock`);
-  }
-  const totalAvailable = allStock.reduce(
-    (s: number, r: Stock) => s + Math.max(0, (r.quantityOnHand ?? 0) - (r.quantityReserved ?? 0)),
-    0
-  );
-  if (totalAvailable < quantity) {
-    throw new Error(
-      `Insufficient stock for part ${partId}: available=${totalAvailable}, requested=${quantity}`
-    );
-  }
-  const allocated: { stockId: string; reserved: number; onHand: number; prevReserved: number }[] =
-    [];
-  let remaining = quantity;
-  for (const row of allStock) {
-    if (remaining <= 0) {
-      break;
-    }
-    const avail = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
-    const toReserve = Math.min(remaining, avail);
-    if (toReserve > 0) {
-      await tx
-        .update(stock)
-        .set({
-          quantityReserved: (row.quantityReserved ?? 0) + toReserve,
-          updatedAt: new Date(),
-        })
-        .where(eq(stock.id, row.id));
-      allocated.push({
-        stockId: row.id,
-        reserved: toReserve,
-        onHand: row.quantityOnHand ?? 0,
-        prevReserved: row.quantityReserved ?? 0,
-      });
-      remaining -= toReserve;
-    }
-  }
-  return { rows: allocated };
-}
-
-async function distributeRelease(
-  tx: DbTransaction,
-  partId: string,
-  orgId: string,
-  quantity: number
-): Promise<{
-  rows: { stockId: string; released: number; onHand: number; prevReserved: number }[];
-}> {
-  const allStock = await tx
-    .select()
-    .from(stock)
-    .where(
-      and(eq(stock.partId, partId), eq(stock.orgId, orgId), sql`${stock.quantityReserved} > 0`)
-    )
-    .orderBy(sql`${stock.quantityReserved} DESC`);
-  const released: { stockId: string; released: number; onHand: number; prevReserved: number }[] =
-    [];
-  let remaining = quantity;
-  for (const row of allStock) {
-    if (remaining <= 0) {
-      break;
-    }
-    const reserved = row.quantityReserved ?? 0;
-    const toRelease = Math.min(remaining, reserved);
-    if (toRelease > 0) {
-      await tx
-        .update(stock)
-        .set({ quantityReserved: reserved - toRelease, updatedAt: new Date() })
-        .where(eq(stock.id, row.id));
-      released.push({
-        stockId: row.id,
-        released: toRelease,
-        onHand: row.quantityOnHand ?? 0,
-        prevReserved: reserved,
-      });
-      remaining -= toRelease;
-    }
-  }
-  return { rows: released };
 }
 
 export class DatabaseInventoryStorage extends DbPartsStorage {
@@ -372,78 +153,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     sortBy?: string,
     sortOrder?: "asc" | "desc"
   ): Promise<PartsInventory[]> {
-    return this.partAndStockAsPartsInventory(orgId, { category, search, sortBy, sortOrder });
-  }
-
-  private async partAndStockAsPartsInventory(
-    orgId?: string,
-    opts?: {
-      category?: string | undefined;
-      search?: string | undefined;
-      sortBy?: string | undefined;
-      sortOrder?: "asc" | "desc" | undefined;
-      limit?: number | undefined;
-      offset?: number | undefined;
-    }
-  ): Promise<PartsInventory[]> {
-    const conditions: SQL<unknown>[] = [];
-    if (orgId) {
-      conditions.push(eq(partsTable.orgId, orgId));
-    }
-    if (opts?.category) {
-      conditions.push(eq(partsTable.category, opts.category));
-    }
-    if (opts?.search) {
-      const searchCond = or(
-        ilike(partsTable.name, `%${opts.search}%`),
-        ilike(partsTable.partNo, `%${opts.search}%`)
-      );
-      if (searchCond) {
-        conditions.push(searchCond);
-      }
-    }
-    const orderCol =
-      opts?.sortBy === "partName"
-        ? partsTable.name
-        : opts?.sortBy === "category"
-          ? partsTable.category
-          : partsTable.name;
-    const orderFn = opts?.sortOrder === "desc" ? desc(orderCol) : asc(orderCol);
-
-    let partsQuery = db.select().from(partsTable);
-    if (conditions.length > 0) {
-      partsQuery = partsQuery.where(and(...conditions)) as typeof partsQuery;
-    }
-    let orderedParts = partsQuery.orderBy(orderFn);
-    if (opts?.limit) {
-      orderedParts = orderedParts.limit(opts.limit) as typeof orderedParts;
-    }
-    if (opts?.offset) {
-      orderedParts = orderedParts.offset(opts.offset) as typeof orderedParts;
-    }
-    const partRows = await orderedParts;
-
-    if (partRows.length === 0) {
-      return [];
-    }
-
-    const partIds = partRows.map((p: Part) => p.id);
-    const partIdsArray = sql`ARRAY[${sql.join(
-      partIds.map((id: string) => sql`${id}`),
-      sql`, `
-    )}]::text[]`;
-    const stockRows = await db
-      .select()
-      .from(stock)
-      .where(sql`${stock.partId} = ANY(${partIdsArray})`);
-    const stockMap = new Map<string, Stock[]>();
-    for (const s of stockRows) {
-      const arr = stockMap.get(s.partId) || [];
-      arr.push(s);
-      stockMap.set(s.partId, arr);
-    }
-
-    return partRows.map((p: Part) => partAndStockToPartsInventory(p, stockMap.get(p.id) || []));
+    return partAndStockAsPartsInventoryQuery(orgId, { category, search, sortBy, sortOrder });
   }
 
   async getPartsInventoryPaginated(
@@ -486,7 +196,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     };
 
     if (stockStatus && stockStatus !== "all") {
-      const allItems = await this.partAndStockAsPartsInventory(orgId, {
+      const allItems = await partAndStockAsPartsInventoryQuery(orgId, {
         category,
         search,
         sortBy,
@@ -496,7 +206,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       return { items: filtered.slice(offset, offset + limit), total: filtered.length };
     }
 
-    const items = await this.partAndStockAsPartsInventory(orgId, {
+    const items = await partAndStockAsPartsInventoryQuery(orgId, {
       category,
       search,
       sortBy,
@@ -545,7 +255,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async getLowStockParts(orgId?: string): Promise<PartsInventory[]> {
-    const all = await this.partAndStockAsPartsInventory(orgId);
+    const all = await partAndStockAsPartsInventoryQuery(orgId);
     return all.filter((p) => p.quantityOnHand <= (p.minStockLevel || 1));
   }
 
@@ -660,138 +370,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>,
     orgId: string
   ): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }> {
-    if (!orgId) {
-      throw new Error("orgId is required for tenant isolation");
-    }
-    const result = {
-      added: [] as WorkOrderParts[],
-      updated: [] as WorkOrderParts[],
-      errors: [] as string[],
-    };
-    // No graph projections here — addBulkPartsToWorkOrder only writes
-    // to `work_order_parts`, not `inventory_movements`. REQUIRES_PART
-    // edges are produced by the reserve / release / return paths via
-    // fireProjectionsAfterCommit().
-
-    await db.transaction(async (tx) => {
-      const existingParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
-      const existingMap = new Map<string, WorkOrderParts>(
-        existingParts.map((p: WorkOrderParts) => [p.partId, p] as [string, WorkOrderParts])
-      );
-
-      for (const partToAdd of partsToAdd) {
-        try {
-          const [stockRow] = await tx
-            .select()
-            .from(stock)
-            .where(and(eq(stock.partId, partToAdd.partId), eq(stock.orgId, orgId)))
-            .limit(1);
-          const unitCost = stockRow?.unitCost || 0;
-          const existing = existingMap.get(partToAdd.partId);
-
-          if (existing) {
-            const newQty = (existing.quantityUsed ?? 0) + partToAdd.quantity;
-            const [updated] = await tx
-              .update(workOrderParts)
-              .set({
-                quantityUsed: newQty,
-                totalCost: newQty * unitCost,
-                notes: partToAdd.notes
-                  ? existing.notes
-                    ? `${existing.notes}; ${partToAdd.notes}`
-                    : partToAdd.notes
-                  : existing.notes,
-                updatedAt: new Date(),
-              } as never)
-              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
-              .returning();
-            if (!updated) {
-              throw new Error("addBulkParts: update returned no row");
-            }
-            result.updated.push(updated);
-            existingMap.set(partToAdd.partId, updated);
-          } else {
-            const [newPart] = await tx
-              .insert(workOrderParts)
-              .values({
-                id: randomUUID(),
-                orgId,
-                workOrderId,
-                partId: partToAdd.partId,
-                quantityUsed: partToAdd.quantity,
-                unitCost,
-                totalCost: partToAdd.quantity * unitCost,
-                usedBy: partToAdd.usedBy,
-                notes: partToAdd.notes,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              } as never)
-              .returning();
-            if (!newPart) {
-              throw new Error("addBulkParts: insert returned no row");
-            }
-            result.added.push(newPart);
-            existingMap.set(partToAdd.partId, newPart);
-          }
-        } catch (err) {
-          result.errors.push(
-            `Failed to add part ${partToAdd.partId}: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      }
-    });
-
-    return result;
+    return addBulkPartsToWorkOrderRows(workOrderId, partsToAdd, orgId);
   }
 
   async reservePartsForWorkOrder(workOrderId: string, orgId: string): Promise<void> {
-    if (!orgId) {
-      throw new Error("orgId is required for tenant isolation");
-    }
-
-    const pendingProjections: PendingMovementProjection[] = [];
-    await db.transaction(async (tx) => {
-      const woParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
-
-      const partQuantities = new Map<string, number>();
-      for (const woPart of woParts) {
-        partQuantities.set(
-          woPart.partId,
-          (partQuantities.get(woPart.partId) || 0) + (woPart.quantityUsed ?? 0)
-        );
-      }
-
-      // Use Array.from to avoid downlevelIteration target requirement
-      for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
-        const { rows } = await allocateReservation(tx, partId, orgId, totalQty);
-        for (const alloc of rows) {
-          const movementId = randomUUID();
-          await tx.insert(inventoryMovements).values({
-            id: movementId,
-            orgId,
-            partId,
-            workOrderId,
-            movementType: "reserve",
-            quantity: alloc.reserved,
-            quantityBefore: alloc.onHand,
-            quantityAfter: alloc.onHand,
-            reservedBefore: alloc.prevReserved,
-            reservedAfter: alloc.prevReserved + alloc.reserved,
-            performedBy: "system",
-            notes: `Reserved ${alloc.reserved} units for work order ${workOrderId} (stock ${alloc.stockId})`,
-            createdAt: new Date(),
-          });
-          pendingProjections.push({ movementId, partId, workOrderId, movementType: "reserve" });
-        }
-      }
-    });
-    await fireProjectionsAfterCommit(orgId, pendingProjections);
+    return reserveWorkOrderParts(workOrderId, orgId);
   }
 
   async addBulkPartsAndReserveInventory(
@@ -799,173 +382,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>,
     orgId: string
   ): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }> {
-    if (!orgId) {
-      throw new Error("orgId is required for tenant isolation");
-    }
-    const result = {
-      added: [] as WorkOrderParts[],
-      updated: [] as WorkOrderParts[],
-      errors: [] as string[],
-    };
-    const pendingProjections: PendingMovementProjection[] = [];
-
-    await db.transaction(async (tx) => {
-      const existingParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
-      const existingMap = new Map<string, WorkOrderParts>(
-        existingParts.map((p: WorkOrderParts) => [p.partId, p] as [string, WorkOrderParts])
-      );
-
-      for (const partToAdd of partsToAdd) {
-        try {
-          const [stockRow] = await tx
-            .select()
-            .from(stock)
-            .where(and(eq(stock.partId, partToAdd.partId), eq(stock.orgId, orgId)))
-            .limit(1);
-          const unitCost = stockRow?.unitCost || 0;
-          const existing = existingMap.get(partToAdd.partId);
-
-          if (existing) {
-            const newQty = (existing.quantityUsed ?? 0) + partToAdd.quantity;
-            const [updated] = await tx
-              .update(workOrderParts)
-              .set({
-                quantityUsed: newQty,
-                totalCost: newQty * unitCost,
-                notes: partToAdd.notes
-                  ? existing.notes
-                    ? `${existing.notes}; ${partToAdd.notes}`
-                    : partToAdd.notes
-                  : existing.notes,
-                updatedAt: new Date(),
-              } as never)
-              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
-              .returning();
-            if (!updated) {
-              throw new Error("addBulkPartsAndReserveInventory: update returned no row");
-            }
-            result.updated.push(updated);
-            existingMap.set(partToAdd.partId, updated);
-          } else {
-            const [newPart] = await tx
-              .insert(workOrderParts)
-              .values({
-                id: randomUUID(),
-                orgId,
-                workOrderId,
-                partId: partToAdd.partId,
-                quantityUsed: partToAdd.quantity,
-                unitCost,
-                totalCost: partToAdd.quantity * unitCost,
-                usedBy: partToAdd.usedBy,
-                notes: partToAdd.notes,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              } as never)
-              .returning();
-            if (!newPart) {
-              throw new Error("addBulkPartsAndReserveInventory: insert returned no row");
-            }
-            result.added.push(newPart);
-            existingMap.set(partToAdd.partId, newPart);
-          }
-        } catch (err) {
-          result.errors.push(
-            `Failed to add part ${partToAdd.partId}: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      }
-
-      if (result.added.length > 0 || result.updated.length > 0) {
-        const allWoParts = await tx
-          .select()
-          .from(workOrderParts)
-          .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
-
-        const partQuantities = new Map<string, number>();
-        for (const woPart of allWoParts) {
-          partQuantities.set(
-            woPart.partId,
-            (partQuantities.get(woPart.partId) || 0) + (woPart.quantityUsed ?? 0)
-          );
-        }
-
-        for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
-          const { rows } = await allocateReservation(tx, partId, orgId, totalQty);
-          for (const alloc of rows) {
-            const movementId = randomUUID();
-            await tx.insert(inventoryMovements).values({
-              id: movementId,
-              orgId,
-              partId,
-              workOrderId,
-              movementType: "reserve",
-              quantity: alloc.reserved,
-              quantityBefore: alloc.onHand,
-              quantityAfter: alloc.onHand,
-              reservedBefore: alloc.prevReserved,
-              reservedAfter: alloc.prevReserved + alloc.reserved,
-              performedBy: "system",
-              notes: `Reserved for work order ${workOrderId} (stock ${alloc.stockId})`,
-              createdAt: new Date(),
-            });
-            pendingProjections.push({ movementId, partId, workOrderId, movementType: "reserve" });
-          }
-        }
-      }
-    });
-    await fireProjectionsAfterCommit(orgId, pendingProjections);
-
-    return result;
+    return addBulkPartsAndReserveInventoryForWorkOrder(workOrderId, partsToAdd, orgId);
   }
 
   async releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> {
-    if (!orgId) {
-      throw new Error("orgId is required for tenant isolation");
-    }
-
-    const pendingProjections: PendingMovementProjection[] = [];
-    await db.transaction(async (tx) => {
-      const woParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
-
-      const partQuantities = new Map<string, number>();
-      for (const woPart of woParts) {
-        partQuantities.set(
-          woPart.partId,
-          (partQuantities.get(woPart.partId) || 0) + (woPart.quantityUsed ?? 0)
-        );
-      }
-
-      for (const [partId, totalQty] of Array.from(partQuantities.entries())) {
-        const { rows } = await distributeRelease(tx, partId, orgId, totalQty);
-        for (const rel of rows) {
-          const movementId = randomUUID();
-          await tx.insert(inventoryMovements).values({
-            id: movementId,
-            orgId,
-            partId,
-            workOrderId,
-            movementType: "release",
-            quantity: rel.released,
-            quantityBefore: rel.onHand,
-            quantityAfter: rel.onHand,
-            reservedBefore: rel.prevReserved,
-            reservedAfter: rel.prevReserved - rel.released,
-            performedBy: "system",
-            notes: `Released from work order ${workOrderId} (stock ${rel.stockId})`,
-            createdAt: new Date(),
-          });
-          pendingProjections.push({ movementId, partId, workOrderId, movementType: "release" });
-        }
-      }
-    });
-    await fireProjectionsAfterCommit(orgId, pendingProjections);
+    return releaseWorkOrderPartReservations(workOrderId, orgId);
   }
 
   async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<WorkOrderHistory[]> {
@@ -1043,78 +464,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     orgId: string,
     performedBy: string
   ): Promise<void> {
-    if (!orgId) {
-      throw new Error("orgId is required for tenant isolation");
-    }
-    const pendingProjections: PendingMovementProjection[] = [];
-    await db.transaction(async (tx) => {
-      const [woPart] = await tx
-        .select()
-        .from(workOrderParts)
-        .where(and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId)));
-      if (!woPart) {
-        throw new Error(`Work order part ${workOrderPartId} not found`);
-      }
-
-      const { rows } = await distributeRelease(tx, woPart.partId, orgId, woPart.quantityUsed ?? 0);
-      for (const rel of rows) {
-        const movementId = randomUUID();
-        await tx.insert(inventoryMovements).values({
-          id: movementId,
-          orgId,
-          partId: woPart.partId,
-          workOrderId: woPart.workOrderId,
-          movementType: "return",
-          quantity: rel.released,
-          quantityBefore: rel.onHand,
-          quantityAfter: rel.onHand,
-          reservedBefore: rel.prevReserved,
-          reservedAfter: rel.prevReserved - rel.released,
-          performedBy,
-          notes: `Returned ${rel.released} units from work order (stock ${rel.stockId})`,
-          createdAt: new Date(),
-        });
-        pendingProjections.push({
-          movementId,
-          partId: woPart.partId,
-          workOrderId: woPart.workOrderId,
-          movementType: "return",
-        });
-      }
-
-      await tx
-        .delete(workOrderParts)
-        .where(and(eq(workOrderParts.id, workOrderPartId), eq(workOrderParts.orgId, orgId)));
-
-      // Defer projection until after the surrounding tx commits below
-      // (see fireProjectionsAfterCommit at end of method).
-
-      const [wo] = await tx
-        .select()
-        .from(workOrders)
-        .where(and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId)));
-      if (wo) {
-        const remainingParts = await tx
-          .select()
-          .from(workOrderParts)
-          .where(
-            and(eq(workOrderParts.workOrderId, woPart.workOrderId), eq(workOrderParts.orgId, orgId))
-          );
-        const totalPartsCost = remainingParts.reduce(
-          (sum: number, p: WorkOrderParts) => sum + (p.totalCost || 0),
-          0
-        );
-        await tx
-          .update(workOrders)
-          .set({
-            totalPartsCost,
-            totalCost: totalPartsCost + (wo.totalLaborCost || 0),
-            updatedAt: new Date(),
-          })
-          .where(and(eq(workOrders.id, woPart.workOrderId), eq(workOrders.orgId, orgId)));
-      }
-    });
-    await fireProjectionsAfterCommit(orgId, pendingProjections);
+    return removeWorkOrderPartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 
   async getPartsCostForWorkOrder(

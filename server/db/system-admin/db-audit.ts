@@ -2,8 +2,9 @@
  * System Admin - Database Storage Audit & Sessions
  */
 
+import { randomUUID } from "node:crypto";
 import { eq, and, lt, sql } from "drizzle-orm";
-import { db } from "../../db-config";
+import { db, isLocalMode } from "../../db-config";
 import { adminAuditEvents, adminSessions } from "@shared/schema-runtime";
 import type {
   AdminAuditEvent,
@@ -139,7 +140,16 @@ export class DbAuditStorage {
   }
 
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> {
-    const [n] = await db.insert(adminSessions).values(session).returning();
+    const now = new Date();
+    const values = isLocalMode
+      ? ({
+          ...session,
+          id: randomUUID(),
+          createdAt: now,
+          lastActivityAt: session.lastActivityAt ?? now,
+        } as typeof adminSessions.$inferInsert)
+      : session;
+    const [n] = await db.insert(adminSessions).values(values).returning();
     if (!n) {
       throw new Error("Failed to create admin session");
     }

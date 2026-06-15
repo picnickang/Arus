@@ -26,16 +26,67 @@ const root = resolve(__dirname, "..");
 
 const errors = [];
 
+/**
+ * Collapse multi-line `export const X = pickSchema(\n …\n);` statements into a
+ * single logical line so the single-line regexes below see the whole call
+ * (prettier wraps the longer ones). Non-export lines pass through unchanged.
+ */
+function toLogicalExportLines(src) {
+  const physical = src.split("\n");
+  const balance = (s) => (s.match(/\(/g)?.length ?? 0) - (s.match(/\)/g)?.length ?? 0);
+  const out = [];
+  let buf = null;
+  let depth = 0;
+  for (const line of physical) {
+    if (buf === null) {
+      if (/^export const /.test(line)) {
+        buf = line;
+        depth = balance(line);
+        if (depth <= 0 && line.includes(";")) {
+          out.push(buf);
+          buf = null;
+          depth = 0;
+        }
+      } else {
+        out.push(line);
+      }
+    } else {
+      buf += " " + line.trim();
+      depth += balance(line);
+      if (depth <= 0 && line.includes(";")) {
+        out.push(buf);
+        buf = null;
+        depth = 0;
+      }
+    }
+  }
+  if (buf !== null) out.push(buf);
+  return out;
+}
+
 // ============================================================================
 // Layer 1 — Export guard check
 // ============================================================================
 
-const runtimePath = resolve(root, "shared/schema-runtime.ts");
-const runtimeSrc = readFileSync(runtimePath, "utf8");
+// The per-table mode-aware exports moved out of schema-runtime.ts into the
+// schema-runtime-tables-*.ts files (re-exported from schema-runtime via
+// `export * from "./schema-runtime-tables"`). Scan all of them so Layer 2
+// column parity still sees every switched table pair.
+const runtimeRelPaths = [
+  "shared/schema-runtime.ts",
+  "shared/schema-runtime-tables-core.ts",
+  "shared/schema-runtime-tables-operations.ts",
+  "shared/schema-runtime-tables-cloud.ts",
+];
+const runtimeSrc = runtimeRelPaths
+  .map((p) => resolve(root, p))
+  .filter((p) => existsSync(p))
+  .map((p) => readFileSync(p, "utf8"))
+  .join("\n");
 
 const guardedNames = new Set();
 const switchedPairs = [];
-const lines = runtimeSrc.split("\n");
+const lines = toLogicalExportLines(runtimeSrc);
 
 const VALID_NAMESPACES = new Set(["pgSchema", "sqliteVessel", "sqliteSync"]);
 
@@ -231,12 +282,16 @@ function extractColumnsFromSource(src) {
 function scanSchemaDir(dir) {
   const result = {};
   if (!existsSync(dir)) return result;
-  const entries = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
-  for (const file of entries) {
-    const filePath = join(dir, file);
-    const src = readFileSync(filePath, "utf8");
-    const tables = extractColumnsFromSource(src);
-    Object.assign(result, tables);
+  // Recurse: schema files now live in per-domain subdirectories
+  // (shared/schema/{admin,alerts,crew,equipment,...}). A flat scan missed them,
+  // producing false "missing table" pairs and undercounting column parity.
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(result, scanSchemaDir(full));
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      Object.assign(result, extractColumnsFromSource(readFileSync(full, "utf8")));
+    }
   }
   return result;
 }

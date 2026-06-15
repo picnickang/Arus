@@ -345,10 +345,26 @@ export class ConfigManager {
     }
   ): Promise<ReloadResult> {
     try {
-      // Read current .env file
+      // Reject CR/LF/NUL: an env value spanning lines could smuggle extra
+      // KEY=VALUE pairs into the .env file (env-variable injection).
+      if (/[\r\n\0]/.test(value)) {
+        return {
+          success: false,
+          changed: [],
+          criticalChanges: [],
+          requiresRestart: false,
+          error: "Configuration value must not contain newline or null characters",
+        };
+      }
+      // Read current .env file directly — no existsSync gate, which would
+      // create a TOCTOU race with the write below. Treat ENOENT as empty.
       let envContent = "";
-      if (fs.existsSync(this.envFilePath)) {
+      try {
         envContent = fs.readFileSync(this.envFilePath, "utf-8");
+      } catch (readErr) {
+        if ((readErr as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw readErr;
+        }
       }
 
       const oldValue = this.config.get(key);
@@ -405,18 +421,23 @@ export class ConfigManager {
     }
   ): Promise<ReloadResult> {
     try {
-      if (!fs.existsSync(this.envFilePath)) {
-        return {
-          success: false,
-          changed: [],
-          criticalChanges: [],
-          requiresRestart: false,
-          error: ".env file not found",
-        };
+      // Read the .env file directly — no existsSync gate, which would create
+      // a TOCTOU race with the write below. A missing file surfaces as ENOENT.
+      let envContent: string;
+      try {
+        envContent = fs.readFileSync(this.envFilePath, "utf-8");
+      } catch (readErr) {
+        if ((readErr as NodeJS.ErrnoException).code === "ENOENT") {
+          return {
+            success: false,
+            changed: [],
+            criticalChanges: [],
+            requiresRestart: false,
+            error: ".env file not found",
+          };
+        }
+        throw readErr;
       }
-
-      // Read current .env file
-      const envContent = fs.readFileSync(this.envFilePath, "utf-8");
       const lines = envContent.split("\n");
 
       // Remove the line with this key

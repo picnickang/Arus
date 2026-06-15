@@ -1,13 +1,51 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const INCLUDE_QUARANTINED = process.env.PLAYWRIGHT_INCLUDE_QUARANTINE === "1";
+const INCLUDE_PRODUCTION_WRITE_AUDIT = process.env.ARUS_PROD_E2E_ALLOW_WRITES === "1";
 
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
+  "**/auth-hub-smoke.spec.ts",
+  "**/non-admin-hub-smoke.spec.ts",
+  "**/write-smoke.spec.ts",
+  "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
+  "**/bridge-conditions.spec.ts",
+  "**/mobile-ops-rail.spec.ts",
+  "**/axe-contrast.spec.ts",
   "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
+  ...(INCLUDE_PRODUCTION_WRITE_AUDIT
+    ? ["**/journeys/production-full-write-audit.spec.ts"]
+    : []),
+];
+
+// Advisory lanes (non-default): visual regression + stress. Kept OUT of
+// CORE_RELEASE_TESTS so the blocking e2e-smoke job stays narrow; run via their
+// own projects (see below) + the nightly workflow.
+const VISUAL_TESTS = ["**/visual/*.spec.ts"];
+const STRESS_TESTS = ["**/stress/*.spec.ts"];
+
+// Pin the Chromium binary when PLAYWRIGHT_CHROMIUM_PATH is set (local runs
+// against a pre-installed browser when the Playwright CDN is unreachable).
+// Unset in CI — Playwright then uses the version it `playwright install`ed.
+const CHROMIUM_EXECUTABLE_PATH = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const chromiumLaunchOptions = CHROMIUM_EXECUTABLE_PATH
+  ? { executablePath: CHROMIUM_EXECUTABLE_PATH }
+  : {};
+
+// Mobile spec subset run by the visual-regression projects below
+// (argos-visual-ci / playwright-visual-ci / mobile-qa-visual-argos).
+const MOBILE_VISUAL_TESTS = [
+  "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
+  "**/static-mobile-boot.spec.ts",
 ];
 
 /**
@@ -43,7 +81,60 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], launchOptions: chromiumLaunchOptions },
+    },
+    // Mobile viewport projects for the visual-regression workflows. They run
+    // the mobile spec subset under a Pixel 5 (chromium engine) viewport, so the
+    // chromium browser install in CI is sufficient.
+    {
+      name: "mobile-chromium",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    {
+      name: "mobile-visual",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    // Advisory visual-regression lane (native toHaveScreenshot). Desktop +
+    // mobile viewports; mocked deterministic backend (see the spec). Baselines
+    // are platform-suffixed (-linux) so must be generated on linux/CI.
+    {
+      name: "visual",
+      testMatch: VISUAL_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+        launchOptions: chromiumLaunchOptions,
+      },
+    },
+    {
+      name: "visual-mobile",
+      testMatch: VISUAL_TESTS,
+      use: { ...devices["Pixel 5"], launchOptions: chromiumLaunchOptions },
+    },
+    {
+      name: "visual-tablet",
+      testMatch: VISUAL_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 768, height: 1024 },
+        launchOptions: chromiumLaunchOptions,
+      },
+    },
+    // Advisory stress lane: heap-growth nav loop + rapid-fire nav race.
+    // --expose-gc lets the spec force GC (via CDP) for stable heap samples.
+    {
+      name: "stress",
+      testMatch: STRESS_TESTS,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+        launchOptions: {
+          ...chromiumLaunchOptions,
+          args: ["--js-flags=--expose-gc"],
+        },
+      },
     },
   ],
 
@@ -85,6 +176,6 @@ export default defineConfig({
         },
         url: "http://127.0.0.1:5000/api/healthz",
         reuseExistingServer: false,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 });

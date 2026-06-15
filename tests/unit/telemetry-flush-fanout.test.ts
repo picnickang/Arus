@@ -26,7 +26,9 @@ beforeAll(async () => {
   jest.unstable_mockModule("../../server/repositories", () => ({
     __esModule: true,
     dbTelemetryStorage: { createTelemetryReadingsBulk: jest.fn() },
-    dbSensorsStorage: { getSensorConfigurations: jest.fn().mockResolvedValue([]) },
+    // telemetry-ingest-config's static imports (formerly lazy) pull the
+    // sensors storage through the barrel at module-link time.
+    dbSensorsStorage: { getSensorConfigurations: async () => [] },
   }));
   jest.unstable_mockModule("../../server/tenancy/quota-service", () => ({
     __esModule: true,
@@ -36,6 +38,17 @@ beforeAll(async () => {
     __esModule: true,
     getWebSocketServer: () => null,
     setWebSocketServer: jest.fn(),
+  }));
+  // The flush fan-out's alert evaluation now imports these statically
+  // (previously lazy dynamic imports — see the domain-leak burndown), so
+  // their heavy chains need the same stubbing as the edges above.
+  jest.unstable_mockModule("../../server/services/telemetry-processing", () => ({
+    __esModule: true,
+    checkAndCreateAlerts: jest.fn(),
+  }));
+  jest.unstable_mockModule("../../server/middleware/db-context", () => ({
+    __esModule: true,
+    withTenantContext: jest.fn(async (_orgId: string, fn: () => Promise<unknown>) => fn()),
   }));
 
   ({ latestPerEquipmentSensor } = await import("../../server/telemetry-batch-writer"));

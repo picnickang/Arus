@@ -1,79 +1,19 @@
-import { openDB, DBSchema, IDBPDatabase } from "idb";
+import { openDB, type IDBPDatabase } from "idb";
 import { classifyOfflineEntityPath, isQueueableMutationPath } from "@shared/offline-queue-routes";
+import type {
+  EntityType,
+  OfflineSyncDB,
+  OperationType,
+  PendingOperation,
+  SyncConflict,
+} from "./offline-sync-types";
 
-export type OperationType = "create" | "update" | "delete";
-export type EntityType =
-  | "assignment"
-  | "leave"
-  | "certification"
-  | "inventory_item"
-  | "inventory_stock"
-  | "logistics_task"
-  | "work_order"
-  | "logbook"
-  | "checklist"
-  | "alert"
-  | "safety_acknowledgement"
-  | "handover"
-  | "parts"
-  | "pdm_risk"
-  | "api_request";
-
-export interface PendingOperation {
-  id: string;
-  entityType: EntityType;
-  entityId: string;
-  operationType: OperationType;
-  payload: Record<string, unknown>;
-  createdAt: string;
-  retryCount: number;
-  lastError?: string | undefined;
-  lastModifiedAt?: string | undefined;
-  clientMutationId?: string | undefined;
-  conflictPaused?: boolean | undefined;
-  request?:
-    | {
-        method: string;
-        url: string;
-        contentType?: string | undefined;
-      }
-    | undefined;
-}
-
-export interface SyncConflict {
-  operationId: string;
-  entityType: EntityType;
-  entityId: string;
-  localVersion: Record<string, unknown>;
-  serverVersion: Record<string, unknown>;
-  resolvedAt?: string;
-  resolution?: "local" | "server" | "merged";
-}
-
-interface OfflineSyncDB extends DBSchema {
-  pendingOperations: {
-    key: string;
-    value: PendingOperation;
-    indexes: {
-      "by-entity": [EntityType, string];
-      "by-created": string;
-    };
-  };
-  conflicts: {
-    key: string;
-    value: SyncConflict;
-    indexes: {
-      "by-entity": [EntityType, string];
-    };
-  };
-  syncMetadata: {
-    key: string;
-    value: {
-      key: string;
-      value: unknown;
-    };
-  };
-}
+export type {
+  EntityType,
+  OperationType,
+  PendingOperation,
+  SyncConflict,
+} from "./offline-sync-types";
 
 const DB_NAME = "arus-offline-sync";
 const DB_VERSION = 2;
@@ -141,6 +81,31 @@ export class OfflineQueueFullError extends Error {
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Recursively merge a dedup patch onto an existing queued payload. A shallow
+ * spread replaces a nested object wholesale — patching only `{ description }`
+ * onto `{ maintenanceWindow: {...}, description }` would drop
+ * `maintenanceWindow` — so plain-object branches merge key-by-key. Arrays and
+ * scalars are replaced (last write wins), matching the previous behaviour for
+ * non-object fields.
+ */
+function deepMergePayload(
+  base: Record<string, unknown>,
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const existing = out[key];
+    out[key] =
+      isPlainObject(existing) && isPlainObject(value) ? deepMergePayload(existing, value) : value;
+  }
+  return out;
+}
+
 export async function queueOperation(
   entityType: EntityType,
   entityId: string,
@@ -166,7 +131,7 @@ export async function queueOperation(
   if (existingOp) {
     const updatedOp: PendingOperation = {
       ...existingOp,
-      payload: { ...existingOp.payload, ...payload },
+      payload: deepMergePayload(existingOp.payload, payload),
       lastModifiedAt: lastModifiedAt || new Date().toISOString(),
     };
     await store.put(updatedOp);
@@ -216,6 +181,7 @@ export async function markOperationFailed(operationId: string, error: string): P
   if (op) {
     op.retryCount += 1;
     op.lastError = error;
+    op.lastAttemptedAt = Date.now();
     await db.put("pendingOperations", op);
     broadcastOfflineSyncChange();
   }
@@ -347,7 +313,7 @@ export function isOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine !== false;
 }
 
-export type OnlineStatusCallback = (online: boolean) => void;
+type OnlineStatusCallback = (online: boolean) => void;
 const onlineStatusListeners: Set<OnlineStatusCallback> = new Set();
 
 export function subscribeToOnlineStatus(callback: OnlineStatusCallback): () => void {

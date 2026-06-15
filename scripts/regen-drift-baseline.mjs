@@ -90,19 +90,70 @@ function extractColumns(src) {
   return tables;
 }
 
+// Recurse: schema files live in per-domain subdirectories now.
 function scanDir(dir) {
   if (!existsSync(dir)) return {};
   const out = {};
-  for (const f of readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"))) {
-    Object.assign(out, extractColumns(readFileSync(join(dir, f), "utf8")));
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(out, scanDir(full));
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      Object.assign(out, extractColumns(readFileSync(full, "utf8")));
+    }
   }
   return out;
 }
 
-// Read schema-runtime.ts to find paired tables (mirrors validate-dual-schema.mjs).
-const runtimeSrc = readFileSync(resolve(root, "shared/schema-runtime.ts"), "utf8");
+// Collapse multi-line `export const X = pickSchema(\n …\n);` into one logical line.
+function toLogicalExportLines(src) {
+  const physical = src.split("\n");
+  const balance = (s) => (s.match(/\(/g)?.length ?? 0) - (s.match(/\)/g)?.length ?? 0);
+  const out = [];
+  let buf = null;
+  let depth = 0;
+  for (const line of physical) {
+    if (buf === null) {
+      if (/^export const /.test(line)) {
+        buf = line;
+        depth = balance(line);
+        if (depth <= 0 && line.includes(";")) {
+          out.push(buf);
+          buf = null;
+          depth = 0;
+        }
+      } else {
+        out.push(line);
+      }
+    } else {
+      buf += " " + line.trim();
+      depth += balance(line);
+      if (depth <= 0 && line.includes(";")) {
+        out.push(buf);
+        buf = null;
+        depth = 0;
+      }
+    }
+  }
+  if (buf !== null) out.push(buf);
+  return out;
+}
+
+// The switched exports moved into schema-runtime-tables-*.ts (mirrors
+// validate-dual-schema.mjs). Read all of them and detect both the ternary and
+// the pickSchema/cloudOnly helper forms.
+const runtimeSrc = [
+  "shared/schema-runtime.ts",
+  "shared/schema-runtime-tables-core.ts",
+  "shared/schema-runtime-tables-operations.ts",
+  "shared/schema-runtime-tables-cloud.ts",
+]
+  .map((p) => resolve(root, p))
+  .filter((p) => existsSync(p))
+  .map((p) => readFileSync(p, "utf8"))
+  .join("\n");
 const switchedPairs = [];
-for (const line of runtimeSrc.split("\n")) {
+for (const line of toLogicalExportLines(runtimeSrc)) {
   const exportMatch = line.match(/^export const (\w+)\s*=/);
   if (!exportMatch) continue;
   const name = exportMatch[1];
@@ -110,7 +161,9 @@ for (const line of runtimeSrc.split("\n")) {
     line.includes("isLocalMode ?") ||
     line.includes("isEmbedded ?") ||
     line.includes("IS_POSTGRES ?") ||
-    line.includes("IS_SQLITE ?");
+    line.includes("IS_SQLITE ?") ||
+    line.includes("pickSchema(") ||
+    line.includes("cloudOnly(");
   if (!isSwitched) continue;
   const pgMatch = line.match(/pgSchema\.(\w+)/);
   const sqliteMatch = line.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);

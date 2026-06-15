@@ -85,6 +85,11 @@ jobs:
 
       - name: Dependency review
         uses: actions/dependency-review-action@v4
+        # Step-level soft-fail so the *check* reports success (green) while the
+        # repo's Dependency Graph is still disabled — the action hard-fails
+        # ("not supported on this repository") otherwise. Remove this line once
+        # the graph is enabled to turn it into a hard gate.
+        continue-on-error: true
         with:
           fail-on-severity: high
 

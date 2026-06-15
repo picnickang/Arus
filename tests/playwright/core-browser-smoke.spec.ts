@@ -1,5 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
+import {
+  getMobileReadinessExpectedScreen,
+  isMobileReadinessReplacementPath,
+} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 
 const vessel = { id: "vessel-1", name: "MV ARUS Explorer" };
 const crewMember = {
@@ -191,7 +195,7 @@ async function loginAsAdmin(page: Page): Promise<void> {
   await page.getByTestId("input-admin-username").fill("playwright-admin");
   await page.getByTestId("input-admin-password").fill("playwright-password");
   await page.getByTestId("button-admin-login").click();
-  await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+  await expectMobileReadinessShell(page, "/");
 }
 
 async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
@@ -206,6 +210,18 @@ async function expectUniversalOpsShell(page: Page, activeHubName: string): Promi
   await expect(page.getByTestId("universal-ops-rail")).toBeVisible();
   await expect(page.getByTestId("universal-ops-subnav")).toBeVisible();
   await expect(page.getByTestId("universal-ops-active-hub")).toContainText(activeHubName);
+  await expect(page.getByTestId("mobile-readiness-shell")).toHaveCount(0);
+}
+
+async function expectMobileReadinessShell(page: Page, path: string): Promise<void> {
+  const marker = getMobileReadinessExpectedScreen(path);
+  expect(isMobileReadinessReplacementPath(path)).toBe(true);
+  expect(marker).not.toBeNull();
+  await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
+  await expect(page.getByTestId(`mobile-readiness-screen-${marker}`)).toBeVisible();
+  await expect(page.getByTestId("mobile-readiness-bottom-nav")).toHaveCount(1);
+  await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
+  await expect(page.getByTestId("text-admin-hubs-title")).toHaveCount(0);
 }
 
 test.describe("core browser release smokes", () => {
@@ -213,24 +229,25 @@ test.describe("core browser release smokes", () => {
     page,
   }) => {
     await loginAsAdmin(page);
-    await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+    await expectMobileReadinessShell(page, "/");
   });
 
-  test("top-level admin operational hubs share the universal shell", async ({ page }) => {
+  test("replacement hubs render the mobile readiness shell", async ({ page }) => {
     await loginAsAdmin(page);
 
-    const hubRoutes = [
-      ["/operations", "Operations"],
-      ["/fleet", "Fleet"],
-      ["/maint", "Maintenance"],
-      ["/crew-management", "Crew"],
-      ["/logistics", "Logistics"],
-      ["/logs", "Records"],
-      ["/analytics", "Analytics"],
-      ["/system", "System"],
-    ] as const;
+    for (const path of ["/fleet", "/maint", "/crew-management", "/logistics", "/logs", "/system"]) {
+      await navigateWithinAuthenticatedSpa(page, path);
+      await expectMobileReadinessShell(page, path);
+    }
+  });
 
-    for (const [path, activeHubName] of hubRoutes) {
+  test("non-replacement admin hubs preserve the universal shell", async ({ page }) => {
+    await loginAsAdmin(page);
+
+    for (const [path, activeHubName] of [
+      ["/operations", "Operations"],
+      ["/analytics", "Analytics"],
+    ] as const) {
       await navigateWithinAuthenticatedSpa(page, path);
       await expectUniversalOpsShell(page, activeHubName);
     }
@@ -251,30 +268,22 @@ test.describe("core browser release smokes", () => {
   test("Vessel Intelligence registry loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/diagrams");
-    await expectUniversalOpsShell(page, "Fleet");
-    await expect(page.getByTestId("diagram-manager")).toBeVisible();
-    await expect(page.getByTestId("diagram-type-card-side_elevation")).toContainText(
-      "Side Elevation"
-    );
+    await expectMobileReadinessShell(page, "/vessel-intelligence/vessel-1/diagrams");
+    await expect(page.getByText("Vessel diagram")).toBeVisible();
   });
 
   test("Crew page loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
-    await expectUniversalOpsShell(page, "Crew");
-    await expect(page.getByTestId("page-crew-management")).toBeVisible();
-    await page.getByTestId("card-open-current").click();
-    await page.getByTestId("chip-group-name").click();
-    await expect(page.getByTestId("row-crew-crew-1")).toBeVisible();
-    await expect(page.getByText("Ada Mariner")).toBeVisible();
+    await expectMobileReadinessShell(page, "/crew-management");
+    await expect(page.getByText("Crew Readiness Overview")).toBeVisible();
   });
 
   test("Inventory and Logistics page loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
-    await expectUniversalOpsShell(page, "Logistics");
-    await expect(page.getByTestId("inventory-management-page")).toBeVisible();
-    await expect(page.getByText("Duplex fuel filter")).toBeVisible();
+    await expectMobileReadinessShell(page, "/logistics");
+    await expect(page.getByText("Inventory & Logistics")).toBeVisible();
   });
 
   test("Safety page loads", async ({ page }) => {
@@ -288,10 +297,7 @@ test.describe("core browser release smokes", () => {
   test("Admin permissions redirect lands on consolidated access management", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/permissions-settings");
-    await expectUniversalOpsShell(page, "Crew");
-    await expect(page.getByTestId("view-access-permissions")).toBeVisible();
-    await expect(page.getByTestId("heading-access-permissions")).toContainText(
-      "Access & Permissions"
-    );
+    await expect(page).toHaveURL(/\/crew-management\?view=roles$/);
+    await expectMobileReadinessShell(page, "/crew-management");
   });
 });

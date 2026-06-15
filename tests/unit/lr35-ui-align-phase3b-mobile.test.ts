@@ -1,126 +1,133 @@
 /**
- * UI Align Phase 3B — mobile/tablet admin home re-skin.
+ * UI Align Phase 3B — Figma mobile readiness replacement.
  *
- * Pins the visual contract for client/src/pages/home.tsx:
- *   - Both the admin branch and the UserPortalHome branch wrap
- *     their root in the dark `ops-surface` shell so the mobile
- *     preview matches the Figma spec (no light `bg-background`
- *     shell).
- *   - The admin branch (Figma 1:1417, "Replace fully") renders a
- *     clean Admin Hubs list: a title + role pill, and one tappable
- *     card per accessible hub derived from the nav policy
- *     (`getAdminPrimaryCategories` + the remaining
- *     `navigationCategories`), gated by the account's `hubAccess`
- *     allow-list. The legacy command-center widgets (KPI grid, AI
- *     recommendation, Critical Attention, module shortcuts) are
- *     gone.
- *   - None of the admin widgets leak into the user-portal branch.
- *
- * Same Jest harness constraint as the other LR-3.5 UI-align tests
- * in this suite: `testEnvironment: "node"` and the swc/ESM
- * transform mean we cannot mount React. We assert via source-file
- * scanning, mirroring `lr35-ui-align-user-portal-home.test.ts`.
+ * The legacy dark admin hub/user-portal split has been removed from the
+ * impacted mobile routes. This contract pins the new command-center entry,
+ * role-specific bottom nav, and shared mobile-readiness source of truth.
  */
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-async function readSrc(p: string): Promise<string> {
-  return readFile(resolve(process.cwd(), p), "utf8");
+async function readSrc(path: string): Promise<string> {
+  return readFile(resolve(process.cwd(), path), "utf8");
 }
 
-describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+const MOBILE_ROUTE_CONTRACT_PATH =
+  "client/src/features/mobile-readiness/mobile-readiness-route-contract.ts";
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
+describe("UI Align Phase 3B — mobile readiness replacement", () => {
   let homeSrc = "";
-  let userBranch = "";
-  let adminBranch = "";
+  let bottomNavSrc = "";
+  let screenSrc = "";
+  let modelSrc = "";
 
   beforeAll(async () => {
-    homeSrc = await readSrc("client/src/pages/home.tsx");
-
-    const userMatch = homeSrc.match(/function UserPortalHome\([\s\S]*?\n\}\n/);
-    expect(userMatch).not.toBeNull();
-    userBranch = userMatch![0];
-
-    // Admin branch lives inside HomePage()'s final return — everything
-    // from the "Admin portal" derivation comment through the hub-list
-    // footer testid.
-    const adminMatch = homeSrc.match(/\/\/ Admin portal:[\s\S]*?data-testid="text-hubs-footer"/);
-    expect(adminMatch).not.toBeNull();
-    adminBranch = adminMatch![0];
+    [homeSrc, bottomNavSrc, screenSrc, modelSrc] = await Promise.all([
+      readSrc("client/src/pages/home.tsx"),
+      readSrc("client/src/components/BottomNav.tsx"),
+      readMobileScreenSrc(),
+      readMobileModelSrc(),
+    ]);
   });
 
-  it("wraps the admin branch in the dark ops-surface shell", () => {
-    expect(adminBranch).toMatch(/ops-surface/);
-    expect(adminBranch).toMatch(/ops-safe-bottom/);
-    expect(adminBranch).toMatch(/data-testid="shell-admin-hubs"/);
-    // The legacy light shell must be gone from the admin branch.
-    expect(adminBranch).not.toMatch(/bg-background pb-20 md:pb-4/);
+  it("replaces the home branches with the mobile command center wrapper", () => {
+    expect(homeSrc).toContain("MobileCommandCenterPage");
+    expect(homeSrc).not.toMatch(/function UserPortalHome|NavigationCard|WorkflowCommandCenter/);
+    expect(screenSrc).toContain("export function MobileCommandCenterPage");
+    expect(modelSrc).toContain("Command Queue");
+    expect(modelSrc).toContain("Status -> Reason -> Action");
   });
 
-  it("wraps the user-portal branch in the dark ops-surface shell", () => {
-    expect(userBranch).toMatch(/ops-surface/);
-    expect(userBranch).toMatch(/data-testid="shell-user-portal"/);
-    expect(userBranch).not.toMatch(/bg-background pb-20 md:pb-4/);
-    // #218: BottomNav is hidden for the user portal, so the shell
-    // no longer reserves the ~5rem of mobile clearance that
-    // `ops-safe-bottom` adds (or the matching `pb-24`). A calm
-    // `pb-6` replaces both. Admin branch keeps `ops-safe-bottom`
-    // and is asserted separately above.
-    expect(userBranch).not.toMatch(/ops-safe-bottom/);
-    expect(userBranch).not.toMatch(/pb-24/);
+  it("uses a role-specific mobile nav instead of the legacy hub launcher", () => {
+    expect(bottomNavSrc).toContain("MobileReadinessBottomNav");
+    expect(screenSrc).toContain('data-testid="mobile-readiness-bottom-nav"');
+    expect(modelSrc).toContain('"Command"');
+    expect(modelSrc).toContain('"Bridge"');
+    expect(modelSrc).toContain('"My Tasks"');
   });
 
-  it("renders the Admin Hubs list with a per-hub card", () => {
-    expect(adminBranch).toMatch(/data-testid="text-admin-hubs-title"/);
-    expect(adminBranch).toMatch(/data-testid="list-admin-hubs"/);
-    expect(adminBranch).toMatch(/data-testid={`card-hub-\$\{hub\.id\}`}/);
-    // Legacy command-center widgets must be fully removed.
-    expect(adminBranch).not.toMatch(/data-testid="grid-admin-kpis"/);
-    expect(adminBranch).not.toMatch(/data-testid="card-ai-recommendation"/);
-    expect(adminBranch).not.toMatch(/data-testid="section-critical-attention"/);
-    expect(adminBranch).not.toMatch(/data-testid="section-module-shortcuts"/);
+  it("keeps affected screens on the shared Figma-aligned shell", () => {
+    for (const exportedPage of [
+      "MobileFleetPage",
+      "MobileVesselDetailPage",
+      "MobilePdmPage",
+      "MobileWorkOrdersPage",
+      "MobileLogsPage",
+      "MobileCrewPage",
+      "MobileInventoryPage",
+      "MobileSettingsPage",
+    ]) {
+      expect(screenSrc).toContain(`export function ${exportedPage}`);
+    }
+    expect(screenSrc).toContain("NavyHeader");
+    expect(screenSrc).toContain("KpiStrip");
+    expect(screenSrc).toContain("QueueCard");
   });
 
-  it("surfaces the role pill and per-hub granted-access affordance", () => {
-    expect(adminBranch).toMatch(/data-testid="pill-role"/);
-    expect(adminBranch).toMatch(/data-testid={`pill-granted-\$\{hub\.id\}`}/);
+  it("shares the replacement route contract outside the React screen module", async () => {
+    const appSrc = await readSrc("client/src/App.tsx");
+    const routeContractSrc = await readSrc(MOBILE_ROUTE_CONTRACT_PATH);
+
+    expect(appSrc).toContain("mobile-readiness-route-contract");
+    expect(routeContractSrc).toContain("export function isMobileReadinessReplacementPath");
+    expect(routeContractSrc).toContain('"/fleet"');
+    expect(routeContractSrc).toContain('"/vessel-intelligence"');
+    expect(routeContractSrc).toContain('"/work-orders"');
+    expect(routeContractSrc).toContain('"/logs"');
+    expect(routeContractSrc).toContain('"/crew-management"');
+    expect(routeContractSrc).toContain('"/logistics"');
+    expect(routeContractSrc).toContain('"/system"');
+    expect(screenSrc).not.toContain("export function isMobileReadinessReplacementPath");
   });
 
-  it("shows locked hubs as non-actionable alongside accessible ones", () => {
-    // Task #359: the overview lists EVERY hub — locked ones are rendered
-    // but non-actionable (no Link wrapper, aria-disabled, a Locked pill).
-    expect(adminBranch).toMatch(/data-testid={`pill-locked-\$\{hub\.id\}`}/);
-    expect(adminBranch).toMatch(/aria-disabled="true"/);
-    // The no-accessible-hub banner replaces the old blank fallback shell.
-    expect(adminBranch).toMatch(/data-testid="banner-no-hubs"/);
-    expect(adminBranch).not.toMatch(/data-testid="shell-admin-no-hubs"/);
+  it("exposes stable screen markers for replacement route and link audits", () => {
+    for (const testId of [
+      "mobile-readiness-screen-command",
+      "mobile-readiness-screen-fleet",
+      "mobile-readiness-screen-vessel-detail",
+      "mobile-readiness-screen-vessel-diagram",
+      "mobile-readiness-screen-pdm-queue",
+      "mobile-readiness-screen-pdm-asset-case",
+      "mobile-readiness-screen-pdm-telemetry",
+      "mobile-readiness-screen-work-queue",
+      "mobile-readiness-screen-work-execution",
+      "mobile-readiness-screen-logs",
+      "mobile-readiness-screen-crew",
+      "mobile-readiness-screen-inventory",
+      "mobile-readiness-screen-settings",
+    ]) {
+      expect(screenSrc).toContain(`data-testid="${testId}"`);
+    }
   });
 
-  it("derives the hub list from the nav policy, not mock data", () => {
-    // Admin primaries + remaining nav categories, deduped — every hub
-    // (accessible or locked) is listed, sourced from the real policy module.
-    expect(adminBranch).toMatch(/getAdminPrimaryCategories\(\)/);
-    expect(adminBranch).toMatch(/navigationCategories/);
-    expect(adminBranch).toMatch(/allHubs/);
-  });
-
-  it("gates the hub list by the account's hubAccess allow-list", () => {
-    // The per-hub allow-list is the #194 security perimeter: a hub the
-    // account is not granted must never render even if it appears in the
-    // nav config.
-    expect(adminBranch).toMatch(/isHubAllowed/);
-    expect(adminBranch).toMatch(/permissions\.hubAccess/);
-  });
-
-  it("does not leak admin command-center widgets into the user-portal branch", () => {
-    expect(userBranch).not.toMatch(/data-testid="shell-admin-hubs"/);
-    expect(userBranch).not.toMatch(/data-testid="list-admin-hubs"/);
-    expect(userBranch).not.toMatch(/data-testid="pill-role"/);
-    expect(userBranch).not.toMatch(/card-hub-/);
-  });
-
-  it("adds a greeting header to the user-portal branch", () => {
-    expect(userBranch).toMatch(/data-testid="text-user-greeting-label"/);
-    expect(userBranch).toMatch(/data-testid="text-user-greeting-name"/);
+  it("does not retain the legacy admin hub and user portal test ids", () => {
+    expect(homeSrc + screenSrc).not.toMatch(
+      /shell-admin-hubs|shell-user-portal|list-admin-hubs|card-todays-overview|card-user-feedback-cta/
+    );
   });
 });

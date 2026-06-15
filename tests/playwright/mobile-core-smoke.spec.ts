@@ -1,5 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
+import {
+  getMobileReadinessExpectedScreen,
+  isMobileReadinessReplacementPath,
+} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const BASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 895 420"><rect width="895" height="420" fill="#031225"/><path d="M42 270 L130 205 L595 198 L670 95 L756 95 L805 205 L870 226 L835 355 L72 355 Z" fill="#123e60" stroke="#70b8e8" stroke-width="3"/></svg>`;
@@ -54,7 +58,14 @@ const sectionMap = {
   sections: [],
 };
 
-async function installMobileFixtures(page: Page): Promise<void> {
+interface MobileFixtureOptions {
+  permissionsDelayMs?: number;
+}
+
+async function installMobileFixtures(
+  page: Page,
+  options: MobileFixtureOptions = {}
+): Promise<void> {
   await page.setViewportSize(MOBILE_VIEWPORT);
   const seedStorage = ({ key }: { key: string }) => {
     localStorage.clear();
@@ -91,7 +102,11 @@ async function installMobileFixtures(page: Page): Promise<void> {
 
     const permissions = {
       crew_members: { view: true, create: true, edit: true, delete: true, export: true },
+      crew_schedules: { view: true, create: true, edit: true, delete: true, export: true },
       inventory: { view: true, create: true, edit: true, delete: true, export: true },
+      rest_hours: { view: true, create: true, edit: true, delete: true, export: true },
+      analytics_dashboard: { view: true, export: true },
+      work_orders: { view: true, create: true, edit: true, delete: true, export: true },
       vessels: { view: true, edit: true },
       safety_bulletins: { view: true, create: true },
       "vessel-intelligence": {
@@ -116,6 +131,26 @@ async function installMobileFixtures(page: Page): Promise<void> {
         hubAdmin: true,
         hubAccess: null,
         isDevMode: false,
+      },
+      "/api/port-calls": [],
+      "/api/drydock-windows": [],
+      "/api/crew/certifications": [],
+      "/api/crew/leave": [],
+      "/api/equipment/health": [],
+      "/api/work-orders/summary": { openCount: 0, overdueCount: 0, completionRate: 100 },
+      "/api/pdm/cost-savings/summary": {
+        latestMonthCost: 0,
+        monthlyChange: 0,
+        totalSavings: 0,
+      },
+      "/api/reconciliation/status": {
+        healthPercentage: 100,
+        healthScore: 100,
+        issueCount: 0,
+      },
+      "/api/analytics/failure-predictions": {
+        results: [],
+        metadata: { highRiskCount: 0, criticalRiskCount: 0 },
       },
       "/api/vessels": [vessel],
       "/api/equipment": [],
@@ -170,6 +205,9 @@ async function installMobileFixtures(page: Page): Promise<void> {
     };
 
     const body = Object.hasOwn(responses, path) ? responses[path] : [];
+    if (path === "/api/permissions/me" && options.permissionsDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.permissionsDelayMs));
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -182,7 +220,7 @@ async function installMobileFixtures(page: Page): Promise<void> {
   await page.getByTestId("input-admin-username").fill("playwright-admin");
   await page.getByTestId("input-admin-password").fill("playwright-password");
   await page.getByTestId("button-admin-login").click();
-  await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+  await expectMobileReadinessShell(page, "/");
 }
 
 async function expectNoMobileOverflow(page: Page): Promise<void> {
@@ -217,6 +255,112 @@ async function expectNoMobileOverflow(page: Page): Promise<void> {
   ).toBe(false);
 }
 
+async function expectMobileShellHasPageBody(page: Page): Promise<void> {
+  const bodyState = await page.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>('[data-testid="universal-ops-shell"]');
+    const main = document.querySelector<HTMLElement>("#main-content");
+    const pageMarkers = [
+      "[data-testid='page-crew-management']",
+      "[data-testid='analytics-hub']",
+      "[data-testid='rest-hours-grid']",
+      "[data-testid='button-generate-schedule']",
+      "[data-testid='button-create-work-order']",
+      "[data-testid='inventory-management-page']",
+      "[data-testid='vessel-intelligence-hub']",
+      "[data-testid='mobile-readiness-screen-crew']",
+      "[data-testid='text-page-title']",
+    ];
+    const pageMarker = pageMarkers.find((selector) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element) {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+    return {
+      hasShell: Boolean(shell),
+      hasMain: Boolean(main),
+      pageMarker,
+      bodyText: document.body.innerText.trim().slice(0, 500),
+      permissionLoadingVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-loading"]')
+      ),
+      permissionErrorVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-error"]')
+      ),
+      permissionDeniedVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-denied"]')
+      ),
+    };
+  });
+
+  expect(
+    bodyState.pageMarker ||
+      bodyState.permissionLoadingVisible ||
+      bodyState.permissionErrorVisible ||
+      bodyState.permissionDeniedVisible,
+    `ops-shell route should render page content or a visible gate state: ${JSON.stringify(bodyState)}`
+  ).toBeTruthy();
+}
+
+async function expectPrimaryMobileTargetsAtLeast(page: Page, min = 44): Promise<void> {
+  const undersized = await page.evaluate((minSize) => {
+    const selectors = [
+      '[data-testid="universal-ops-mobile-menu-trigger"]',
+      '[data-testid="button-global-search"]',
+      '[data-testid^="universal-ops-subnav-"]',
+      '[data-testid^="link-nav-"]',
+      '[data-testid="button-copilot-fab"]',
+    ];
+    return selectors.flatMap((selector) =>
+      Array.from(document.querySelectorAll<HTMLElement>(selector))
+        .filter((element) => element.offsetParent !== null)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            testId: element.dataset["testid"],
+            text: element.textContent?.trim().slice(0, 60),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          };
+        })
+        .filter((item) => item.width < minSize || item.height < minSize)
+    );
+  }, min);
+
+  expect(
+    undersized,
+    `primary mobile targets must be at least ${min}x${min}: ${JSON.stringify(undersized)}`
+  ).toEqual([]);
+}
+
+async function expectHorizontalNavAffordance(page: Page): Promise<void> {
+  const missingAffordance = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll<HTMLElement>("[data-mobile-horizontal-nav]"))
+      .map((nav) => {
+        const scrollport = nav.querySelector<HTMLElement>("[data-horizontal-scrollport]");
+        if (!scrollport || scrollport.scrollWidth <= scrollport.clientWidth + 2) {
+          return null;
+        }
+        return nav.dataset["overflowAffordance"] === "edge-fade"
+          ? null
+          : {
+              testId: nav.dataset["testid"],
+              scrollWidth: scrollport.scrollWidth,
+              clientWidth: scrollport.clientWidth,
+              affordance: nav.dataset["overflowAffordance"],
+            };
+      })
+      .filter(Boolean);
+  });
+
+  expect(
+    missingAffordance,
+    `horizontally scrollable mobile nav must expose an overflow affordance: ${JSON.stringify(missingAffordance)}`
+  ).toEqual([]);
+}
+
 async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
   await page.evaluate((target) => {
     window.history.pushState({}, "", target);
@@ -231,28 +375,75 @@ async function expectMobileUniversalShell(page: Page, activeHubName: string): Pr
   await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
 }
 
-test.describe("mobile core operational smokes", () => {
+async function expectMobileReadinessShell(page: Page, path: string): Promise<void> {
+  const marker = getMobileReadinessExpectedScreen(path);
+  expect(isMobileReadinessReplacementPath(path)).toBe(true);
+  expect(marker).not.toBeNull();
+  await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
+  await expect(page.getByTestId(`mobile-readiness-screen-${marker}`)).toBeVisible();
+  await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
+  await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
+}
+
+test.describe("mobile core operational smokes @mobile @guard", () => {
   test("Fleet/Vessel Intelligence renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/overview");
-    await expectMobileUniversalShell(page, "Fleet");
-    await expect(page.getByTestId("vessel-intelligence-hub")).toBeVisible();
+    await expectMobileReadinessShell(page, "/vessel-intelligence/vessel-1/overview");
+    await expect(page.getByText("Vessel Snapshot")).toBeVisible();
+    await expectPrimaryMobileTargetsAtLeast(page);
     await expectNoMobileOverflow(page);
   });
 
   test("Crew renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
-    await expectMobileUniversalShell(page, "Crew");
-    await expect(page.getByTestId("page-crew-management")).toBeVisible();
+    await expectMobileReadinessShell(page, "/crew-management");
+    await expect(page.getByText("Crew Readiness Overview")).toBeVisible();
+    await expectPrimaryMobileTargetsAtLeast(page);
     await expectNoMobileOverflow(page);
+  });
+
+  test("Universal and replacement routes render their current mobile bodies", async ({ page }) => {
+    await installMobileFixtures(page);
+
+    const universalRoutes = [
+      ["/crew-scheduler", "Crew", "mobile-readiness-screen-crew"],
+      ["/hours-of-rest", "Crew", "mobile-readiness-screen-crew"],
+      ["/analytics", "Analytics", "analytics-hub"],
+    ] as const;
+
+    for (const [path, activeHubName, marker] of universalRoutes) {
+      await navigateWithinAuthenticatedSpa(page, path);
+      await expectMobileUniversalShell(page, activeHubName);
+      await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10_000 });
+      await expectMobileShellHasPageBody(page);
+      await expectPrimaryMobileTargetsAtLeast(page);
+      await expectHorizontalNavAffordance(page);
+      await expectNoMobileOverflow(page);
+    }
+
+    await navigateWithinAuthenticatedSpa(page, "/work-orders");
+    await expectMobileReadinessShell(page, "/work-orders");
+    await expect(page.getByText("Work Queue").first()).toBeVisible();
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectNoMobileOverflow(page);
+  });
+
+  test("replacement mobile routes do not leak the universal admin shell", async ({ page }) => {
+    await installMobileFixtures(page);
+    await navigateWithinAuthenticatedSpa(page, "/crew-management");
+    await expectMobileReadinessShell(page, "/crew-management");
+    await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
   });
 
   test("Inventory/Logistics renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
-    await expectMobileUniversalShell(page, "Logistics");
-    await expect(page.getByTestId("inventory-management-page")).toBeVisible();
+    await expectMobileReadinessShell(page, "/logistics");
+    await expect(page.getByText("Inventory & Logistics")).toBeVisible();
+    await expectPrimaryMobileTargetsAtLeast(page);
     await expectNoMobileOverflow(page);
   });
 
@@ -261,6 +452,9 @@ test.describe("mobile core operational smokes", () => {
     await navigateWithinAuthenticatedSpa(page, "/safety-bulletins");
     await expectMobileUniversalShell(page, "Operations");
     await expect(page.getByTestId("text-page-title")).toBeVisible();
+    await expectMobileShellHasPageBody(page);
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 });

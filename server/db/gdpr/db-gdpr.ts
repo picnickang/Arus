@@ -2,7 +2,7 @@
  * GDPR - Database Storage
  */
 
-import { eq, and, sql, type SQL } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
@@ -144,6 +144,14 @@ export class DatabaseGdprStorage {
     if (filters.requesterEmail) {
       conditions.push(eq(dataSubjectRequests.requesterEmail, filters.requesterEmail));
     }
+    // fromDate/toDate were accepted but never applied — the date filter was a
+    // silent no-op, returning every DSAR regardless of the requested window.
+    if (filters.fromDate) {
+      conditions.push(gte(dataSubjectRequests.createdAt, filters.fromDate));
+    }
+    if (filters.toDate) {
+      conditions.push(lte(dataSubjectRequests.createdAt, filters.toDate));
+    }
     return db
       .select()
       .from(dataSubjectRequests)
@@ -242,12 +250,12 @@ export class DatabaseGdprStorage {
       }
       if (identifierType === "crewId") {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE id = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE id = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       } else {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE email = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE email = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       }
@@ -257,26 +265,105 @@ export class DatabaseGdprStorage {
     return result;
   }
 
+  /**
+   * Erase a data subject's personal data (GDPR Art. 17).
+   *
+   * DRAFT — implements docs/design/gdpr-dsar-completion.md; the per-table
+   * policy below should be confirmed by a compliance owner.
+   *
+   * Strategy is ANONYMIZE, not hard-delete: crew/user rows are referenced by
+   * retained operational records and by the append-only, hash-chained
+   * `immutable_audit_trail` (deleting would break referential integrity / the
+   * audit chain), and several record classes carry statutory retention. We
+   * overwrite identifying PII on `users` + `crew` (atomic, in one transaction)
+   * and retain — with documented exemptions — the records that merely reference
+   * the now-anonymized ids. Returns a structured report. `dryRun` previews the
+   * affected row counts without writing and without changing the DSAR status.
+   */
   async executeDataErasure(
     dsarId: string,
     orgId: string,
     erasedBy: string,
-    reason?: string
+    reason?: string,
+    options?: { dryRun?: boolean }
   ): Promise<Record<string, unknown>> {
     const request = await this.getDataSubjectRequestWithOrg(dsarId, orgId);
     if (!request) {
       throw new Error(`DSAR ${dsarId} not found`);
     }
-    await this.updateDataSubjectRequest(dsarId, {
-      status: "completed",
-      processingNotes: `Erasure executed by ${erasedBy}. Reason: ${reason || "DSAR erasure request"}`,
-    } as Partial<InsertDataSubjectRequest>);
-    return {
-      dsarId,
-      status: "erasure_recorded",
-      erasedBy,
-      note: "Actual data erasure requires manual review per retention policies",
+    const subjectId = request.requesterId ?? null;
+    const subjectEmail = request.requesterEmail ?? null;
+    if (!subjectId && !subjectEmail) {
+      throw new Error(
+        `DSAR ${dsarId} has no requesterId/requesterEmail to identify the subject`
+      );
+    }
+    const dryRun = options?.dryRun ?? false;
+
+    const NAME_TOMB = "[erased]";
+    const EMAIL_TOMB = `erased-${dsarId}@redacted.invalid`;
+    const rowCount = (r: { rows?: unknown[] }): number => r.rows?.length ?? 0;
+    const countOf = (r: { rows?: unknown[] }): number =>
+      Number((r.rows?.[0] as { n?: number } | undefined)?.n ?? 0);
+
+    const report: Record<string, { action: string; rows?: number; reason?: string }> = {
+      immutable_audit_trail: {
+        action: "retain",
+        reason:
+          "append-only, hash-chained ledger — modifying it breaks chain verification (legal + technical exemption)",
+      },
+      crew_rest_sheet: {
+        action: "retain",
+        reason: "STCW rest-hour statutory retention; references the anonymized crew row",
+      },
+      work_orders: {
+        action: "retain",
+        reason: "operational/maintenance record retention; references the anonymized crew row",
+      },
     };
+
+    if (dryRun) {
+      const u = await db.execute(
+        sql`SELECT count(*) AS n FROM users WHERE org_id = ${orgId} AND (id = ${subjectId} OR email = ${subjectEmail})`
+      );
+      const c = await db.execute(
+        sql`SELECT count(*) AS n FROM crew WHERE org_id = ${orgId} AND (id = ${subjectId} OR user_id = ${subjectId} OR email = ${subjectEmail})`
+      );
+      report["users"] = { action: "anonymize", rows: countOf(u) };
+      report["crew"] = { action: "anonymize", rows: countOf(c) };
+      return { dsarId, status: request.status, dryRun: true, report };
+    }
+
+    await db.transaction(async (tx) => {
+      const u = await tx.execute(
+        sql`UPDATE users
+            SET name = ${NAME_TOMB}, email = ${EMAIL_TOMB}, username = NULL, phone = NULL
+            WHERE org_id = ${orgId} AND (id = ${subjectId} OR email = ${subjectEmail})
+            RETURNING id`
+      );
+      const c = await tx.execute(
+        sql`UPDATE crew
+            SET name = ${NAME_TOMB}, email = NULL, phone = NULL, address = NULL,
+                photo_path = NULL, emergency_contact_name = NULL,
+                emergency_contact_phone = NULL, crew_code = NULL, notes = NULL
+            WHERE org_id = ${orgId}
+              AND (id = ${subjectId} OR user_id = ${subjectId} OR email = ${subjectEmail})
+            RETURNING id`
+      );
+      report["users"] = { action: "anonymize", rows: rowCount(u) };
+      report["crew"] = { action: "anonymize", rows: rowCount(c) };
+
+      await tx.execute(
+        sql`UPDATE data_subject_requests
+            SET status = 'completed', processing_notes = ${
+              `Erasure (anonymization) executed by ${erasedBy}. Reason: ${reason || "DSAR erasure"}. ` +
+              `Report: ${JSON.stringify(report)}`
+            }
+            WHERE id = ${dsarId} AND org_id = ${orgId}`
+      );
+    });
+
+    return { dsarId, status: "completed", erasedBy, dryRun: false, report };
   }
 
   async getMlEngineerOverrides(

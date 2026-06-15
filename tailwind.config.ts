@@ -51,6 +51,21 @@ export default {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
+        // ARUS brand palette for the mobile-readiness screens. Intentionally
+        // theme-independent (fixed navy identity regardless of light/dark),
+        // so these are static hex rather than CSS-var tokens. Replaces the
+        // arbitrary `text-[#…]`/`bg-[#…]` utilities those screens used.
+        brand: {
+          DEFAULT: "#0d4da1",
+          navy: "#03295a",
+          "navy-700": "#0a376b",
+          "navy-800": "#082756",
+          "navy-850": "#062a58",
+          ink: "#080e1a",
+          "ink-900": "#070b14",
+          "ink-950": "#0c1424",
+          mist: "#f6f8fb",
+        },
         sidebar: {
           DEFAULT: "var(--sidebar)",
           foreground: "var(--sidebar-foreground)",

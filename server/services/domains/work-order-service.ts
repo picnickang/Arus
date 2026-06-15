@@ -1,65 +1,56 @@
-import type { WidenPartial } from "../../lib/widen-partial";
 /**
  * Work Order Service
- * Encapsulates complex work order business logic (downtime tracking, inventory, etc.)
- * Consumes repositories for basic CRUD, handles orchestration and transactions
+ * Encapsulates complex work order business logic while preserving the legacy
+ * singleton import path used by repositories, routes, and tests.
  */
 
-import { createLogger } from "../../lib/structured-logger";
-const logger = createLogger("Services:Domains:WorkOrderService");
-import { eq, and, or, gte, lte, sql, getTableColumns } from "drizzle-orm";
-import { db } from "../../db-config";
-import {
-  workOrders,
-  equipment,
-  vessels,
-  workOrderParts,
-  workOrderChecklists,
-  workOrderWorklogs,
-  workOrderTasks,
-  maintenanceCosts,
-  stock,
-  inventoryMovements,
-} from "@shared/schema-runtime";
 import type {
-  WorkOrder,
   InsertWorkOrder,
-  WorkOrderPart,
-  WorkOrderCompletion,
   InsertWorkOrderCompletion,
+  WorkOrder,
+  WorkOrderCompletion,
+  WorkOrderPart,
 } from "@shared/schema";
-import { publishEvent } from "../../sync-events.js";
+import { db } from "../../db-config";
 import { dbWorkOrderStorage } from "../../db/workorders/index.js";
-import { dbInventoryStorage } from "../../db/inventory/index.js";
+import type { WidenPartial } from "../../lib/widen-partial";
+import { cloneWorkOrder as cloneWorkOrderOperation } from "../../db/workorders/operations/clone";
 import {
-  fireInventoryMovementProjections,
-  type PendingMovementProjection,
-} from "../../db/inventory/index.js";
-import { randomUUID } from "node:crypto";
-import { getWebSocketServer } from "../../websocket-server";
-import { ilike } from "../../utils/sql-compat";
-export interface WorkOrderFilters {
-  vesselId?: string;
-  assignedCrewId?: string;
-  status?: string;
-  priority?: string;
-  dueDateFrom?: Date;
-  dueDateTo?: Date;
-  equipmentCategory?: string;
-  search?: string;
-  workOrderType?: string; // routine, defect, service_request, certificate_renewal
-}
+  completeWorkOrder as completeWorkOrderOperation,
+  completeWorkOrderInTx as completeWorkOrderInTxOperation,
+} from "../../db/workorders/operations/completion";
+import {
+  closeWorkOrder as closeWorkOrderOperation,
+  closeWorkOrderWithInventoryRelease as closeWorkOrderWithInventoryReleaseOperation,
+  deleteWorkOrderCascade as deleteWorkOrderCascadeOperation,
+  updateWorkOrderWithDowntimeTracking as updateWorkOrderWithDowntimeTrackingOperation,
+} from "../../db/workorders/operations/lifecycle";
+import {
+  getWorkOrderCompletionAnalytics as getWorkOrderCompletionAnalyticsOperation,
+  getWorkOrdersPaginated as getWorkOrdersPaginatedOperation,
+  getWorkOrdersWithDetails as getWorkOrdersWithDetailsOperation,
+} from "../../db/workorders/operations/queries";
+import type {
+  WorkOrderCloneOptions,
+  WorkOrderCloseData,
+  WorkOrderCompletionAnalytics,
+  WorkOrderCompletionAnalyticsFilters,
+  WorkOrderCompletionResult,
+  WorkOrderFilters,
+  WorkOrderPaginationResult,
+  WorkOrderTx,
+  WorkOrderWithDetails,
+} from "../../db/workorders/operations/types";
 
-export interface WorkOrderWithDetails extends WorkOrder {
-  equipmentName?: string | null;
-  equipmentType?: string | null;
-  vesselName?: string | null;
-}
-
-export interface WorkOrderPaginationResult {
-  items: WorkOrderWithDetails[];
-  total: number;
-}
+export type {
+  WorkOrderCloneOptions,
+  WorkOrderCloseData,
+  WorkOrderCompletionAnalytics,
+  WorkOrderCompletionAnalyticsFilters,
+  WorkOrderFilters,
+  WorkOrderPaginationResult,
+  WorkOrderWithDetails,
+} from "../../db/workorders/operations/types";
 
 class WorkOrderService {
   async getWorkOrdersWithDetails(
@@ -67,79 +58,7 @@ class WorkOrderService {
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrderWithDetails[]> {
-    try {
-      const baseQuery = db
-        .select({
-          ...getTableColumns(workOrders),
-          equipmentName: equipment.name,
-          equipmentType: equipment.type,
-          vesselName: vessels.name,
-        })
-        .from(workOrders)
-        .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
-        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
-
-      const conditions: import("drizzle-orm").SQL[] = [];
-      if (equipmentId) {
-        conditions.push(eq(workOrders.equipmentId, equipmentId));
-      }
-      if (orgId) {
-        conditions.push(eq(workOrders.orgId, orgId));
-      }
-      if (filters?.vesselId) {
-        conditions.push(eq(workOrders.vesselId, filters.vesselId));
-      }
-      if (filters?.assignedCrewId) {
-        conditions.push(eq(workOrders.assignedCrewId, filters.assignedCrewId));
-      }
-      if (filters?.status && filters.status !== "all") {
-        conditions.push(eq(workOrders.status, filters.status));
-      }
-      if (filters?.priority && filters.priority !== "all") {
-        conditions.push(eq(workOrders.priority, Number.parseInt(filters.priority, 10)));
-      }
-      if (filters?.dueDateFrom) {
-        conditions.push(gte(workOrders.plannedEndDate, filters.dueDateFrom));
-      }
-      if (filters?.dueDateTo) {
-        conditions.push(lte(workOrders.plannedEndDate, filters.dueDateTo));
-      }
-      if (filters?.equipmentCategory && filters.equipmentCategory !== "all") {
-        conditions.push(eq(equipment.type, filters.equipmentCategory));
-      }
-      if (filters?.workOrderType && filters.workOrderType !== "all") {
-        conditions.push(eq(workOrders.workOrderType, filters.workOrderType));
-      }
-      if (filters?.search?.trim()) {
-        const term = `%${filters.search.trim().toLowerCase()}%`;
-        const orClause = or(
-          ilike(workOrders.reason, term),
-          ilike(workOrders.description, term),
-          ilike(workOrders.woNumber, term)
-        );
-        if (orClause) {
-          conditions.push(orClause);
-        }
-      }
-
-      const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
-      const results = await filtered.orderBy(sql`${workOrders.createdAt} DESC`);
-
-      const detailedResults: WorkOrderWithDetails[] = results as never;
-      return detailedResults.map((wo) => {
-        if (!wo.woNumber) {
-          const year = wo.createdAt
-            ? new Date(wo.createdAt).getFullYear()
-            : new Date().getFullYear();
-          const ts = wo.createdAt ? new Date(wo.createdAt).getTime() : Date.now();
-          return { ...wo, woNumber: `WO-${year}-${String(Math.abs(ts % 10000)).padStart(4, "0")}` };
-        }
-        return wo;
-      });
-    } catch (error) {
-      logger.error("[WorkOrderService.getWorkOrdersWithDetails] Error:", undefined, error);
-      throw error;
-    }
+    return getWorkOrdersWithDetailsOperation(equipmentId, orgId, filters);
   }
 
   async getWorkOrdersPaginated(
@@ -149,250 +68,21 @@ class WorkOrderService {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<WorkOrderPaginationResult> {
-    try {
-      const conditions: import("drizzle-orm").SQL[] = [];
-      if (equipmentId) {
-        conditions.push(eq(workOrders.equipmentId, equipmentId));
-      }
-      if (orgId) {
-        conditions.push(eq(workOrders.orgId, orgId));
-      }
-      if (filters?.vesselId) {
-        conditions.push(eq(workOrders.vesselId, filters.vesselId));
-      }
-      if (filters?.assignedCrewId) {
-        conditions.push(eq(workOrders.assignedCrewId, filters.assignedCrewId));
-      }
-      if (filters?.status && filters.status !== "all") {
-        conditions.push(eq(workOrders.status, filters.status));
-      }
-      if (filters?.priority && filters.priority !== "all") {
-        conditions.push(eq(workOrders.priority, Number.parseInt(filters.priority, 10)));
-      }
-      if (filters?.dueDateFrom) {
-        conditions.push(gte(workOrders.plannedEndDate, filters.dueDateFrom));
-      }
-      if (filters?.dueDateTo) {
-        conditions.push(lte(workOrders.plannedEndDate, filters.dueDateTo));
-      }
-      if (filters?.equipmentCategory && filters.equipmentCategory !== "all") {
-        conditions.push(eq(equipment.type, filters.equipmentCategory));
-      }
-      if (filters?.workOrderType && filters.workOrderType !== "all") {
-        conditions.push(eq(workOrders.workOrderType, filters.workOrderType));
-      }
-      if (filters?.search?.trim()) {
-        const term = `%${filters.search.trim().toLowerCase()}%`;
-        const orClause = or(
-          ilike(workOrders.reason, term),
-          ilike(workOrders.description, term),
-          ilike(workOrders.woNumber, term)
-        );
-        if (orClause) {
-          conditions.push(orClause);
-        }
-      }
-
-      const countQuery = db
-        .select({ count: sql<number>`count(*)` })
-        .from(workOrders)
-        .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id));
-      const countResult =
-        conditions.length > 0 ? await countQuery.where(and(...conditions)) : await countQuery;
-      const total = Number(countResult[0]?.count ?? 0);
-
-      const baseQuery = db
-        .select({
-          ...getTableColumns(workOrders),
-          equipmentName: equipment.name,
-          equipmentType: equipment.type,
-          vesselName: vessels.name,
-        })
-        .from(workOrders)
-        .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
-        .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
-
-      const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
-      const results = await filtered
-        .orderBy(sql`${workOrders.createdAt} DESC`)
-        .limit(limit)
-        .offset(offset);
-
-      const detailedItems: WorkOrderWithDetails[] = results as never;
-      const items = detailedItems.map((wo) => {
-        if (!wo.woNumber) {
-          const year = wo.createdAt
-            ? new Date(wo.createdAt).getFullYear()
-            : new Date().getFullYear();
-          const ts = wo.createdAt ? new Date(wo.createdAt).getTime() : Date.now();
-          return { ...wo, woNumber: `WO-${year}-${String(Math.abs(ts % 10000)).padStart(4, "0")}` };
-        }
-        return wo;
-      });
-
-      return { items, total };
-    } catch (error) {
-      logger.error("[WorkOrderService.getWorkOrdersPaginated] Error:", undefined, error);
-      throw error;
-    }
+    return getWorkOrdersPaginatedOperation(equipmentId, orgId, limit, offset, filters);
   }
 
   async updateWorkOrderWithDowntimeTracking(
     id: string,
     updates: WidenPartial<InsertWorkOrder>
   ): Promise<WorkOrder> {
-    const updatedOrder = await db.transaction(async (tx) => {
-      const [existing] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
-      if (!existing) {
-        throw new Error(`Work order ${id} not found`);
-      }
-
-      const postUpdateOrder = { ...existing, ...updates };
-      const finalUpdates: WidenPartial<InsertWorkOrder> & {
-        vesselDowntimeStartedAt?: Date | null | undefined;
-      } = {
-        ...updates,
-      };
-      const equipmentIdForDowntime = postUpdateOrder.equipmentId;
-      const shouldTrackDowntime = postUpdateOrder.affectsVesselDowntime && equipmentIdForDowntime;
-
-      if (shouldTrackDowntime && equipmentIdForDowntime) {
-        const [equipmentResult] = await tx
-          .select()
-          .from(equipment)
-          .where(eq(equipment.id, equipmentIdForDowntime))
-          .limit(1);
-        if (equipmentResult?.vesselId) {
-          const vesselId = equipmentResult.vesselId;
-          const oldStatus = existing.status;
-          const newStatus = postUpdateOrder.status;
-
-          if (
-            newStatus === "in_progress" &&
-            oldStatus !== "in_progress" &&
-            !postUpdateOrder.vesselDowntimeStartedAt
-          ) {
-            finalUpdates.vesselDowntimeStartedAt = new Date();
-          } else if (
-            newStatus === "completed" &&
-            oldStatus === "in_progress" &&
-            existing.vesselDowntimeStartedAt
-          ) {
-            const startTime = new Date(existing.vesselDowntimeStartedAt);
-            const endTime = new Date();
-            const downtimeHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-            const downtimeDays = downtimeHours / 24;
-
-            const [vessel] = await tx
-              .select()
-              .from(vessels)
-              .where(eq(vessels.id, vesselId))
-              .limit(1);
-            if (vessel) {
-              const currentDowntime = vessel.downtimeDays ?? 0;
-              await tx
-                .update(vessels)
-                .set({
-                  downtimeDays: Number((currentDowntime + downtimeDays).toFixed(2)),
-                  updatedAt: new Date(),
-                })
-                .where(eq(vessels.id, vesselId));
-            }
-            finalUpdates.vesselDowntimeStartedAt = null;
-          }
-        }
-      }
-
-      const finalUpdatesStripped = Object.fromEntries(
-        Object.entries(finalUpdates).filter(([, v]) => v !== undefined)
-      ) as Partial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null };
-      const [result] = await tx
-        .update(workOrders)
-        .set(finalUpdatesStripped)
-        .where(eq(workOrders.id, id))
-        .returning();
-      if (!result) {
-        throw new Error(`Work order ${id} not found`);
-      }
-      return result;
-    });
-
-    const wsServer = getWebSocketServer();
-    wsServer?.broadcastWorkOrderChange("update", updatedOrder);
-    return updatedOrder;
+    return updateWorkOrderWithDowntimeTrackingOperation(id, updates);
   }
 
   async closeWorkOrderWithInventoryRelease(
     id: string,
-    closeData: { notes?: string; completedBy?: string }
+    closeData: WorkOrderCloseData
   ): Promise<WorkOrder> {
-    const closedOrder = await db.transaction(async (tx) => {
-      const parts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(eq(workOrderParts.workOrderId, id));
-      const inventoryLocks = await tx
-        .select()
-        .from(stock)
-        .where(
-          sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`
-        )
-        .orderBy(stock.id);
-
-      const [wo] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
-      if (!wo) {
-        throw new Error(`Work order ${id} not found`);
-      }
-      const woOrgId = wo.orgId;
-
-      for (const part of parts) {
-        if (part.quantityUsed !== undefined && part.quantityUsed > 0 && part.partId) {
-          const stockRows = await tx
-            .select()
-            .from(stock)
-            .where(
-              and(
-                eq(stock.partId, part.partId),
-                eq(stock.orgId, woOrgId!),
-                sql`${stock.quantityReserved} > 0`
-              )
-            )
-            .orderBy(sql`${stock.quantityReserved} DESC`);
-          let remaining = part.quantityUsed;
-          for (const stockRow of stockRows) {
-            if (remaining <= 0) {
-              break;
-            }
-            const currentReserved = stockRow.quantityReserved ?? 0;
-            const released = Math.min(currentReserved, remaining);
-            await tx
-              .update(stock)
-              .set({ quantityReserved: currentReserved - released, updatedAt: new Date() })
-              .where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId!)));
-            remaining -= released;
-          }
-        }
-      }
-
-      const [result] = await tx
-        .update(workOrders)
-        .set({
-          status: "completed",
-          actualEndDate: new Date(),
-          description: closeData.notes ? `${closeData.notes}` : undefined,
-          updatedAt: new Date(),
-        })
-        .where(eq(workOrders.id, id))
-        .returning();
-      if (!result) {
-        throw new Error(`Work order ${id} not found`);
-      }
-      return result;
-    });
-
-    const wsServer = getWebSocketServer();
-    wsServer?.broadcastWorkOrderChange("update", closedOrder);
-    return closedOrder;
+    return closeWorkOrderWithInventoryReleaseOperation(id, closeData);
   }
 
   async generateWorkOrderNumber(orgId: string): Promise<string> {
@@ -434,446 +124,46 @@ class WorkOrderService {
     return dbWorkOrderStorage.getWorkOrderWorklogs(workOrderId);
   }
 
-  async closeWorkOrder(
-    id: string,
-    closeData: { notes?: string; completedBy?: string }
-  ): Promise<WorkOrder> {
-    const closedOrder = await db.transaction(async (tx) => {
-      const txParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(eq(workOrderParts.workOrderId, id));
-      const partIds = txParts.map((p) => p.partId);
-      const partIdsArray =
-        partIds.length > 0
-          ? sql`ARRAY[${sql.join(
-              partIds.map((pid) => sql`${pid}`),
-              sql`, `
-            )}]::text[]`
-          : sql`ARRAY[]::text[]`;
-      await tx
-        .select()
-        .from(stock)
-        .where(sql`${stock.partId} = ANY(${partIdsArray})`)
-        .for("update");
-      const [workOrder] = await tx
-        .select()
-        .from(workOrders)
-        .where(eq(workOrders.id, id))
-        .limit(1)
-        .for("update");
-      if (!workOrder) {
-        throw new Error(`Work order ${id} not found`);
-      }
-      if (workOrder.status === "completed") {
-        throw new Error(`Work order ${id} is already completed`);
-      }
-      const lockedParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(eq(workOrderParts.workOrderId, id))
-        .for("update");
-      const partQuantities = new Map<string, number>();
-      for (const part of lockedParts) {
-        partQuantities.set(part.partId, (partQuantities.get(part.partId) || 0) + part.quantityUsed);
-      }
-      for (const [partId, totalQty] of partQuantities.entries()) {
-        const stockRows = await tx
-          .select()
-          .from(stock)
-          .where(
-            and(
-              eq(stock.partId, partId),
-              eq(stock.orgId, workOrder.orgId!),
-              sql`${stock.quantityReserved} > 0`
-            )
-          )
-          .orderBy(sql`${stock.quantityReserved} DESC`);
-        let remaining = totalQty;
-        for (const row of stockRows) {
-          if (remaining <= 0) {
-            break;
-          }
-          const reserved = row.quantityReserved ?? 0;
-          const toRelease = Math.min(remaining, reserved);
-          await tx
-            .update(stock)
-            .set({ quantityReserved: reserved - toRelease, updatedAt: new Date() })
-            .where(eq(stock.id, row.id));
-          remaining -= toRelease;
-        }
-      }
-      const finalParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(eq(workOrderParts.workOrderId, id));
-      if (finalParts.length !== lockedParts.length) {
-        throw new Error(
-          `Concurrent modification detected: parts were added to work order ${id} during close operation.`
-        );
-      }
-      const finalUpdates: Partial<InsertWorkOrder> = {
-        status: "completed" as const,
-        actualEndDate: new Date(),
-      };
-      if (
-        workOrder.affectsVesselDowntime &&
-        workOrder.equipmentId &&
-        workOrder.vesselDowntimeStartedAt
-      ) {
-        const eqRes = await tx
-          .select()
-          .from(equipment)
-          .where(eq(equipment.id, workOrder.equipmentId))
-          .limit(1);
-        const firstEq = eqRes[0];
-        if (firstEq && firstEq.vesselId) {
-          const vesselId = firstEq.vesselId;
-          const startTime = new Date(workOrder.vesselDowntimeStartedAt);
-          const downtimeDays = (new Date().getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24);
-          const vessel = await tx.select().from(vessels).where(eq(vessels.id, vesselId)).limit(1);
-          const firstVessel = vessel[0];
-          if (firstVessel) {
-            const cd = firstVessel.downtimeDays ?? 0;
-            await tx
-              .update(vessels)
-              .set({ downtimeDays: Number((cd + downtimeDays).toFixed(2)), updatedAt: new Date() })
-              .where(eq(vessels.id, vesselId));
-          }
-          finalUpdates.vesselDowntimeStartedAt = null;
-        }
-      }
-      if (closeData.notes || closeData.completedBy) {
-        await tx.insert(workOrderWorklogs).values({
-          workOrderId: id,
-          orgId: workOrder.orgId,
-          performedBy: closeData.completedBy || "system",
-          laborHours: 0,
-          laborCost: 0,
-          notes: closeData.notes || "Work order completed",
-          performedAt: new Date(),
-        } as never);
-      }
-      const [updated] = await tx
-        .update(workOrders)
-        .set(finalUpdates)
-        .where(eq(workOrders.id, id))
-        .returning();
-      if (!updated) {
-        throw new Error(`Failed to update work order ${id}`);
-      }
-      return updated;
-    });
-    const wsServer = getWebSocketServer();
-    wsServer?.broadcastWorkOrderChange("update", closedOrder);
-    return closedOrder;
+  async closeWorkOrder(id: string, closeData: WorkOrderCloseData): Promise<WorkOrder> {
+    return closeWorkOrderOperation(id, closeData);
   }
 
   async deleteWorkOrderCascade(id: string): Promise<void> {
-    const [wo] = await db
-      .select({ orgId: workOrders.orgId })
-      .from(workOrders)
-      .where(eq(workOrders.id, id))
-      .limit(1);
-    if (wo?.orgId) {
-      await dbInventoryStorage.releasePartsFromWorkOrder(id, wo.orgId);
-    }
-    await db.delete(workOrderParts).where(eq(workOrderParts.workOrderId, id));
-    await db.delete(workOrderChecklists).where(eq(workOrderChecklists.workOrderId, id));
-    await db.delete(workOrderWorklogs).where(eq(workOrderWorklogs.workOrderId, id));
-    await db.delete(maintenanceCosts).where(eq(maintenanceCosts.workOrderId, id));
-    const r = await db.delete(workOrders).where(eq(workOrders.id, id)).returning();
-    if (r.length === 0) {
-      throw new Error(`Work order ${id} not found`);
-    }
-    const ws = getWebSocketServer();
-    if (r[0]) {
-      ws?.broadcastWorkOrderChange("delete", { id: r[0].id });
-    }
+    return deleteWorkOrderCascadeOperation(id);
   }
 
   async cloneWorkOrder(
     id: string,
     orgId: string,
-    options?: {
-      plannedStartDate?: Date;
-      plannedEndDate?: Date;
-      includeTasks?: boolean;
-      includeParts?: boolean;
-    }
+    options?: WorkOrderCloneOptions
   ): Promise<WorkOrder> {
-    // LR-3.5 / TX-1: publish `work_order.created` STRICTLY after the
-    // clone transaction commits. Previously `publishEvent(...)` ran
-    // inside the `db.transaction(...)` callback at the tail of the
-    // clone flow — if a later step (or commit itself) failed, the
-    // legacy sync-event bus had already fanned out a "created" event
-    // for a row that was about to be rolled back. We now compute the
-    // cloned row inside the tx, return it, and emit the event only
-    // after `db.transaction(...)` resolves.
-    const clonedOrder = await db.transaction(async (tx) => {
-      const [original] = await tx
-        .select()
-        .from(workOrders)
-        .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
-      if (!original) {
-        throw new Error(`Work order ${id} not found`);
-      }
-      const newWoNumber = await this.generateWorkOrderNumber(orgId);
-      const now = new Date();
-      const [clonedOrder] = await tx
-        .insert(workOrders)
-        .values({
-          ...original,
-          id: undefined,
-          woNumber: newWoNumber,
-          status: "open",
-          plannedStartDate: options?.plannedStartDate ?? original.plannedStartDate,
-          plannedEndDate: options?.plannedEndDate ?? original.plannedEndDate,
-          actualStartDate: null,
-          actualEndDate: null,
-          actualHours: null,
-          actualDowntimeHours: null,
-          totalPartsCost: 0,
-          totalLaborCost: 0,
-          totalCost: 0,
-          laborHours: null,
-          laborCost: null,
-          vesselDowntimeStartedAt: null,
-          version: 1,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
-      if (!clonedOrder) {
-        throw new Error("cloneWorkOrder: insert returned no row");
-      }
-      if (options?.includeTasks !== false) {
-        const originalTasks = await tx
-          .select()
-          .from(workOrderTasks)
-          .where(eq(workOrderTasks.workOrderId, id));
-        if (originalTasks.length > 0) {
-          await tx.insert(workOrderTasks).values(
-            originalTasks.map((t) => ({
-              ...t,
-              id: undefined,
-              workOrderId: clonedOrder.id,
-              isCompleted: false,
-              completedAt: null,
-              completedBy: null,
-              completedByName: null,
-              createdAt: now,
-              updatedAt: now,
-            }))
-          );
-        }
-      }
-      if (options?.includeParts !== false) {
-        const originalParts = await tx
-          .select()
-          .from(workOrderParts)
-          .where(eq(workOrderParts.workOrderId, id));
-        if (originalParts.length > 0) {
-          await tx.insert(workOrderParts).values(
-            originalParts.map((p) => ({
-              ...p,
-              id: undefined,
-              workOrderId: clonedOrder.id,
-              quantityUsed: 0,
-              totalCost: 0,
-              createdAt: now,
-            }))
-          );
-        }
-      }
-      return clonedOrder;
-    });
-    // Post-commit emit — the tx has resolved successfully by this
-    // point, so any subscriber (sync-events bus, WS fan-out) only
-    // ever observes a `work_order.created` for a row that is durably
-    // committed. On rollback we never reach this line.
-    await publishEvent("work_order.created", { ...clonedOrder } as Record<string, unknown>);
-    return clonedOrder;
+    return cloneWorkOrderOperation(
+      id,
+      orgId,
+      (targetOrgId) => this.generateWorkOrderNumber(targetOrgId),
+      options
+    );
   }
 
-  /**
-   * Complete a work order on a caller-supplied transaction handle.
-   *
-   * Used by the application layer to fuse the completion write and the
-   * outbox enqueue into a single atomic commit (transactional-outbox).
-   * The caller is responsible for invoking
-   * `fireInventoryMovementProjections(orgId, pendingProjections)` AFTER
-   * the surrounding `db.transaction(...)` returns successfully — firing
-   * inside the transaction would let the graph lead relational truth
-   * on rollback.
-   */
   async completeWorkOrderInTx(
-    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+    tx: WorkOrderTx,
     workOrderId: string,
     completionData: InsertWorkOrderCompletion
-  ): Promise<{ completion: WorkOrderCompletion; pendingProjections: PendingMovementProjection[] }> {
-    const { workOrderCompletions } = await import("@shared/schema-runtime");
-    const now = new Date();
-    const pendingProjections: PendingMovementProjection[] = [];
-    const completion = await (async () => {
-      const completionDataExt = completionData as InsertWorkOrderCompletion & {
-        downtimeCostPerHour?: number | null;
-        totalCost?: number | null;
-      };
-      const laborCost = completionDataExt.totalLaborCost || 0,
-        partsCost = completionDataExt.totalPartsCost || 0,
-        downtimeHours = completionDataExt.actualDowntimeHours || 0,
-        downtimeCostPerHour = completionDataExt.downtimeCostPerHour || 1000;
-      const downtimeCost = completionDataExt.totalCost ? 0 : downtimeHours * downtimeCostPerHour,
-        totalCost = completionDataExt.totalCost || laborCost + partsCost + downtimeCost;
-      const [updatedWorkOrder] = await tx
-        .update(workOrders)
-        .set({
-          status: "completed",
-          actualEndDate: now,
-          totalLaborCost: laborCost,
-          totalPartsCost: partsCost,
-          totalCost,
-          actualDowntimeHours: downtimeHours,
-          downtimeCostPerHour,
-        } satisfies Partial<InsertWorkOrder>)
-        .where(eq(workOrders.id, workOrderId))
-        .returning();
-      if (!updatedWorkOrder) {
-        throw new Error(`Work order ${workOrderId} not found`);
-      }
-      const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
-      if (!completion) {
-        throw new Error("Failed to insert work order completion");
-      }
-      const woParts = await tx
-        .select()
-        .from(workOrderParts)
-        .where(eq(workOrderParts.workOrderId, workOrderId));
-      const consumeMap = new Map<string, number>();
-      for (const woPart of woParts) {
-        consumeMap.set(woPart.partId, (consumeMap.get(woPart.partId) || 0) + woPart.quantityUsed);
-      }
-      for (const [partId, totalConsume] of consumeMap.entries()) {
-        const stockRows = await tx
-          .select()
-          .from(stock)
-          .where(and(eq(stock.partId, partId), eq(stock.orgId, completionData.orgId)))
-          .orderBy(sql`${stock.quantityReserved} DESC`);
-        let remaining = totalConsume;
-        for (const row of stockRows) {
-          if (remaining <= 0) {
-            break;
-          }
-          const onHand = row.quantityOnHand ?? 0;
-          const reserved = row.quantityReserved ?? 0;
-          const toConsume = Math.min(remaining, onHand);
-          if (toConsume > 0) {
-            const newOnHand = Math.max(0, onHand - toConsume);
-            const newReserved = Math.max(0, reserved - toConsume);
-            await tx
-              .update(stock)
-              .set({ quantityOnHand: newOnHand, quantityReserved: newReserved, updatedAt: now })
-              .where(eq(stock.id, row.id));
-            const movementId = randomUUID();
-            await tx.insert(inventoryMovements).values({
-              id: movementId,
-              orgId: completionData.orgId,
-              partId,
-              workOrderId,
-              movementType: "consume",
-              quantity: -toConsume,
-              quantityBefore: onHand,
-              quantityAfter: newOnHand,
-              reservedBefore: reserved,
-              reservedAfter: newReserved,
-              performedBy: completionData.completedBy || "system",
-              notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId} (stock ${row.id})`,
-            });
-            pendingProjections.push({
-              movementId,
-              partId,
-              workOrderId,
-              movementType: "consume",
-            });
-            remaining -= toConsume;
-          }
-        }
-      }
-      return completion;
-    })();
-    return { completion, pendingProjections };
+  ): Promise<WorkOrderCompletionResult> {
+    return completeWorkOrderInTxOperation(tx, workOrderId, completionData);
   }
 
-  /**
-   * Convenience wrapper that opens its own transaction. Preserved for
-   * legacy callers (workflow adapters, repository facade) that do not
-   * thread a transaction handle.
-   */
   async completeWorkOrder(
     workOrderId: string,
     completionData: InsertWorkOrderCompletion
   ): Promise<WorkOrderCompletion> {
-    const pendingProjections: PendingMovementProjection[] = [];
-    const completion = await db.transaction(async (tx) => {
-      const r = await this.completeWorkOrderInTx(tx, workOrderId, completionData);
-      pendingProjections.push(...r.pendingProjections);
-      return r.completion;
-    });
-    // Task #81 — fire graph projections post-commit. Best-effort by
-    // contract; logged at warn level inside the helper if the graph
-    // is unreachable. Awaiting here is fine — the helper is
-    // short-circuit on empty input and on GRAPH_ENABLED=false.
-    if (pendingProjections.length > 0 && completionData.orgId) {
-      await fireInventoryMovementProjections(completionData.orgId, pendingProjections);
-    }
-    return completion;
+    return completeWorkOrderOperation(workOrderId, completionData);
   }
 
-  async getWorkOrderCompletionAnalytics(filters?: {
-    equipmentId?: string | undefined;
-    vesselId?: string | undefined;
-    startDate?: Date | undefined;
-    endDate?: Date | undefined;
-    orgId?: string | undefined;
-  }): Promise<{
-    totalCompletions: number;
-    avgDurationVariance: number;
-    avgCostVariance: number;
-    onTimeCompletionRate: number;
-    totalDowntimeHours: number;
-  }> {
-    const c = await dbWorkOrderStorage.getWorkOrderCompletions(filters);
-    if (c.length === 0) {
-      return {
-        totalCompletions: 0,
-        avgDurationVariance: 0,
-        avgCostVariance: 0,
-        onTimeCompletionRate: 0,
-        totalDowntimeHours: 0,
-      };
-    }
-    type CompletionExt = WorkOrderCompletion & {
-      durationVariancePercent?: number | null;
-      costVariancePercent?: number | null;
-      onTimeCompletion?: boolean | null;
-    };
-    const cExt: CompletionExt[] = c as never;
-    const dv = cExt
-        .filter((x) => x.durationVariancePercent != null)
-        .map((x) => x.durationVariancePercent as number),
-      cv = cExt
-        .filter((x) => x.costVariancePercent != null)
-        .map((x) => x.costVariancePercent as number),
-      ot = cExt.filter((x) => x.onTimeCompletion === true).length,
-      td = cExt.reduce((s, x) => s + (x.actualDowntimeHours || 0), 0);
-    return {
-      totalCompletions: c.length,
-      avgDurationVariance: dv.length > 0 ? dv.reduce((a, b) => a + b, 0) / dv.length : 0,
-      avgCostVariance: cv.length > 0 ? cv.reduce((a, b) => a + b, 0) / cv.length : 0,
-      onTimeCompletionRate: c.length > 0 ? (ot / c.length) * 100 : 0,
-      totalDowntimeHours: td,
-    };
+  async getWorkOrderCompletionAnalytics(
+    filters?: WorkOrderCompletionAnalyticsFilters
+  ): Promise<WorkOrderCompletionAnalytics> {
+    return getWorkOrderCompletionAnalyticsOperation(filters);
   }
 }
 

@@ -7,6 +7,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
+import { finished } from "node:stream/promises";
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Services:DataExportImport:TelemetryExport");
 
@@ -83,6 +84,10 @@ export async function exportTelemetryChunked(
         const chunkPath = path.join(telemetryDir, chunkFile);
 
         const writeStream = createWriteStream(chunkPath);
+        // Surface stream failures (e.g. disk full) as a rejection instead of
+        // hanging on a 'finish' that never fires or crashing on an unhandled
+        // 'error' event.
+        const streamClosed = finished(writeStream);
         let chunkWritten = 0;
 
         for (const record of chunk) {
@@ -115,7 +120,7 @@ export async function exportTelemetryChunked(
           chunkWritten++;
         }
         writeStream.end();
-        await new Promise((resolve) => writeStream.on("finish", resolve));
+        await streamClosed;
 
         if (chunkWritten > 0) {
           files.push(`telemetry/${chunkFile}`);

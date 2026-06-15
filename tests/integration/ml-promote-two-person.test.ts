@@ -36,6 +36,7 @@ const EQUIP_TYPE = "pump";
 // Mutable in-memory model store the test owns. The mock storage below
 // reads/writes through this Map so assertions can introspect end state.
 const store = new Map<string, MlModelRow>();
+const rolesByUserId = new Map<string, string>();
 
 function seedModel(id: string, status: string): MlModelRow {
   const row: MlModelRow = {
@@ -77,6 +78,23 @@ jest.unstable_mockModule("../../server/repositories", () => ({
   },
 }));
 
+jest.unstable_mockModule("../../server/domains/permissions/service", () => ({
+  __esModule: true,
+  permissionService: {
+    authorize: async (userId: string, _orgId: string, resource: string, action: string) => {
+      const role = rolesByUserId.get(userId);
+      const allowed =
+        resource === "predictive_maintenance" &&
+        action === "manage_config" &&
+        (role === "admin" || role === "chief_engineer");
+      return {
+        allowed,
+        reason: allowed ? undefined : "Test user lacks predictive maintenance config permission",
+      };
+    },
+  },
+}));
+
 let app: Express;
 
 beforeAll(async () => {
@@ -103,6 +121,7 @@ beforeAll(async () => {
         orgId: ORG,
       };
       (req as Request & { orgId?: string }).orgId = ORG;
+      rolesByUserId.set(id ?? "", role ?? "");
     }
     next();
   });
@@ -112,6 +131,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   store.clear();
+  rolesByUserId.clear();
 });
 
 describe("LR-1D — ML promotion two-person rule", () => {
@@ -252,14 +272,14 @@ describe("LR-3.5 V1 — ML promote/rollback role gate", () => {
     });
   }
 
-  it("unauthenticated promote is rejected with 401 AUTH_REQUIRED", async () => {
+  it("unauthenticated promote is rejected with 401 UNAUTHORIZED", async () => {
     seedModel("model-gate-1", "trained");
     const res = await request(app)
       .post("/api/ml/models/model-gate-1/promote")
       .set("Idempotency-Key", "lr35-v1-unauth-promote")
       .send({});
     expect(res.status).toBe(401);
-    expect(res.body?.code).toBe("AUTH_REQUIRED");
+    expect(res.body?.code).toBe("UNAUTHORIZED");
   });
 
   it("chief_engineer is NOT rejected by the gate (positive control)", async () => {

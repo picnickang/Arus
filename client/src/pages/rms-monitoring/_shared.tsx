@@ -41,7 +41,7 @@ export interface BunkeringEvent {
   port?: string;
 }
 
-export interface AlertConfig {
+export interface RmsAlertConfig {
   id: string;
   vessel_id: string;
   vessel_name?: string;

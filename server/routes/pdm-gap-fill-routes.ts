@@ -13,7 +13,10 @@ import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repos
 import { PredictionCalibrator } from "../services/ml/prediction-calibration";
 import { PredictionOutcomeTracker } from "../services/ml/prediction-outcome-tracker";
 import { AnomalyCorrelator } from "../services/anomaly-correlation/anomaly-correlator";
-import { TelemetryAggregator } from "../services/telemetry-aggregation/telemetry-aggregator";
+import {
+  canEnsureAggregationTable,
+  TelemetryAggregator,
+} from "../services/telemetry-aggregation/telemetry-aggregator";
 import {
   getRecentRuns as getWarehouseRecentRuns,
   loadManifest as loadWarehouseManifest,
@@ -165,6 +168,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         (req.query["startDate"] as string) || Date.now() - 24 * 60 * 60 * 1000
       );
       const endDate = new Date((req.query["endDate"] as string) || Date.now());
+      // Reject unparseable startDate/endDate with a 400 instead of letting an
+      // Invalid Date reach the query and crash .toISOString() with a 500.
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          message: "startDate and endDate must be valid date strings",
+        });
+      }
       const aggregator = new TelemetryAggregator(db);
       const bucket = req.query["bucket"] as Parameters<typeof aggregator.queryAggregated>[5];
 
@@ -368,6 +378,13 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
   (async () => {
     try {
+      if (!canEnsureAggregationTable(db)) {
+        logger.info(
+          LOG_CTX,
+          "Telemetry aggregation table setup skipped; database handle does not support execute"
+        );
+        return;
+      }
       const aggregator = new TelemetryAggregator(db);
       await aggregator.ensureTable();
     } catch (err) {

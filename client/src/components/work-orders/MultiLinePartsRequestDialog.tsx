@@ -38,8 +38,6 @@ import {
 } from "@/features/work-orders/hooks/useMultiLinePartsForm";
 import { PartSearchCombobox, SupplierSelectCell } from "./parts-request-cells";
 
-export type { SuggestedPart };
-
 interface InventoryPartFromAPI {
   id: string;
   partNo: string;

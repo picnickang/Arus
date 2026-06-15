@@ -10,9 +10,8 @@ const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
 
 // LR-3.5 / SEC-2: constant-time compare lives in
-// `server/lib/constant-time-compare.ts` so unit tests can import it
-// without dragging the DB-bearing auth-routes module in.
-export { constantTimeEqualString };
+// `server/lib/constant-time-compare.ts` so unit tests import it without
+// dragging the DB-bearing auth-routes module in.
 
 function isLoopbackAddress(address: string): boolean {
   const normalized = address.replace(/^::ffff:/, "");
@@ -74,7 +73,9 @@ async function readEnvContent(envPath: string): Promise<string> {
 }
 
 function quoteEnvValue(value: string): string {
-  return `"${value.replace(/"/g, '\\"')}"`;
+  // Escape backslashes first, then double-quotes, so a value containing
+  // `\` or `"` cannot break out of the quoted env literal.
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function normalizeAdminSettingValue(value: unknown): string | undefined {
@@ -153,10 +154,17 @@ export async function getAdminCredential(): Promise<{ hash?: string; legacyPlain
     // Production requires a bcrypt hash (database `admin_password_hash` or
     // ADMIN_TOKEN_HASH); the plaintext fallback is honoured in non-production
     // only, as a developer convenience.
-    if (process.env["NODE_ENV"] === "production") {
+    //
+    // Fail closed: the fallback requires NODE_ENV to be EXPLICITLY development
+    // or test. An unset / unknown NODE_ENV — common in bare containers where the
+    // image never sets it — is treated as production, so a forgotten NODE_ENV
+    // can never silently re-enable plaintext admin auth.
+    const nodeEnv = process.env["NODE_ENV"];
+    const isExplicitNonProd = nodeEnv === "development" || nodeEnv === "test";
+    if (!isExplicitNonProd) {
       logger.error(
         "AdminAuth",
-        "Ignoring plaintext ADMIN_TOKEN in production — provision ADMIN_TOKEN_HASH (bcrypt) or a database admin hash. Admin auth stays disabled until a hash exists."
+        `Ignoring plaintext ADMIN_TOKEN (NODE_ENV=${nodeEnv ?? "unset"}) — provision ADMIN_TOKEN_HASH (bcrypt) or a database admin hash. The plaintext fallback is honoured only under NODE_ENV=development|test.`
       );
       return {};
     }
@@ -164,7 +172,7 @@ export async function getAdminCredential(): Promise<{ hash?: string; legacyPlain
       warnedLegacyAdminToken = true;
       logger.warn(
         "AdminAuth",
-        "Honouring legacy plaintext ADMIN_TOKEN (non-production only). Migrate to ADMIN_TOKEN_HASH (bcrypt); this fallback is rejected under NODE_ENV=production."
+        "Honouring legacy plaintext ADMIN_TOKEN (development/test only). Migrate to ADMIN_TOKEN_HASH (bcrypt); this fallback is rejected unless NODE_ENV is development or test."
       );
     }
     return { legacyPlaintext: process.env["ADMIN_TOKEN"] };

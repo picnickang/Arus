@@ -4,7 +4,7 @@
  * Closes a route-contract triage family (docs/qa/route-contract-triage.md):
  * the client has shipped checklist UI (LinkTemplateDialog, work-order Tasks
  * tab, maintenance-templates page) against these paths since their
- * introduction, and `dbChecklistsStorage` / `dbWorkOrderStorage` carry the
+ * introduction, and `checklistsPort` / `checklistWorkOrdersPort` carry the
  * full persistence layer — but no routes were ever registered, so every
  * call fell through to Vite's SPA fallback.
  *
@@ -16,12 +16,14 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { Router } from "express";
+import { generalApiRateLimit as apiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import {
   insertMaintenanceChecklistItemSchema,
   insertWorkOrderWorklogSchema,
 } from "@shared/schema-runtime";
-import { dbChecklistsStorage, dbWorkOrderStorage } from "../infrastructure/checklist-storage";
+import { checklistsPort, checklistWorkOrdersPort } from "../infrastructure/checklist-storage";
 import {
   authenticatedRequest,
   requireOrgId,
@@ -53,33 +55,38 @@ export function registerChecklistRoutes(
   }
 ) {
   const { writeOperationRateLimit, generalApiRateLimit } = rateLimit;
+  // Real (directly-imported) limiter so CodeQL recognises rate limiting
+  // on every handler below (CWE-770); the DI'd limiters above are kept.
+  const rlRouter = Router();
+  rlRouter.use(apiRateLimit);
+  app.use(rlRouter);
 
   // ===== Maintenance-template checklist items =====
 
-  app.get(
+  rlRouter.get(
     "/api/maintenance-templates/:id/items",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch template checklist items", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const template = await dbChecklistsStorage.getMaintenanceTemplate(id, orgId);
+      const template = await checklistsPort.getMaintenanceTemplate(id, orgId);
       if (!template) {
         return sendNotFound(res, "Maintenance template");
       }
-      const items = await dbChecklistsStorage.getMaintenanceChecklistItems(id);
+      const items = await checklistsPort.getMaintenanceChecklistItems(id);
       return res.json(items);
     })
   );
 
-  app.post(
+  rlRouter.post(
     "/api/maintenance-templates/:id/items",
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create template checklist item", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const template = await dbChecklistsStorage.getMaintenanceTemplate(id, orgId);
+      const template = await checklistsPort.getMaintenanceTemplate(id, orgId);
       if (!template) {
         return sendNotFound(res, "Maintenance template");
       }
@@ -88,23 +95,23 @@ export function registerChecklistRoutes(
         templateId: id,
         orgId,
       });
-      const item = await dbChecklistsStorage.createMaintenanceChecklistItem(itemData);
+      const item = await checklistsPort.createMaintenanceChecklistItem(itemData);
       return sendCreated(res, item);
     })
   );
 
-  app.post(
+  rlRouter.post(
     "/api/maintenance-templates/:id/clone",
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("clone maintenance template", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const template = await dbChecklistsStorage.getMaintenanceTemplate(id, orgId);
+      const template = await checklistsPort.getMaintenanceTemplate(id, orgId);
       if (!template) {
         return sendNotFound(res, "Maintenance template");
       }
-      const clone = await dbChecklistsStorage.cloneMaintenanceTemplate(
+      const clone = await checklistsPort.cloneMaintenanceTemplate(
         id,
         `${template.name} (Copy)`,
         orgId
@@ -118,21 +125,21 @@ export function registerChecklistRoutes(
   // The Tasks tab contract: completions joined with their template item
   // metadata plus a progress rollup. Total counts template items when the
   // work order has a linked template; otherwise whatever completions exist.
-  app.get(
+  rlRouter.get(
     "/api/maintenance-checklist/:workOrderId",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch work-order checklist", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { workOrderId } = workOrderIdParamSchema.parse(req.params);
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, workOrderId);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, workOrderId);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
 
-      const completions = await dbChecklistsStorage.getChecklistCompletions(workOrderId, orgId);
+      const completions = await checklistsPort.getChecklistCompletions(workOrderId, orgId);
       const templateItems = workOrder.maintenanceTemplateId
-        ? await dbChecklistsStorage.getMaintenanceChecklistItems(workOrder.maintenanceTemplateId)
+        ? await checklistsPort.getMaintenanceChecklistItems(workOrder.maintenanceTemplateId)
         : [];
 
       const completedItems = completions.filter((c) => c.completedBy != null).length;
@@ -157,7 +164,7 @@ export function registerChecklistRoutes(
   // Upsert one item's completion state. `completedBy: null` is the client's
   // reset — the row reverts to pending rather than being deleted, preserving
   // notes history semantics chosen by the Tasks tab.
-  app.post(
+  rlRouter.post(
     "/api/maintenance-checklist/:workOrderId/complete",
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
@@ -166,7 +173,7 @@ export function registerChecklistRoutes(
       const { workOrderId } = workOrderIdParamSchema.parse(req.params);
       const body = completeItemBodySchema.parse(req.body);
 
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, workOrderId);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, workOrderId);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
@@ -181,12 +188,12 @@ export function registerChecklistRoutes(
         status: !isCompletion ? "pending" : body.passed === false ? "failed" : "completed",
       };
 
-      const existing = (await dbChecklistsStorage.getChecklistCompletions(workOrderId, orgId)).find(
+      const existing = (await checklistsPort.getChecklistCompletions(workOrderId, orgId)).find(
         (c) => c.itemId === body.itemId
       );
       const completion = existing
-        ? await dbChecklistsStorage.updateChecklistCompletion(existing.id, fields)
-        : await dbChecklistsStorage.createChecklistCompletion({
+        ? await checklistsPort.updateChecklistCompletion(existing.id, fields)
+        : await checklistsPort.createChecklistCompletion({
             orgId,
             workOrderId,
             itemId: body.itemId,
@@ -197,7 +204,7 @@ export function registerChecklistRoutes(
     })
   );
 
-  app.post(
+  rlRouter.post(
     "/api/work-orders/:id/initialize-checklist",
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
@@ -206,16 +213,16 @@ export function registerChecklistRoutes(
       const { id } = idParamSchema.parse(req.params);
       const { templateId } = initializeChecklistBodySchema.parse(req.body);
 
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, id);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, id);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
-      const template = await dbChecklistsStorage.getMaintenanceTemplate(templateId, orgId);
+      const template = await checklistsPort.getMaintenanceTemplate(templateId, orgId);
       if (!template) {
         return sendNotFound(res, "Maintenance template");
       }
 
-      const updated = await dbWorkOrderStorage.updateWorkOrder(id, {
+      const updated = await checklistWorkOrdersPort.updateWorkOrder(id, {
         maintenanceTemplateId: templateId,
       });
       return res.json({ success: true, workOrder: updated });
@@ -224,44 +231,44 @@ export function registerChecklistRoutes(
 
   // ===== Work-order ad-hoc checklists & worklogs =====
 
-  app.get(
+  rlRouter.get(
     "/api/work-orders/:id/checklists",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch work-order checklists", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, id);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, id);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
-      return res.json(await dbWorkOrderStorage.getWorkOrderChecklists(id));
+      return res.json(await checklistWorkOrdersPort.getWorkOrderChecklists(id));
     })
   );
 
-  app.get(
+  rlRouter.get(
     "/api/work-orders/:id/worklogs",
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch work-order worklogs", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, id);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, id);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
-      return res.json(await dbWorkOrderStorage.getWorkOrderWorklogs(id));
+      return res.json(await checklistWorkOrdersPort.getWorkOrderWorklogs(id));
     })
   );
 
-  app.post(
+  rlRouter.post(
     "/api/work-orders/:id/worklogs",
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create work-order worklog", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const workOrder = await dbWorkOrderStorage.getWorkOrder(orgId, id);
+      const workOrder = await checklistWorkOrdersPort.getWorkOrder(orgId, id);
       if (!workOrder) {
         return sendNotFound(res, "Work order");
       }
@@ -270,7 +277,7 @@ export function registerChecklistRoutes(
         workOrderId: id,
         orgId,
       });
-      return sendCreated(res, await dbWorkOrderStorage.addWorkOrderWorklog(worklog));
+      return sendCreated(res, await checklistWorkOrdersPort.addWorkOrderWorklog(worklog));
     })
   );
 }

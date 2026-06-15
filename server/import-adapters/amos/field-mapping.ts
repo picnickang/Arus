@@ -308,6 +308,18 @@ export function applyMapping(
 
     try {
       const value = field.transform ? field.transform(rawValue, row) : rawValue.trim();
+      // A transform that yields null/undefined/Invalid-Date means the raw cell
+      // was present but unparseable. For a required field that must fail the
+      // row rather than silently importing a null where a value is required.
+      const unparseable =
+        value === null || value === undefined || (value instanceof Date && isNaN(value.getTime()));
+      if (field.required && unparseable) {
+        errors.push(`Required field ${field.amosField}="${rawValue}" could not be parsed`);
+        continue;
+      }
+      if (unparseable && value instanceof Date) {
+        continue; // never store an Invalid Date
+      }
       data[field.arusField] = value;
     } catch (err) {
       warnings.push(`Failed to transform ${field.amosField}="${rawValue}": ${err}`);

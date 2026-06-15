@@ -9,8 +9,8 @@ import type {
   IFailureHistoryPort,
 } from "../domain/workflow-ports";
 import type {
-  WorkOrderCompletionInput,
-  WorkOrderCompletionResult,
+  WorkflowCompletionInput,
+  WorkflowCompletionResult,
   QuickWorkOrderInput,
   QuickWorkOrderResult,
 } from "../domain/workflow-types";
@@ -27,9 +27,9 @@ export class WorkOrderWorkflowService {
   ) {}
 
   async completeWithFeedback(
-    input: WorkOrderCompletionInput,
+    input: WorkflowCompletionInput,
     userId: string
-  ): Promise<WorkOrderCompletionResult> {
+  ): Promise<WorkflowCompletionResult> {
     const {
       workOrderId,
       orgId,

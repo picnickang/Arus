@@ -17,6 +17,9 @@ import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
 import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
+import { OpsStatusRailContainer } from "@/components/ops/OpsStatusRailContainer";
+import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/mobile-readiness-route-contract";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -34,6 +37,16 @@ const PortalLogin = lazy(() => import("@/pages/portal-login"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const MyTasksPage = lazy(() => import("@/pages/my-tasks"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
+const MobileProfilePage = lazy(() =>
+  import("@/features/mobile-readiness/MobileProfilePage").then((m) => ({
+    default: m.MobileProfilePage,
+  }))
+);
+const MobileAttentionInboxPage = lazy(() =>
+  import("@/features/mobile-readiness/MobileAttentionInboxPage").then((m) => ({
+    default: m.MobileAttentionInboxPage,
+  }))
+);
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -49,7 +62,7 @@ import {
   isAdminPortalAccess,
   isSuperAdminRole,
 } from "@/application/navigation/role-navigation-policy";
-import { ADMIN_ONLY_ROUTES, getHubIdForRoute } from "@/config/navigationConfig";
+import { ADMIN_ONLY_ROUTES } from "@/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -73,67 +86,7 @@ const allRoutes = [
 // path → structural-group hub id, built from the actual route arrays so every
 // registered hub route is covered by construction (no manual list to drift).
 // Each route group corresponds 1:1 to an admin-portal hub; this is the
-// fallback classification for deep routes that are not surfaced as nav
-// children (those get their user-facing hub from `getHubIdForRoute`).
-const ROUTE_GROUP_HUB_BY_PATH: Record<string, string> = (() => {
-  const map: Record<string, string> = {};
-  const groups: Array<[string, ReadonlyArray<{ path: string }>]> = [
-    ["operations", operationsRoutes],
-    ["fleet", fleetRoutes],
-    ["maintenance", maintenanceRoutes],
-    ["crew", crewRoutes],
-    ["logistics", logisticsRoutes],
-    ["records", recordsRoutes],
-    ["analytics", analyticsRoutes],
-    ["system", systemRoutes],
-  ];
-  for (const [hubId, routes] of groups) {
-    for (const { path } of routes) {
-      map[path] = hubId;
-    }
-  }
-  return map;
-})();
-
-/**
- * Resolve the hub a route belongs to for access gating. Prefers the
- * user-facing nav classification (`getHubIdForRoute`, from
- * `navigationCategories`) so a page is gated by the hub it is *shown under*;
- * falls back to the route's structural group. Returns null only for routes
- * outside every hub group (home, portal-login, feedback) — those are never
- * hub-gated.
- */
-function resolveRouteHubId(path: string): string | null {
-  return getHubIdForRoute(path) ?? ROUTE_GROUP_HUB_BY_PATH[path] ?? null;
-}
-
-function normalizeRoutePath(path: string): string {
-  return (path.split("?")[0] ?? path).split("#")[0] ?? path;
-}
-
-function routePatternMatchesCurrent(routePattern: string, currentPath: string): boolean {
-  const patternSegments = normalizeRoutePath(routePattern).split("/").filter(Boolean);
-  const currentSegments = normalizeRoutePath(currentPath).split("/").filter(Boolean);
-  if (patternSegments.length !== currentSegments.length) {
-    return false;
-  }
-  return patternSegments.every((segment, index) => {
-    return segment.startsWith(":") || segment === currentSegments[index];
-  });
-}
-
-function resolveCurrentRouteHubId(path: string): string | null {
-  const navHubId = getHubIdForRoute(path);
-  if (navHubId) {
-    return navHubId;
-  }
-  for (const [routePath, hubId] of Object.entries(ROUTE_GROUP_HUB_BY_PATH)) {
-    if (routePatternMatchesCurrent(routePath, path)) {
-      return hubId;
-    }
-  }
-  return null;
-}
+import { resolveRouteHubId, resolveCurrentRouteHubId } from "./app-route-hubs";
 
 function PageSkeleton() {
   return (
@@ -207,6 +160,39 @@ function readCurrentRole(): string | null {
   }
 }
 
+function isRegularMobileReadinessRouteAllowed(role: string | null, path: string): boolean {
+  const roleName = (role ?? "").toLowerCase();
+  const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
+  const isDeckRole =
+    roleName === "deck_officer" || roleName === "captain" || roleName === "vessel_master";
+  const isCrewRole =
+    roleName === "crew_member" ||
+    roleName === "crew" ||
+    roleName === "viewer" ||
+    roleName === "technician" ||
+    roleName === "maintenance_technician";
+
+  if (!isDeckRole && !isCrewRole) {
+    return false;
+  }
+  if (currentPath === "/logs" || currentPath.startsWith("/logs/")) {
+    return true;
+  }
+  if (
+    isDeckRole &&
+    (currentPath === "/fleet" ||
+      currentPath.startsWith("/fleet/") ||
+      currentPath === "/vessel-intelligence" ||
+      currentPath.startsWith("/vessel-intelligence/") ||
+      currentPath === "/crew-management" ||
+      currentPath === "/pdm-platform" ||
+      currentPath.startsWith("/pdm/equipment/"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function AdminPortalRouteGuard({
   path,
   hubId,
@@ -224,12 +210,23 @@ function AdminPortalRouteGuard({
   // explicit hub-admin grant (dev-mode bypasses). While permissions load we
   // fall back to the legacy role→portal map so an admin's first paint is not
   // a flash-redirect.
+  const regularMobileReadinessAllowed = isRegularMobileReadinessRouteAllowed(role, path);
   let allowed = isAdminPortalAccess(role, permissions.hubAdmin || permissions.isDevMode, ready);
+  if (!allowed && regularMobileReadinessAllowed) {
+    allowed = true;
+  }
   // Tier 2 — per-hub allow-list: once permissions have loaded, a granted
   // (non-super-admin, non-dev) account may only reach hubs in its allow-list.
   // `permissions.hubAccess === null` means "all hubs" (super-admins / dev
   // resolve to null server-side), so only a populated list restricts access.
-  if (allowed && ready && hubId && !permissions.isDevMode && !isSuperAdminRole(role)) {
+  if (
+    allowed &&
+    ready &&
+    hubId &&
+    !regularMobileReadinessAllowed &&
+    !permissions.isDevMode &&
+    !isSuperAdminRole(role)
+  ) {
     const access = permissions.hubAccess;
     if (access && !access.includes(hubId)) {
       allowed = false;
@@ -260,6 +257,7 @@ function Router() {
   const { currentOrgId, isLoading } = useOrganization();
   const { permissions } = usePermissions();
   const [routerLoc] = useLocation();
+  const isMobile = useIsMobile();
   useTrackPageVisit();
 
   if (isLoading || !currentOrgId) {
@@ -267,12 +265,12 @@ function Router() {
   }
 
   const isLoginRoute = routerLoc === "/portal-login";
-  const usesUniversalOpsShell = resolveCurrentRouteHubId(routerLoc) !== null;
-  // #218: the user portal has no visible BottomNav, so skip the ~56px
-  // `pb-14` clearance there. BottomNav still mounts on non-shell,
-  // non-login routes — it returns null for user-portal roles but its
-  // hooks run, so the #194 self-heal keeps pruning stale admin ids.
-  // Universal admin hub routes render their own shell navigation.
+  const usesMobileReadinessReplacement = isMobileReadinessReplacementPath(routerLoc);
+  const usesUniversalOpsShell =
+    !usesMobileReadinessReplacement && resolveCurrentRouteHubId(routerLoc) !== null;
+  // Mobile readiness replacement routes provide their own card-level
+  // spacing and role-specific bottom nav. Universal admin hub routes
+  // render their own shell navigation, so the legacy shell nav stays off.
   // Same `getPortalForRole` policy as the route guard; reading
   // localStorage at render is fine — portal switches do a full reload.
   const isAdminPortal =
@@ -299,7 +297,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-14 md:pb-0" : ""}`}
+        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-20 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >
@@ -313,7 +311,10 @@ function Router() {
                   user can reach them. Auth is still enforced app-wide by
                   SessionGate; these carry no admin data. */}
               <Route path="/my-tasks" component={MyTasksPage} />
-              <Route path="/profile" component={ProfilePage} />
+              {/* Leaky-route remediation (#59): mobile gets the mobile-optimized
+                  page, desktop keeps the full page. */}
+              <Route path="/profile" component={isMobile ? MobileProfilePage : ProfilePage} />
+              {isMobile && <Route path="/attention-inbox" component={MobileAttentionInboxPage} />}
 
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>
@@ -361,7 +362,18 @@ function Router() {
       {/* Gated off ops-shell routes (own nav rail); the #194 override
           self-heal still runs there via UniversalOpsShell's mirror effect. */}
       {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
-      {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
+      {!isLoginRoute && !usesUniversalOpsShell && !usesMobileReadinessReplacement && <CopilotFab />}
+
+      {/* Persistent ops status rail for the mobile-readiness surface. The admin
+          ops shell mounts its own rail; here it docks just above the mobile
+          bottom nav (h-16 + safe-area) and surfaces only when there is a risk,
+          a queued outbox, or an offline state, so critical items never scroll
+          off-screen on a phone. */}
+      {!isLoginRoute && usesMobileReadinessReplacement && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-border shadow-[0_-8px_24px_-18px_rgba(2,12,27,0.55)] md:hidden">
+          <OpsStatusRailContainer hideWhenIdle />
+        </div>
+      )}
     </div>
   );
 }

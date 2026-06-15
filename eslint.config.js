@@ -420,5 +420,21 @@ export default [
         ignoreMixedLogicalExpressions: true
       }]
     }
+  },
+  {
+    // Gap-closure G6: context provider values must be memoized. An inline
+    // object literal in `value=` gives every consumer a fresh identity per
+    // provider render (scorecard dim 4 / audit items 4-5 were exactly this).
+    files: ['client/src/contexts/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='value'] > JSXExpressionContainer > ObjectExpression",
+          message:
+            'Memoize context provider values (useMemo) — an inline object re-renders every consumer on each provider render. See docs/UI-CONSOLIDATION-AUDIT.md §8.1.'
+        }
+      ]
+    }
   }
 ];

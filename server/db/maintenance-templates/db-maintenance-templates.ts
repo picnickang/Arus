@@ -50,7 +50,7 @@ import type { WidenPartial } from "../../lib/widen-partial";
 import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { getWebSocketServer } from "../../websocket-server";
-import { recordAndPublish, type EntityType } from "../../sync-events";
+import { recordAndPublish } from "../../sync-events";
 import {
   maintenanceTemplates,
   maintenanceChecklistItems,
@@ -117,7 +117,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (!n) {
       throw new Error("createMaintenanceTemplate: no row returned");
     }
-    await recordAndPublish("maintenance_template" as EntityType, n.id, "create", n);
+    await recordAndPublish("maintenance_template", n.id, "create", n);
     return n;
   }
 
@@ -138,7 +138,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (!u) {
       throw new Error(`Maintenance template ${id} not found`);
     }
-    await recordAndPublish("maintenance_template" as EntityType, u.id, "update", u);
+    await recordAndPublish("maintenance_template", u.id, "update", u);
     return u;
   }
 
@@ -154,7 +154,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (r.length === 0) {
       throw new Error(`Maintenance template ${id} not found`);
     }
-    await recordAndPublish("maintenance_template" as EntityType, id, "delete", r[0]);
+    await recordAndPublish("maintenance_template", id, "delete", r[0]);
   }
 
   async cloneMaintenanceTemplate(
@@ -266,7 +266,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (!n) {
       throw new Error("createChecklistItem: no row returned");
     }
-    await recordAndPublish("maintenance_checklist_item" as EntityType, n.id, "create", n);
+    await recordAndPublish("maintenance_checklist_item", n.id, "create", n);
     return n;
   }
 
@@ -283,7 +283,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (!u) {
       throw new Error(`Checklist item ${id} not found`);
     }
-    await recordAndPublish("maintenance_checklist_item" as EntityType, u.id, "update", u);
+    await recordAndPublish("maintenance_checklist_item", u.id, "update", u);
     return u;
   }
 
@@ -295,7 +295,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     if (r.length === 0) {
       throw new Error(`Checklist item ${id} not found`);
     }
-    await recordAndPublish("maintenance_checklist_item" as EntityType, id, "delete", r[0]);
+    await recordAndPublish("maintenance_checklist_item", id, "delete", r[0]);
   }
 
   async reorderChecklistItems(

@@ -1,179 +1,108 @@
 /**
- * UI Align Phase 6 — Module Overview Hubs (task #190).
+ * UI Align Phase 6 — impacted hub pages now use mobile readiness replacements.
  *
- * Same source-scan harness as the other LR-3.5 client-side tests
- * (Jest `testEnvironment: "node"` with swc/ESM — no React mount).
- * The hubs are thin overview wrappers; we pin:
- *   - each hub binds to the documented existing endpoint(s);
- *   - the hub renders the panel-spec field set
- *     (headline counters, list, jump grid, CTA);
- *   - deep-link routes are still reachable (the hub LINKs to the
- *     canonical paths — it does not own RBAC, that lives in
- *     `role-navigation-policy.ts`);
- *   - the page does NOT pretend a backend or invent data
- *     (no `apiRequest(`, no `fetch(`, no `setInterval(` driving
- *     a fake progress bar).
+ * The old standalone maintenance/crew/logistics/system overview hubs are part
+ * of the legacy UI requested for full replacement. These tests pin the new
+ * wrappers, route convergence, and unchanged shared RBAC policy.
  */
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const REPO_ROOT = process.cwd();
-const PAGES = {
-  maintenance: resolve(REPO_ROOT, "client/src/pages/maintenance-hub.tsx"),
-  crew: resolve(REPO_ROOT, "client/src/pages/crew-management.tsx"),
-  logistics: resolve(REPO_ROOT, "client/src/pages/logistics-hub.tsx"),
-  system: resolve(REPO_ROOT, "client/src/pages/system-hub.tsx"),
-  analytics: resolve(REPO_ROOT, "client/src/pages/analytics-hub.tsx"),
-  rolePolicy: resolve(REPO_ROOT, "client/src/application/navigation/role-navigation-policy.ts"),
-} as const;
 
-async function loadPage(key: keyof typeof PAGES): Promise<string> {
-  return readFile(PAGES[key], "utf8");
+async function readSrc(path: string): Promise<string> {
+  return readFile(resolve(REPO_ROOT, path), "utf8");
 }
 
-describe("UI Align Phase 6 — Maintenance hub (panel 5, Figma 1:1418)", () => {
-  it("binds every stat tile to a real backend endpoint (no mock data)", async () => {
-    const src = await loadPage("maintenance");
-    expect(src).toContain('"/api/work-orders/summary"');
-    expect(src).toContain('"/api/alerts"');
-    expect(src).toContain('"/api/compliance/findings"');
-    expect(src).toContain('"/api/maintenance-schedules"');
-    expect(src).toContain('"/api/pdm/dashboard"');
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
+describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
+  it.each([
+    ["maintenance-hub.tsx", "MobilePdmPage"],
+    ["pdm-platform.tsx", "MobilePdmPage"],
+    ["crew-management.tsx", "MobileCrewPage"],
+    ["logistics-hub.tsx", "MobileInventoryPage"],
+    ["system-hub.tsx", "MobileSettingsPage"],
+    ["work-orders.tsx", "MobileWorkOrdersPage"],
+    ["logs-hub.tsx", "MobileLogsPage"],
+  ])("%s delegates to %s", async (file, component) => {
+    const src = await readSrc(`client/src/pages/${file}`);
+    expect(src).toContain(component);
+    expect(src).not.toMatch(/setInterval\(|apiRequest\(|\bfetch\(/);
   });
 
-  it("renders the 2x2 stat-tile grid + Maintenance Modules list", async () => {
-    const src = await loadPage("maintenance");
-    expect(src).toContain('data-testid="grid-maintenance-stats"');
-    expect(src).toContain('"tile-active-wos"');
-    expect(src).toContain('"tile-equipment-alerts"');
-    expect(src).toContain('"tile-due-inspections"');
-    expect(src).toContain('"tile-preventive-tasks"');
-    expect(src).toContain('data-testid="list-maintenance-modules"');
-    expect(src).toContain('"module-overview"');
-    expect(src).toContain('"module-equipment"');
-    expect(src).toContain('"module-equipment-intelligence"');
-    expect(src).toContain('"module-work-orders"');
-    expect(src).toContain('"module-preventive"');
-    expect(src).toContain('"module-inspections"');
+  it("shared mobile readiness screens contain the Figma panel concepts", async () => {
+    const screenSrc = await readMobileScreenSrc();
+    const modelSrc = await readMobileModelSrc();
+
+    expect(screenSrc).toContain("MobilePdmPage");
+    expect(screenSrc).toContain("MobileCrewPage");
+    expect(screenSrc).toContain("MobileInventoryPage");
+    expect(screenSrc).toContain("MobileSettingsPage");
+    expect(screenSrc).toContain("MobileWorkExecutionPage");
+    expect(screenSrc).toContain("PdM Risk Queue");
+    expect(screenSrc).toContain("Work Queue");
+    expect(screenSrc).toContain("Checklist");
+    expect(screenSrc).toContain("grid grid-cols-5");
+    expect(screenSrc).toContain("LogRequiredRow");
+    expect(screenSrc).toContain("MessageSquare");
+    expect(screenSrc).toContain("CalendarDays");
+    expect(screenSrc).toContain("KpiStrip");
+    expect(screenSrc).toContain("Crew Readiness Overview");
+    expect(screenSrc).toContain("View All Current Crew");
+    expect(screenSrc).toContain("Former Crew (24)");
+    expect(screenSrc).toContain("Inventory & Logistics");
+    expect(screenSrc).toContain("View Full Inventory");
+    expect(screenSrc).toContain("Logistics Tasks");
+    expect(screenSrc).toContain("Log Out");
+    expect(modelSrc).toContain("System Configuration");
+    expect(modelSrc).toContain("Copilot + Knowledge Base Settings");
   });
 
-  it("surfaces loading + error states without inventing data", async () => {
-    const src = await loadPage("maintenance");
-    // Skeletons while live counts load, and an explicit banner when any
-    // query fails — never a silently-zeroed tile masquerading as real.
-    expect(src).toContain("Skeleton");
-    expect(src).toContain('data-testid="maintenance-data-error"');
+  it("captures all role-based Today reference states in the visual comparison sheet", async () => {
+    const scriptSrc = await readSrc("scripts/capture-mobile-readiness-comparison.mjs");
+
+    expect(scriptSrc).toContain('id: "role-today-captain"');
+    expect(scriptSrc).toContain('role: "captain"');
+    expect(scriptSrc).toContain('id: "role-today-crew"');
+    expect(scriptSrc).toContain('role: "maintenance_technician"');
   });
 
-  it("links to existing deep-link routes (no in-hub RBAC)", async () => {
-    const src = await loadPage("maintenance");
-    expect(src).toContain('href="/pdm-platform"');
-    expect(src).toContain('href="/equipment"');
-    expect(src).toContain('href="/equipment-intelligence"');
-    expect(src).toContain('href="/work-orders"');
-    expect(src).toContain('href="/maintenance"');
-    expect(src).toContain('href="/logs/compliance"');
-    expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
-  });
-});
-
-describe("UI Align Phase 6 — Crew hub (panel 6)", () => {
-  it("mounts the consolidated crew management experience", async () => {
-    const src = await loadPage("crew");
-    expect(src).toContain("UnifiedCrewManagement");
-  });
-
-  it("keeps the consolidated crew page free of fake polling", async () => {
-    const src = await loadPage("crew");
-    expect(src).not.toMatch(/setInterval\(/);
-  });
-
-  it("links to existing deep-link routes (no in-hub RBAC)", async () => {
-    const src = await loadPage("crew");
-    expect(src).toContain('resource="crew_members"');
-    expect(src).toContain('action="view"');
-    expect(src).not.toMatch(/RoleGate|requireRole/);
-  });
-});
-
-describe("UI Align Phase 6 — Logistics hub (panel 4 / row 10)", () => {
-  it("binds to the low-stock suggestions endpoint", async () => {
-    const src = await loadPage("logistics");
-    expect(src).toContain('"/api/parts-inventory/low-stock-suggestions"');
-  });
-
-  it("renders blocker counter + low-stock list + vendors/service jump cards", async () => {
-    const src = await loadPage("logistics");
-    expect(src).toContain('data-testid="counter-blockers"');
-    expect(src).toContain('data-testid="counter-reorder-cost"');
-    expect(src).toContain('data-testid="list-low-stock"');
-    expect(src).toContain('"jump-inventory"');
-    expect(src).toContain('"jump-service-orders"');
-    expect(src).toContain('"jump-service-requests"');
-    expect(src).toContain('"jump-vendors"');
-  });
-
-  it("links to existing deep-link routes (no in-hub RBAC)", async () => {
-    const src = await loadPage("logistics");
-    expect(src).toContain('href="/logistics?tab=inventory"');
-    expect(src).toContain('href="/logistics?tab=service-requests"');
-    expect(src).toContain('href="/logistics?tab=service-orders"');
-    expect(src).toContain('href="/logistics?tab=vendors"');
-    expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
+  it("routes service fulfillment lanes back into the work queue", async () => {
+    const routes = await readSrc("client/src/routes/logistics.ts");
+    const maintenanceRoutes = await readSrc("client/src/routes/maintenance.ts");
+    expect(maintenanceRoutes).toContain('path: "/work-orders/:workOrderId"');
+    expect(routes).toContain('path: "/service-orders"');
+    expect(routes).toContain('path: "/service-requests"');
+    expect(routes).toContain("component: WorkOrders");
   });
 });
 
-describe("UI Align Phase 6 — System hub (panel 8)", () => {
-  it("binds to the diagnostics health + admin audit endpoints", async () => {
-    const src = await loadPage("system");
-    expect(src).toContain('"/api/diagnostics/health"');
-    expect(src).toContain('"/api/admin/audit"');
-  });
-
-  it("renders service-health grid + audit log list + system metrics", async () => {
-    const src = await loadPage("system");
-    expect(src).toContain('data-testid="service-health-grid"');
-    expect(src).toContain('data-testid="list-audit-logs"');
-    expect(src).toContain('data-testid="system-metrics"');
-  });
-
-  it("links to existing deep-link routes (no in-hub RBAC)", async () => {
-    const src = await loadPage("system");
-    expect(src).toContain('href="/system-administration"');
-    expect(src).toContain('href="/configuration"');
-    expect(src).toContain('href="/admin/3d-models"');
-    expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
-  });
-});
-
-describe("UI Align Phase 6 — AI Intelligence (panel 7) on analytics hub", () => {
-  it("adds a Predictive Insights card bound to the failure-predictions endpoint", async () => {
-    const src = await loadPage("analytics");
-    expect(src).toContain('"/api/analytics/failure-predictions"');
-    expect(src).toContain('data-testid="predictive-insights"');
-    expect(src).toContain('data-testid="button-predictive-create-wo"');
-  });
-});
-
-/**
- * Behavioral RBAC coverage for the hubs the new pages live behind.
- *
- * The task brief is explicit: "Role gating stays in
- * `role-navigation-policy.ts`" — the hub pages themselves are not
- * supposed to re-decide visibility. So the meaningful behavioral
- * test is the policy: do admin roles actually receive the five
- * hub categories, and do user-portal roles actually NOT receive
- * them (so a tampered localStorage override can't smuggle them in)?
- *
- * These tests import the real policy module (no mocks) and
- * exercise it the same way `BottomNav` / `HomePage` do, which is
- * the only enforcement point the architecture actually has for
- * the hub surface. Mounting React for the hub pages themselves
- * would assert nothing about access control — there is no
- * page-level guard to assert against, by design.
- */
-describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gate)", () => {
+describe("UI Align Phase 6 — RBAC behaviour stays in role-navigation-policy", () => {
   const HUB_IDS = ["maintenance", "crew", "logistics", "analytics", "system"] as const;
   const ADMIN_ROLES = [
     "system_admin",
@@ -184,10 +113,6 @@ describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gat
   ] as const;
   const USER_ROLES = ["deck_officer", "viewer", "unknown_role", null] as const;
 
-  // Lazy import so the policy module's side-effects (icon imports
-  // from lucide-react) only resolve when the test actually runs.
-  // The module is pure TS — node ESM/swc handles it via the same
-  // jest transform the other LR-3.5 source-scan tests use.
   async function loadPolicy() {
     return import("../../client/src/application/navigation/role-navigation-policy");
   }
@@ -195,39 +120,37 @@ describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gat
   it.each(ADMIN_ROLES)("admin role %s sees all five hub categories", async (role) => {
     const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
     expect(getPortalForRole(role)).toBe("admin");
-    const cats = getPrimaryCategoriesForRole(role);
-    const ids = cats.map((c: { id: string }) => c.id);
+    const ids = getPrimaryCategoriesForRole(role).map((category: { id: string }) => category.id);
     for (const hubId of HUB_IDS) {
       expect(ids).toContain(hubId);
     }
   });
 
-  it.each(USER_ROLES)(
-    "non-admin role %s does NOT receive any hub category in its primary nav",
-    async (role) => {
-      const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
-      expect(getPortalForRole(role)).toBe("user");
-      const ids = getPrimaryCategoriesForRole(role).map((c: { id: string }) => c.id);
-      for (const hubId of HUB_IDS) {
-        expect(ids).not.toContain(hubId);
-      }
-    }
-  );
-
-  it("a tampered override cannot smuggle hub categories into a user-portal session", async () => {
-    const { intersectOverrideWithPolicy, getPrimaryCategoriesForRole } = await loadPolicy();
-    const tampered = ["maintenance", "system", "crew", "logistics", "analytics"];
-    const result = intersectOverrideWithPolicy("viewer", tampered);
-    const ids = result.map((c: { id: string }) => c.id);
+  it.each(USER_ROLES)("non-admin role %s does not receive hub categories", async (role) => {
+    const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
+    expect(getPortalForRole(role)).toBe("user");
+    const ids = getPrimaryCategoriesForRole(role).map((category: { id: string }) => category.id);
     for (const hubId of HUB_IDS) {
       expect(ids).not.toContain(hubId);
     }
-    // falls back to the user-portal default rather than going blank
-    expect(result.length).toBeGreaterThan(0);
-    expect(result).toEqual(getPrimaryCategoriesForRole("viewer"));
   });
 
-  it("each hub category's hubRoute points to a real registered route", async () => {
+  it("a tampered override cannot smuggle hub categories into a user-portal session", async () => {
+    const { intersectOverrideWithPolicy, getPrimaryCategoriesForRole } = await loadPolicy();
+    const result = intersectOverrideWithPolicy("viewer", [
+      "maintenance",
+      "system",
+      "crew",
+      "logistics",
+      "analytics",
+    ]);
+    expect(result).toEqual(getPrimaryCategoriesForRole("viewer"));
+    for (const category of result) {
+      expect(HUB_IDS).not.toContain(category.id as (typeof HUB_IDS)[number]);
+    }
+  });
+
+  it("each hub category's hubRoute points to a registered route", async () => {
     const expected: Record<(typeof HUB_IDS)[number], { file: string; path: string }> = {
       maintenance: { file: "client/src/routes/maintenance.ts", path: "/maint" },
       crew: { file: "client/src/routes/crew.ts", path: "/crew-management" },
@@ -237,40 +160,14 @@ describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gat
     };
     const { getPrimaryCategoriesForRole } = await loadPolicy();
     const cats = getPrimaryCategoriesForRole("system_admin");
-    const byId = new Map(cats.map((c: { id: string; hubRoute: string }) => [c.id, c]));
+    const byId = new Map(
+      cats.map((category: { id: string; hubRoute: string }) => [category.id, category])
+    );
     for (const hubId of HUB_IDS) {
-      const cat = byId.get(hubId) as { hubRoute: string } | undefined;
-      expect(cat).toBeDefined();
-      expect(cat?.hubRoute).toBe(expected[hubId].path);
-      const routeFile = await readFile(resolve(REPO_ROOT, expected[hubId].file), "utf8");
-      // The hub path is registered in its respective routes module —
-      // this is what makes the deep-link route reachable.
+      const category = byId.get(hubId);
+      expect(category?.hubRoute).toBe(expected[hubId].path);
+      const routeFile = await readSrc(expected[hubId].file);
       expect(routeFile).toContain(`"${expected[hubId].path}"`);
     }
-  });
-});
-
-describe("UI Align Phase 6 — integrity checks", () => {
-  it("no hub invents data via setInterval / fake polling", async () => {
-    for (const key of ["maintenance", "crew", "logistics", "system"] as const) {
-      const src = await loadPage(key);
-      expect(src).not.toMatch(/setInterval\(/);
-    }
-  });
-
-  it("only system-hub uses raw fetch (deliberate — health endpoint returns HTTP 503 on degraded and we need the body)", async () => {
-    for (const key of ["maintenance", "crew", "logistics"] as const) {
-      const src = await loadPage(key);
-      expect(src).not.toMatch(/\bfetch\(/);
-    }
-    const sys = await loadPage("system");
-    expect(sys).toContain("healthQueryFn");
-    expect(sys).toMatch(/fetch\(["']\/api\/diagnostics\/health/);
-  });
-
-  it("role-navigation-policy.ts remains the sole source of role→portal mapping", async () => {
-    const src = await loadPage("rolePolicy");
-    expect(src).toContain("getPortalForRole");
-    expect(src).toContain("getPrimaryCategoriesForRole");
   });
 });

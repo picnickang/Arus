@@ -14,6 +14,8 @@ import { eq, and, gte, lte, sql, inArray } from "drizzle-orm";
 import {
   purchaseRequests,
   purchaseRequestItems,
+  purchaseOrders,
+  purchaseOrderItems,
   itemSuppliers,
   purchaseRequestEvents,
   purchaseOrderEvents,
@@ -326,4 +328,60 @@ export async function generatePONumber(
   const result = await executor.execute(sql`SELECT nextval(${seqName}) AS next_num`);
   const nextNum = Number((result.rows[0] as { next_num: string | number }).next_num);
   return `PO-${year}-${String(nextNum).padStart(4, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
+// PO → PR fulfillment read helpers. Extracted from po-fulfillment-routes.ts so
+// the route (interfaces layer) no longer holds the raw db handle
+// (check:hex-storage). Behaviour is identical to the original inline queries.
+// ---------------------------------------------------------------------------
+export async function getPurchaseOrderById(id: string, orgId: string) {
+  const [po] = await db
+    .select()
+    .from(purchaseOrders)
+    .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+  return po;
+}
+
+export async function getPurchaseOrderCreationEvent(poId: string, orgId: string) {
+  const [creationEvent] = await db
+    .select()
+    .from(purchaseOrderEvents)
+    .where(
+      and(
+        eq(purchaseOrderEvents.poId, poId),
+        eq(purchaseOrderEvents.eventType, "created"),
+        eq(purchaseOrderEvents.orgId, orgId)
+      )
+    )
+    .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
+    .limit(1);
+  return creationEvent;
+}
+
+export async function getPurchaseOrderItems(poId: string) {
+  return db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, poId));
+}
+
+export async function getMatchingPurchaseRequestItem(prId: string, partId: string, orgId: string) {
+  const [prItem] = await db
+    .select()
+    .from(purchaseRequestItems)
+    .where(
+      and(
+        eq(purchaseRequestItems.prId, prId),
+        eq(purchaseRequestItems.partId, partId),
+        eq(purchaseRequestItems.orgId, orgId)
+      )
+    )
+    .limit(1);
+  return prItem;
+}
+
+export async function listPurchaseOrderEvents(poId: string, orgId: string) {
+  return db
+    .select()
+    .from(purchaseOrderEvents)
+    .where(and(eq(purchaseOrderEvents.poId, poId), eq(purchaseOrderEvents.orgId, orgId)))
+    .orderBy(sql`${purchaseOrderEvents.createdAt} DESC`);
 }

@@ -15,7 +15,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const registryPath = path.resolve(__dirname, "../../server/routes/domain-router-registry.ts");
-const registrySource = fs.readFileSync(registryPath, "utf-8");
+const registryConfigPaths = [
+  registryPath,
+  path.resolve(__dirname, "../../server/routes/domain-router-config-core.ts"),
+  path.resolve(__dirname, "../../server/routes/domain-router-config-domain-routes.ts"),
+  path.resolve(__dirname, "../../server/routes/domain-router-config-mounted-routes.ts"),
+];
+const registrySource = registryConfigPaths
+  .map((filePath) => fs.readFileSync(filePath, "utf-8"))
+  .join("\n");
 
 describe("Domain Router Registry", () => {
   it("registry file exists", () => {

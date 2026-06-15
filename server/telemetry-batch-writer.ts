@@ -29,136 +29,39 @@
  */
 
 import { EventEmitter } from "node:events";
-import type { InsertTelemetry } from "@shared/schema";
-import { dbTelemetryStorage } from "./repositories";
-import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/telemetry-metrics";
-import client from "prom-client";
 import { logger } from "./utils/logger";
-import { quotaService } from "./tenancy/quota-service";
-import { getWebSocketServer } from "./websocket-server";
-import { applyConfigsToReadings, getOrgConfigMap } from "./telemetry-ingest-config";
+import { TelemetryBatchBufferStore } from "./telemetry-batch-writer-buffer";
+import {
+  batchWriterDroppedTotal,
+  batchWriterFlushDuration,
+  batchWriterFlushSize,
+  batchWriterRetriesTotal,
+  batchWriterRetryQueueSize,
+} from "./telemetry-batch-writer-metrics";
+import { writeTelemetryBatchDirect } from "./telemetry-batch-writer-direct";
+import { latestPerEquipmentSensor } from "./telemetry-batch-writer-latest";
+import { insertTelemetryReadings } from "./telemetry-batch-writer-persistence";
+import {
+  applyIngestConfigs,
+  broadcastFlushedReadings,
+  evaluateAlertsForFlushedReadings,
+} from "./telemetry-batch-writer-post-flush";
+import type {
+  BatchWriterConfig,
+  BatchWriterInternalStats,
+  BatchWriterStats,
+  TelemetryBatchReading,
+} from "./telemetry-batch-writer-types";
 
-const batchWriterNaturalKeyConflicts = new client.Counter({
-  name: "arus_telemetry_natural_key_conflicts_total",
-  help:
-    "Readings conflict-skipped by the (org_id, equipment_id, sensor_type, ts) " +
-    "unique index during bulk insert — same-millisecond collisions collapse " +
-    "to one stored row.",
-});
-
-/** Latest reading per (equipmentId, sensorType) in a flushed batch.
- *  Exported for unit tests. */
-export function latestPerEquipmentSensor(
-  readings: TelemetryBatchReading[]
-): Map<string, Map<string, TelemetryBatchReading>> {
-  const latest = new Map<string, Map<string, TelemetryBatchReading>>();
-  for (const reading of readings) {
-    let sensors = latest.get(reading.equipmentId);
-    if (!sensors) {
-      sensors = new Map();
-      latest.set(reading.equipmentId, sensors);
-    }
-    const prior = sensors.get(reading.sensorType);
-    if (!prior || reading.timestamp.getTime() >= prior.timestamp.getTime()) {
-      sensors.set(reading.sensorType, reading);
-    }
-  }
-  return latest;
-}
-
-export interface TelemetryBatchReading {
-  equipmentId: string;
-  sensorType: string;
-  value: number;
-  timestamp: Date;
-  deviceId?: string;
-  orgId?: string;
-  unit?: string;
-  metadata?: Record<string, unknown>;
-  _retryCount?: number; // Internal: tracks flush retry attempts
-}
-
-export interface BatchWriterStats {
-  bufferSize: number;
-  totalQueued: number;
-  totalFlushed: number;
-  totalEvicted: number;
-  totalErrors: number;
-  totalDropped: number; // Readings dropped after max retries
-  lastFlushTime: Date | null;
-  lastFlushDurationMs: number;
-  lastFlushCount: number;
-  avgFlushDurationMs: number;
-  isRunning: boolean;
-}
-
-export interface BatchWriterConfig {
-  batchIntervalMs: number;
-  maxBufferSize: number;
-  evictionPercent: number;
-  flushOnShutdown: boolean;
-  maxRetries: number; // Max flush retries before dropping readings (default 3)
-  dbInsertChunkSize: number; // Rows per multi-row INSERT statement (default 500)
-}
-
-const batchWriterFlushDuration = new client.Histogram({
-  name: "arus_telemetry_batch_flush_duration_ms",
-  help: "Telemetry batch flush duration in milliseconds",
-  buckets: [10, 25, 50, 100, 250, 500, 1000, 2000, 5000],
-  labelNames: ["status"],
-});
-
-const batchWriterFlushSize = new client.Histogram({
-  name: "arus_telemetry_batch_flush_size",
-  help: "Number of readings per batch flush",
-  buckets: [1, 10, 50, 100, 250, 500, 1000, 2500, 5000],
-});
-
-const batchWriterEvictedTotal = new client.Counter({
-  name: "arus_telemetry_batch_evicted_total",
-  help: "Total telemetry readings evicted due to buffer overflow",
-});
-
-const batchWriterDroppedTotal = new client.Counter({
-  name: "arus_telemetry_batch_dropped_total",
-  help: "Total telemetry readings dropped after exceeding max retries",
-});
-
-const batchWriterRetriesTotal = new client.Counter({
-  name: "arus_telemetry_batch_retries_total",
-  help: "Total retry attempts for failed telemetry batch writes",
-  labelNames: ["retry_attempt"],
-});
-
-const batchWriterRetryQueueSize = new client.Gauge({
-  name: "arus_telemetry_batch_retry_queue_size",
-  help: "Current number of readings queued for retry",
-});
-
-// Task #89: dropped-because-tenant-already-at-or-over-quota. Separate
-// from `arus_telemetry_batch_dropped_total` (which is retry exhaustion)
-// so ops can tell "we're rate-limiting you" apart from "the DB broke".
-const batchWriterQuotaBlockedTotal = new client.Counter({
-  name: "arus_telemetry_batch_quota_blocked_total",
-  help: "Telemetry readings dropped at the bridge because the tenant is at or over `telemetry_rows_today`",
-  labelNames: ["org_id"],
-});
-
-// Production-readiness P0 #4: observability for failed quota increments.
-// `incrementUsage` is awaited with a bounded timeout below. We deliberately
-// stay fail-open on the ingest path (billing/quota is not the correctness
-// boundary — RLS is), but a persistent failure here means tenant usage is
-// being undercounted and operators must see it.
-const batchWriterQuotaIncrementFailedTotal = new client.Counter({
-  name: "arus_telemetry_quota_increment_failed_total",
-  help: "Per-org failures to record telemetry_rows_today usage after a successful batch write (timeout or quota service error). Ingest is not blocked; this counter signals undercounting.",
-  labelNames: ["org_id", "reason"],
-});
-
-import { withQuotaTimeout } from "./telemetry-batch-writer-quota-timeout";
+export { latestPerEquipmentSensor } from "./telemetry-batch-writer-latest";
+export type {
+  BatchWriterConfig,
+  BatchWriterStats,
+  TelemetryBatchReading,
+} from "./telemetry-batch-writer-types";
 
 export class TelemetryBatchWriter extends EventEmitter {
-  private vesselBuffers: Map<string, TelemetryBatchReading[]> = new Map();
+  private buffers: TelemetryBatchBufferStore;
   private flushTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private isFlushing = false;
@@ -179,7 +82,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     return TelemetryBatchWriter.faultInjectionEnabled;
   }
 
-  private stats = {
+  private stats: BatchWriterInternalStats = {
     totalQueued: 0,
     totalFlushed: 0,
     totalEvicted: 0,
@@ -224,6 +127,10 @@ export class TelemetryBatchWriter extends EventEmitter {
       maxRetries: this.config.maxRetries,
       dbInsertChunkSize: this.config.dbInsertChunkSize,
     });
+
+    this.buffers = new TelemetryBatchBufferStore(this.config, this.stats, (eventName, payload) =>
+      this.emit(eventName, payload)
+    );
   }
 
   /**
@@ -263,11 +170,11 @@ export class TelemetryBatchWriter extends EventEmitter {
       this.flushTimer = null;
     }
 
-    const totalSize = this.getTotalBufferSize();
+    const totalSize = this.buffers.getTotalSize();
     if (this.config.flushOnShutdown && totalSize > 0) {
       logger.info(
         "TelemetryBatchWriter",
-        `Final flush of ${totalSize} readings across ${this.vesselBuffers.size} vessels...`
+        `Final flush of ${totalSize} readings across ${this.buffers.getVesselCount()} vessels...`
       );
       await this.flush();
     }
@@ -277,100 +184,18 @@ export class TelemetryBatchWriter extends EventEmitter {
   }
 
   /**
-   * Extract vesselId from equipmentId (format: vessel-X-equipment-Y)
-   * Falls back to "unknown" if pattern doesn't match
-   */
-  private getVesselId(equipmentId: string): string {
-    const match = equipmentId.match(/^(vessel-\d+)/);
-    return match?.[1] ?? "unknown";
-  }
-
-  /**
-   * Get total buffer size across all vessels
-   */
-  private getTotalBufferSize(): number {
-    let total = 0;
-    for (const buffer of this.vesselBuffers.values()) {
-      total += buffer.length;
-    }
-    return total;
-  }
-
-  /**
    * Queue a telemetry reading for batched write
    * Non-blocking - returns immediately
    */
   queue(reading: TelemetryBatchReading): void {
-    const vesselId = this.getVesselId(reading.equipmentId);
-
-    if (!this.vesselBuffers.has(vesselId)) {
-      this.vesselBuffers.set(vesselId, []);
-    }
-
-    const buffer = this.vesselBuffers.get(vesselId)!;
-    buffer.push(reading);
-    this.stats.totalQueued++;
-
-    const perVesselMax = Math.floor(
-      this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1)
-    );
-    if (buffer.length >= perVesselMax) {
-      this.evictOldestFromVessel(vesselId);
-    }
-
-    if (this.stats.totalQueued % 1000 === 0) {
-      const orgId = reading.orgId || "unknown";
-      telemetryBufferDepth.set({ org_id: orgId, equipment_id: reading.equipmentId }, buffer.length);
-    }
+    this.buffers.queue(reading);
   }
 
   /**
    * Queue multiple telemetry readings at once
    */
   queueBatch(readings: TelemetryBatchReading[]): void {
-    for (const reading of readings) {
-      this.queue(reading);
-    }
-  }
-
-  /**
-   * Evict oldest entries from a specific vessel buffer
-   * Uses ring buffer semantics - removes oldest N%
-   */
-  private evictOldestFromVessel(vesselId: string): void {
-    const buffer = this.vesselBuffers.get(vesselId);
-    if (!buffer || buffer.length === 0) {
-      return;
-    }
-
-    const perVesselMax = Math.floor(
-      this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1)
-    );
-    const evictCount = Math.floor(perVesselMax * this.config.evictionPercent);
-    const evicted = buffer.splice(0, evictCount);
-
-    this.stats.totalEvicted += evicted.length;
-    batchWriterEvictedTotal.inc(evicted.length);
-
-    if (evicted.length > 0 && evicted[0]) {
-      const orgId = evicted[0].orgId || "unknown";
-      const equipmentId = evicted[0].equipmentId;
-      telemetryBufferEvictions.inc({ org_id: orgId, equipment_id: equipmentId }, evicted.length);
-
-      logger.warn(
-        "TelemetryBatchWriter",
-        `Vessel ${vesselId} buffer overflow - evicted ${evicted.length} oldest readings`,
-        {
-          vesselId,
-          bufferSize: buffer.length,
-          perVesselMax,
-          orgId,
-          equipmentId,
-        }
-      );
-    }
-
-    this.emit("eviction", { vesselId, count: evicted.length, evicted });
+    this.buffers.queueBatch(readings);
   }
 
   /**
@@ -378,7 +203,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Called automatically by timer, or manually for testing
    */
   async flush(): Promise<number> {
-    const totalSize = this.getTotalBufferSize();
+    const totalSize = this.buffers.getTotalSize();
     if (this.isFlushing || totalSize === 0) {
       return 0;
     }
@@ -386,11 +211,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     this.isFlushing = true;
     const startTime = Date.now();
 
-    const toFlush: TelemetryBatchReading[] = [];
-    for (const [vesselId, buffer] of this.vesselBuffers.entries()) {
-      toFlush.push(...buffer);
-      this.vesselBuffers.set(vesselId, []);
-    }
+    const toFlush = this.buffers.drainAll();
 
     try {
       await this.writeToDatabase(toFlush);
@@ -413,7 +234,7 @@ export class TelemetryBatchWriter extends EventEmitter {
       this.emit("flush", {
         count: toFlush.length,
         durationMs: duration,
-        vesselCount: this.vesselBuffers.size,
+        vesselCount: this.buffers.getVesselCount(),
       });
 
       return toFlush.length;
@@ -452,23 +273,7 @@ export class TelemetryBatchWriter extends EventEmitter {
         );
         batchWriterRetryQueueSize.set(readingsToRetry.length);
 
-        for (const reading of readingsToRetry) {
-          const vesselId = this.getVesselId(reading.equipmentId);
-          if (!this.vesselBuffers.has(vesselId)) {
-            this.vesselBuffers.set(vesselId, []);
-          }
-          this.vesselBuffers.get(vesselId)!.unshift(reading);
-        }
-
-        for (const vesselId of this.vesselBuffers.keys()) {
-          const perVesselMax = Math.floor(
-            this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1)
-          );
-          const buffer = this.vesselBuffers.get(vesselId)!;
-          if (buffer.length > perVesselMax) {
-            this.evictOldestFromVessel(vesselId);
-          }
-        }
+        this.buffers.requeueForRetry(readingsToRetry);
 
         logger.error(
           "TelemetryBatchWriter",
@@ -504,7 +309,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     // so configured gain/offset were silently ignored at ingest. Configs
     // are fetched once per org on a 30s TTL; readings without a config
     // pass through untouched.
-    readings = await this.applyIngestConfigs(readings);
+    readings = await applyIngestConfigs(readings);
     if (readings.length === 0) {
       return;
     }
@@ -513,37 +318,11 @@ export class TelemetryBatchWriter extends EventEmitter {
     // instead of `batch.length` concurrent single-row inserts. Chunk size is
     // configurable because each row contributes several bind parameters and a
     // single statement must stay under the Postgres parameter limit.
-    const chunkSize = this.config.dbInsertChunkSize;
-    for (let i = 0; i < readings.length; i += chunkSize) {
-      const chunk = readings.slice(i, i + chunkSize);
-
-      const rows: InsertTelemetry[] = chunk.map((reading) => ({
-        equipmentId: reading.equipmentId,
-        sensorType: reading.sensorType,
-        value: reading.value,
-        ts: reading.timestamp,
-        orgId: reading.orgId || "default-org-id",
-        unit: reading.unit,
-      }));
-
-      // Throws on failure so flush()'s retry/requeue/drop path still engages.
-      // Skipped duplicates are not fatal and are excluded from the return value;
-      // quota/stats counters intentionally stay on the attempted (accepted)
-      // count in writeBatch, preserving their current accepted-vs-dropped meaning.
-      const insertedCount = await dbTelemetryStorage.createTelemetryReadingsBulk(rows);
-
-      // Natural-key conflict visibility: the bulk insert conflict-skips on
-      // (org_id, equipment_id, sensor_type, ts), so two genuine samples in
-      // the same millisecond for one sensor silently collapse. Fine at the
-      // documented 10 Hz target; a hazard for future high-rate sources —
-      // surface the collapse rate so it can be alerted/calibrated. The
-      // escalation path is µs timestamps or a sequence component from the
-      // agent (see docs/qa/load-test-results.md, dedup note).
-      const conflicts = rows.length - insertedCount;
-      if (conflicts > 0) {
-        batchWriterNaturalKeyConflicts.inc(conflicts);
-      }
-    }
+    // Throws on failure so flush()'s retry/requeue/drop path still engages.
+    // Skipped duplicates are not fatal and are excluded from the return value;
+    // quota/stats counters intentionally stay on the attempted (accepted)
+    // count in writeBatch, preserving their current accepted-vs-dropped meaning.
+    await insertTelemetryReadings(readings, this.config.dbInsertChunkSize);
 
     // Post-commit enrichment on the deduped latest-per-(equipment, sensor)
     // set — bounded by sensor count, not message rate, so a 2,000 msg/s
@@ -556,195 +335,8 @@ export class TelemetryBatchWriter extends EventEmitter {
     //     ingested telemetry never fired alerts.
     // Both are best-effort by design: they must never fail a flush.
     const latest = latestPerEquipmentSensor(readings);
-    this.broadcastFlushedReadings(latest);
-    void this.evaluateAlertsForFlushedReadings(latest);
-  }
-
-  /**
-   * Bulk sensor-config application (gain/offset/disabled) before insert.
-   * One config-map fetch per org on a 30s TTL; fails open to pass-through
-   * so a config-store hiccup can never halt ingestion.
-   */
-  private async applyIngestConfigs(
-    readings: TelemetryBatchReading[]
-  ): Promise<TelemetryBatchReading[]> {
-    try {
-      const byOrg = new Map<string, TelemetryBatchReading[]>();
-      for (const reading of readings) {
-        const orgId = reading.orgId || "default-org-id";
-        const bucket = byOrg.get(orgId);
-        if (bucket) {
-          bucket.push(reading);
-        } else {
-          byOrg.set(orgId, [reading]);
-        }
-      }
-
-      const out: TelemetryBatchReading[] = [];
-      let totalDroppedDisabled = 0;
-      for (const [orgId, orgReadings] of byOrg) {
-        const configs = await getOrgConfigMap(orgId);
-        const { kept, droppedDisabled } = applyConfigsToReadings(orgReadings, configs);
-        totalDroppedDisabled += droppedDisabled;
-        out.push(...kept);
-      }
-      if (totalDroppedDisabled > 0) {
-        logger.debug(
-          "TelemetryBatchWriter",
-          `Dropped ${totalDroppedDisabled} readings from disabled sensors`
-        );
-      }
-      return out;
-    } catch (err) {
-      logger.warn("TelemetryBatchWriter", "Ingest-config application failed (pass-through)", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return readings;
-    }
-  }
-
-  /**
-   * Queue the latest committed reading per (equipment, sensor) onto the
-   * throttled WebSocket telemetry channel. Charts poll the history API;
-   * this push lets them refresh within ~250ms of a flush instead.
-   */
-  private broadcastFlushedReadings(latest: Map<string, Map<string, TelemetryBatchReading>>): void {
-    try {
-      const wsServer = getWebSocketServer();
-      if (!wsServer || wsServer.getConnectedClients() === 0) {
-        return;
-      }
-
-      for (const [equipmentId, sensors] of latest) {
-        wsServer.queueTelemetryUpdate(equipmentId, {
-          equipmentId,
-          readings: Array.from(sensors.values()).map((r) => ({
-            sensorType: r.sensorType,
-            value: r.value,
-            unit: r.unit ?? null,
-            ts: r.timestamp.toISOString(),
-          })),
-        });
-      }
-    } catch (err) {
-      logger.warn("TelemetryBatchWriter", "Live telemetry broadcast failed (non-fatal)", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  /**
-   * Evaluate alert thresholds for the latest committed reading per
-   * (equipment, sensor), pinned to each reading's org so the RLS-scoped
-   * alert tables behave identically in dev and production. Fire-and-forget
-   * with a 10-minute dedup inside checkAndCreateAlerts; failures are
-   * logged, never propagated into the flush path.
-   */
-  private async evaluateAlertsForFlushedReadings(
-    latest: Map<string, Map<string, TelemetryBatchReading>>
-  ): Promise<void> {
-    try {
-      const { checkAndCreateAlerts } = await import("./services/telemetry-processing.js");
-      const { withTenantContext } = await import("./middleware/db-context.js");
-
-      for (const sensors of latest.values()) {
-        for (const reading of sensors.values()) {
-          const orgId = reading.orgId || "default-org-id";
-          await withTenantContext(orgId, () =>
-            checkAndCreateAlerts({
-              id: `flush-${reading.equipmentId}-${reading.sensorType}`,
-              orgId,
-              ts: reading.timestamp,
-              equipmentId: reading.equipmentId,
-              sensorType: reading.sensorType,
-              value: reading.value,
-              unit: reading.unit ?? null,
-              threshold: null,
-              status: "normal",
-              idempotencyKey: null,
-            })
-          );
-        }
-      }
-    } catch (err) {
-      logger.warn("TelemetryBatchWriter", "Post-flush alert evaluation failed (non-fatal)", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  /**
-   * Task #89: per-org pre-write quota check for `telemetry_rows_today`.
-   * Groups readings by orgId, checks each org's current usage against
-   * its daily limit, and returns only the readings whose org still has
-   * headroom. Orgs already at/over the limit have ALL of their readings
-   * in this batch dropped, the per-org counter is bumped, and a
-   * `quotaBlocked` event is emitted so listeners can alert.
-   *
-   * Fails OPEN: if the quota service itself errors (e.g. PG hiccup),
-   * we let the batch through. The Postgres-side enforcement and the
-   * audit log catch the over-limit case if it persists; we never
-   * want a quota-subsystem outage to silently halt ingestion.
-   */
-  private async filterOverQuotaReadings(
-    readings: TelemetryBatchReading[]
-  ): Promise<TelemetryBatchReading[]> {
-    if (readings.length === 0) {
-      return readings;
-    }
-
-    const perOrgCounts = new Map<string, number>();
-    for (const r of readings) {
-      const org = r.orgId || "default-org-id";
-      perOrgCounts.set(org, (perOrgCounts.get(org) ?? 0) + 1);
-    }
-
-    const overQuotaOrgs = new Set<string>();
-    await Promise.all(
-      Array.from(perOrgCounts.keys()).map(async (orgId) => {
-        try {
-          const check = await quotaService.check(orgId, "telemetry_rows_today");
-          if (check.exceeded) {
-            overQuotaOrgs.add(orgId);
-          }
-        } catch {
-          // Fail-open per the doc comment above.
-        }
-      })
-    );
-
-    if (overQuotaOrgs.size === 0) {
-      return readings;
-    }
-
-    const allowed: TelemetryBatchReading[] = [];
-    let totalDropped = 0;
-    const droppedPerOrg = new Map<string, number>();
-    for (const r of readings) {
-      const org = r.orgId || "default-org-id";
-      if (overQuotaOrgs.has(org)) {
-        totalDropped++;
-        droppedPerOrg.set(org, (droppedPerOrg.get(org) ?? 0) + 1);
-      } else {
-        allowed.push(r);
-      }
-    }
-
-    for (const [org, count] of droppedPerOrg) {
-      batchWriterQuotaBlockedTotal.inc({ org_id: org }, count);
-    }
-    this.stats.totalDropped += totalDropped;
-    logger.warn(
-      "TelemetryBatchWriter",
-      `Quota: dropped ${totalDropped} readings across ${droppedPerOrg.size} over-limit org(s)`,
-      { perOrg: Object.fromEntries(droppedPerOrg) }
-    );
-    this.emit("quotaBlocked", {
-      total: totalDropped,
-      perOrg: Object.fromEntries(droppedPerOrg),
-    });
-
-    return allowed;
+    broadcastFlushedReadings(latest);
+    void evaluateAlertsForFlushedReadings(latest);
   }
 
   /**
@@ -759,119 +351,13 @@ export class TelemetryBatchWriter extends EventEmitter {
    * @throws Error if source is not 'sqlite-bridge' in production
    */
   async writeBatch(readings: TelemetryBatchReading[], options: { source: string }): Promise<void> {
-    const isProduction = process.env["NODE_ENV"] === "production";
-
-    if (isProduction && options.source !== "sqlite-bridge") {
-      throw new Error(
-        `Source guard violation: Only 'sqlite-bridge' source is allowed in production. Got: '${options.source}'`
-      );
-    }
-
-    if (readings.length === 0) {
-      return;
-    }
-
-    // Check for fault injection (testing only)
-    if (TelemetryBatchWriter.faultInjectionEnabled) {
-      this.stats.totalErrors++;
-      throw TelemetryBatchWriter.faultInjectionError;
-    }
-
-    const startTime = Date.now();
-
-    // Task #89: ACTIVE-PATH telemetry quota enforcement. The
-    // 503-gated HTTP routes already carry `enforceQuota` middleware,
-    // but the live ingest path is here (sqlite-bridge worker →
-    // writeBatch → PostgreSQL). We check `telemetry_rows_today` per
-    // org BEFORE the write, and silently drop readings for any org
-    // already at/over its daily limit. We do not throw — telemetry
-    // is high-volume and the bridge cursor must keep advancing for
-    // the orgs that aren't over quota. The drop is observable via
-    // the `batchWriterQuotaBlockedTotal` counter and the
-    // `quotaBlocked` event so operators / dashboards can react.
-    const allowedReadings = await this.filterOverQuotaReadings(readings);
-
-    if (allowedReadings.length === 0) {
-      // Everything was dropped; nothing to write, nothing to commit.
-      this.emit("batchWritten", {
-        count: 0,
-        durationMs: Date.now() - startTime,
-        source: options.source,
-        droppedForQuota: readings.length,
-      });
-      return;
-    }
-
-    try {
-      await this.writeToDatabase(allowedReadings);
-
-      const duration = Date.now() - startTime;
-      this.stats.totalFlushed += allowedReadings.length;
-      this.stats.lastFlushTime = new Date();
-      this.stats.lastFlushDurationMs = duration;
-      // Reflect what actually hit the DB, not the pre-filter batch size,
-      // so BatchWriterStats stays internally consistent (Task #89 review).
-      this.stats.lastFlushCount = allowedReadings.length;
-
-      this.stats.flushDurations.push(duration);
-      if (this.stats.flushDurations.length > 100) {
-        this.stats.flushDurations.shift();
-      }
-
-      batchWriterFlushDuration.observe({ status: "success" }, duration);
-      batchWriterFlushSize.observe(allowedReadings.length);
-
-      // Task #89: this is the only active telemetry ingest path
-      // (sqlite-bridge worker → writeBatch → PostgreSQL). Increment
-      // `telemetry_rows_today` per orgId AFTER the rows commit, so a
-      // failed write doesn't burn quota. Readings without an orgId fall
-      // back to the bridge default so usage isn't silently lost.
-      //
-      // P0 #4: previously this was fire-and-forget (`void
-      // quotaService.incrementUsage(...)`), which silently allowed
-      // tenants to exceed `telemetry_rows_today` whenever the quota
-      // store had a hiccup. We now await each increment with a bounded
-      // timeout. The request path stays fail-open (we never throw out
-      // of this block — quota is commercial, RLS is the correctness
-      // perimeter), but every miss is now counted on
-      // `arus_telemetry_quota_increment_failed_total{org_id,reason}`
-      // and logged with the batch ID so operators can react.
-      const perOrg = new Map<string, number>();
-      for (const r of allowedReadings) {
-        const org = r.orgId || "default-org-id";
-        perOrg.set(org, (perOrg.get(org) ?? 0) + 1);
-      }
-      const batchId = options.source ?? "unknown";
-      await Promise.all(
-        Array.from(perOrg.entries()).map(async ([orgId, count]) => {
-          try {
-            await withQuotaTimeout(
-              quotaService.incrementUsage(orgId, "telemetry_rows_today", count)
-            );
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            const reason = message.startsWith("quota_increment_timeout") ? "timeout" : "error";
-            batchWriterQuotaIncrementFailedTotal.inc({ org_id: orgId, reason }, 1);
-            logger.warn(
-              "TelemetryBatchWriter",
-              "Quota increment failed; usage may be undercounted (ingest not blocked)",
-              { orgId, batchId, count, reason, error: message }
-            );
-          }
-        })
-      );
-
-      this.emit("batchWritten", {
-        count: allowedReadings.length,
-        durationMs: duration,
-        source: options.source,
-        droppedForQuota: readings.length - allowedReadings.length,
-      });
-    } catch (err) {
-      this.stats.totalErrors++;
-      batchWriterFlushDuration.observe({ status: "error" }, Date.now() - startTime);
-      throw err;
-    }
+    await writeTelemetryBatchDirect(readings, options, {
+      stats: this.stats,
+      emit: (eventName, payload) => this.emit(eventName, payload),
+      writeToDatabase: (allowedReadings) => this.writeToDatabase(allowedReadings),
+      isFaultInjectionEnabled: () => TelemetryBatchWriter.faultInjectionEnabled,
+      faultInjectionError: TelemetryBatchWriter.faultInjectionError,
+    });
   }
 
   /**
@@ -886,7 +372,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Get current queue depth across all vessels (for backpressure monitoring)
    */
   getQueueDepth(): number {
-    return this.getTotalBufferSize();
+    return this.buffers.getTotalSize();
   }
 
   /**
@@ -899,7 +385,7 @@ export class TelemetryBatchWriter extends EventEmitter {
         : 0;
 
     return {
-      bufferSize: this.getTotalBufferSize(),
+      bufferSize: this.buffers.getTotalSize(),
       totalQueued: this.stats.totalQueued,
       totalFlushed: this.stats.totalFlushed,
       totalEvicted: this.stats.totalEvicted,
@@ -917,25 +403,21 @@ export class TelemetryBatchWriter extends EventEmitter {
    * Get buffer size (for health checks)
    */
   getBufferSize(): number {
-    return this.getTotalBufferSize();
+    return this.buffers.getTotalSize();
   }
 
   /**
    * Get vessel count (for metrics)
    */
   getVesselCount(): number {
-    return this.vesselBuffers.size;
+    return this.buffers.getVesselCount();
   }
 
   /**
    * Get per-vessel buffer sizes (for detailed metrics)
    */
   getVesselBufferSizes(): Map<string, number> {
-    const sizes = new Map<string, number>();
-    for (const [vesselId, buffer] of this.vesselBuffers.entries()) {
-      sizes.set(vesselId, buffer.length);
-    }
-    return sizes;
+    return this.buffers.getVesselBufferSizes();
   }
 
   /**

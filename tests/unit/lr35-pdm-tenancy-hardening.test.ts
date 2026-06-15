@@ -56,9 +56,20 @@ import { requireOrgId, type AuthenticatedRequest } from "../../server/middleware
 
 const TRAINING_ROUTES_PATH = "server/domains/pdm-platform/training-pipeline/routes.ts";
 const MODEL_REGISTRY_ROUTES_PATH = "server/domains/pdm-platform/model-registry/routes.ts";
+const DOMAIN_ROUTER_REGISTRY_SOURCE_PATHS = [
+  "server/routes/domain-router-registry.ts",
+  "server/routes/domain-router-config-core.ts",
+  "server/routes/domain-router-config-domain-routes.ts",
+  "server/routes/domain-router-config-mounted-routes.ts",
+];
 
 async function readSource(rel: string): Promise<string> {
   return fs.readFile(path.join(process.cwd(), rel), "utf8");
+}
+
+async function readDomainRouterRegistrySource(): Promise<string> {
+  const sources = await Promise.all(DOMAIN_ROUTER_REGISTRY_SOURCE_PATHS.map(readSource));
+  return sources.join("\n");
 }
 
 type TestRes = {
@@ -129,7 +140,7 @@ describe("LR-3.5 PdM tenancy — source-file invariants", () => {
 
 describe("LR-3.5 PdM tenancy — registry mount preserves requireOrgId", () => {
   it("both routers are still mounted with requireOrgId in domain-router-registry", async () => {
-    const src = await readSource("server/routes/domain-router-registry.ts");
+    const src = await readDomainRouterRegistrySource();
     // Find the TrainingPipeline + PdmModelRegistry registry entries and
     // confirm the middleware chain still includes requireOrgId. If a
     // future refactor removes the middleware, the handlers' direct

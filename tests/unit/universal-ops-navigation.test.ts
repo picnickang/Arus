@@ -109,7 +109,10 @@ describe("universal admin ops navigation", () => {
 
     expect(app).toContain("UniversalOpsShell");
     expect(app).toContain("resolveCurrentRouteHubId");
-    expect(app).toContain("routePatternMatchesCurrent");
+    // routePatternMatchesCurrent moved into the app-route-hubs helper module.
+    expect(readFileSync(resolve(REPO_ROOT, "client/src/app-route-hubs.ts"), "utf8")).toContain(
+      "routePatternMatchesCurrent"
+    );
     expect(app).toContain("usesUniversalOpsShell");
     expect(app).toContain("<UniversalOpsShell");
     expect(app).toContain("!usesUniversalOpsShell && <BottomNav />");

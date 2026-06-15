@@ -31,6 +31,9 @@ describe("LR-3.5 V3 — public-api allowlist positive controls", () => {
     "/api/metrics",
     "/api/observability/web-vitals",
     "/api/observability/web-vitals/lcp",
+    // SendGrid event-webhook receiver — unauthenticated by design (SendGrid
+    // posts server-to-server) but FAIL-CLOSED on ECDSA signature verification.
+    "/api/webhooks/sendgrid/events",
   ])("is public: %s", (path) => {
     expect(isPublicApiPath(path)).toBe(true);
   });
@@ -112,7 +115,28 @@ describe("LR-3.5 V3 — public-api allowlist negative pins", () => {
     // /metrics is exact-match: a sub-path must not inherit public status.
     "/api/metrics/internal",
     "/api/healthz/secret",
+    // SendGrid webhook is exact-match: neither a sub-path nor a sibling
+    // webhook receiver may inherit its public (auth-bypassed) status.
+    "/api/webhooks/sendgrid/events/extra",
+    "/api/webhooks/sendgrid",
+    "/api/webhooks/stripe/events",
+    "/api/webhooks",
   ])("is NOT public: %s", (path) => {
+    expect(isPublicApiPath(path)).toBe(false);
+  });
+
+  // 2026-06 auth-posture finding (docs/SECURITY-REVIEW-FOLLOWUPS.md): these
+  // endpoints were consumed for months with NO Authorization header (a client
+  // bug, since fixed) yet are NOT public paths — production correctly 401s
+  // them. Pinned by name so a future refactor can't quietly make them public.
+  it.each([
+    "/api/crew/rest/import", // STCW hours-of-rest import
+    "/api/crew/rest/check", // HoR compliance check
+    "/api/stcw/import", // STCW import
+    "/api/stcw/compliance/c1/2026/06", // STCW compliance read
+    "/api/analytics/twin-simulations", // digital-twin reads
+    "/api/pdm/twin/def/twins", // digital-twin definitions
+  ])("auth-posture finding route stays NON-public: %s", (path) => {
     expect(isPublicApiPath(path)).toBe(false);
   });
 

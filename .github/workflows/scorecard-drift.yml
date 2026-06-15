@@ -1,0 +1,40 @@
+name: Scorecard Drift (nightly)
+
+# Gap-closure P4 (docs/GAP-CLOSURE-PLAN.md): metrics without guards drifted
+# within a day while guarded ones held. This job re-runs the full guard
+# chain — including the client-UI ratchets — against main every night, so a
+# regression that slips past PR review surfaces within 24 h instead of at
+# the next manual re-score. Slot follows the existing nightlies
+# (load 03:30, ws-fanout 04:00, chaos 04:30).
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Guard chain vs main
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Full guard chain (includes check:ui-ratchets)
+        run: npm run check:guards
+
+      - name: Lint (errors only gate)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run check

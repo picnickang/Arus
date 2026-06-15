@@ -46,19 +46,26 @@ class Logger {
     return LOG_LEVELS[level] >= LOG_LEVELS[this.config.level];
   }
 
+  /** Strip CR/LF so user-influenced text can't forge extra log lines (CWE-117). */
+  private sanitizeLogText(value: unknown): string {
+    return String(value).replace(/\n/g, "").replace(/\r/g, "");
+  }
+
   private formatMessage(level: LogLevel, module: string, message: string): string {
     const timestamp = new Date().toISOString();
     const levelStr = level.toUpperCase().padEnd(5);
+    const safeModule = this.sanitizeLogText(module);
+    const safeMessage = this.sanitizeLogText(message);
 
     if (this.config.includeCorrelationId) {
       const correlationId = getCorrelationId();
       if (correlationId && correlationId !== "no-context") {
         const shortId = correlationId.slice(0, 8);
-        return `[${levelStr}] ${timestamp} [${module}] [${shortId}] ${message}`;
+        return `[${levelStr}] ${timestamp} [${safeModule}] [${shortId}] ${safeMessage}`;
       }
     }
 
-    return `[${levelStr}] ${timestamp} [${module}] ${message}`;
+    return `[${levelStr}] ${timestamp} [${safeModule}] ${safeMessage}`;
   }
 
   debug(moduleOrMessage: string, message?: string, data?: unknown) {
@@ -67,7 +74,7 @@ class Logger {
     }
     const [mod, msg] =
       message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
-    console.log(this.formatMessage("debug", mod, msg), data ?? "");
+    console.log("%s", this.formatMessage("debug", mod, msg), data ?? "");
   }
 
   info(moduleOrMessage: string, message?: string, data?: unknown) {
@@ -76,7 +83,7 @@ class Logger {
     }
     const [mod, msg] =
       message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
-    console.log(this.formatMessage("info", mod, msg), data ?? "");
+    console.log("%s", this.formatMessage("info", mod, msg), data ?? "");
   }
 
   /**
@@ -96,7 +103,7 @@ class Logger {
       return;
     }
 
-    console.warn(this.formatMessage("warn", mod, msg), data ?? "");
+    console.warn("%s", this.formatMessage("warn", mod, msg), data ?? "");
   }
 
   /**
@@ -116,12 +123,12 @@ class Logger {
     console.error(this.formatMessage("error", module, message));
     if (error) {
       if (error instanceof Error) {
-        console.error(`  ${error.message}`);
+        console.error(`  ${this.sanitizeLogText(error.message)}`);
         if (error.stack && process.env["NODE_ENV"] === "development") {
-          console.error(error.stack);
+          console.error(this.sanitizeLogText(error.stack));
         }
       } else {
-        console.error(error);
+        console.error(this.sanitizeLogText(error));
       }
     }
   }

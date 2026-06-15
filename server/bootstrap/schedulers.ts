@@ -1,4 +1,5 @@
 import { createLogger } from "../lib/structured-logger";
+import { withSingleFlight } from "../lib/single-flight";
 const logger = createLogger("Bootstrap:Schedulers");
 /**
  * Scheduler Initialization
@@ -39,77 +40,143 @@ export async function initializeSchedulers(isEmbedded: boolean): Promise<void> {
 
   setupTwinRefreshSchedule();
   setupPredictionExpirySchedule();
+  setupEmailDigestSchedule();
 
   logger.info("✓ Schedulers configured");
 }
 
+/**
+ * Periodically drain the notification_queue digest items.
+ *
+ * processDigestQueue() sends any pending rows whose scheduledFor has elapsed
+ * (digest-mode compliance notifications are queued for the next 08:00). Without
+ * this poller those rows accumulate indefinitely — nothing else triggers them
+ * outside the manual POST /api/notifications/email/process-digest endpoint.
+ *
+ * CLOUD-only: initializeSchedulers early-returns in embedded/VESSEL mode, and
+ * notification_queue is a cloud-only table. Honors DISABLE_EMAIL_WORKER (the
+ * shared "no email background processing" switch) plus a dedicated
+ * DISABLE_EMAIL_DIGEST_SCHEDULER for operators who want the purchasing email
+ * worker on but the digest poller off.
+ */
+export function setupEmailDigestSchedule(): void {
+  if (
+    process.env["DISABLE_EMAIL_WORKER"] === "true" ||
+    process.env["DISABLE_EMAIL_DIGEST_SCHEDULER"] === "true"
+  ) {
+    logger.info("ℹ️  Email digest scheduler disabled");
+    return;
+  }
+
+  const INTERVAL_MS = Number.parseInt(
+    process.env["EMAIL_DIGEST_INTERVAL_MS"] ?? `${15 * 60 * 1000}`,
+    10
+  );
+
+  const tick = withSingleFlight(
+    async () => {
+      try {
+        const { emailNotificationService } = await import(
+          "../services/email-notification-service.js"
+        );
+        const sent = await emailNotificationService.processPendingNotifications();
+        const digested = await emailNotificationService.processDigestQueue();
+        if (sent + digested > 0) {
+          logger.info(`[EmailDigest] Sent ${sent} pending, processed ${digested} digest item(s)`);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("[EmailDigest] Scheduled digest run failed:", undefined, message);
+      }
+    },
+    () => logger.warn("[EmailDigest] Previous digest run still running; skipping tick")
+  );
+  setInterval(tick, INTERVAL_MS);
+
+  logger.info(`✅ Email digest schedule configured (every ${INTERVAL_MS / 60000} minutes)`);
+}
+
 function setupTwinRefreshSchedule(): void {
   const INTERVAL_MS = 5 * 60 * 1000;
-  setInterval(async () => {
-    try {
-      const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
-      const { TwinUpdateService } = await import(
-        "../domains/pdm-platform/twin-updates/twin-update.service"
-      );
-      const { TwinFreshnessAdapter } = await import("../domains/pdm-platform/twin-updates/adapter");
-      const { TwinDefinitionAdapter } = await import(
-        "../domains/pdm-platform/digital-twin/twin-definition/adapter"
-      );
-      const { TwinStateAdapter } = await import(
-        "../domains/pdm-platform/digital-twin/twin-state/adapter"
-      );
-      const { TwinStateService } = await import(
-        "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
-      );
-      const { ResidualAnalysisService } = await import(
-        "../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service"
-      );
-      const { TelemetryAdapter } = await import(
-        "../domains/pdm-platform/feature-store/telemetry-adapter"
-      );
+  const tick = withSingleFlight(
+    async () => {
+      try {
+        const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
+        const { TwinUpdateService } = await import(
+          "../domains/pdm-platform/twin-updates/twin-update.service"
+        );
+        const { TwinFreshnessAdapter } = await import(
+          "../domains/pdm-platform/twin-updates/adapter"
+        );
+        const { TwinDefinitionAdapter } = await import(
+          "../domains/pdm-platform/digital-twin/twin-definition/adapter"
+        );
+        const { TwinStateAdapter } = await import(
+          "../domains/pdm-platform/digital-twin/twin-state/adapter"
+        );
+        const { TwinStateService } = await import(
+          "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
+        );
+        const { ResidualAnalysisService } = await import(
+          "../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service"
+        );
+        const { TelemetryAdapter } = await import(
+          "../domains/pdm-platform/feature-store/telemetry-adapter"
+        );
 
-      const defAdapter = new TwinDefinitionAdapter();
-      const stateAdapter = new TwinStateAdapter();
-      const telemetryAdapter = new TelemetryAdapter();
-      const stateService = new TwinStateService(stateAdapter, defAdapter, telemetryAdapter);
-      const residualService = new ResidualAnalysisService();
-      const freshnessAdapter = new TwinFreshnessAdapter();
-      const updateService = new TwinUpdateService(freshnessAdapter, stateService, residualService);
+        const defAdapter = new TwinDefinitionAdapter();
+        const stateAdapter = new TwinStateAdapter();
+        const telemetryAdapter = new TelemetryAdapter();
+        const stateService = new TwinStateService(stateAdapter, defAdapter, telemetryAdapter);
+        const residualService = new ResidualAnalysisService();
+        const freshnessAdapter = new TwinFreshnessAdapter();
+        const updateService = new TwinUpdateService(
+          freshnessAdapter,
+          stateService,
+          residualService
+        );
 
-      const result = await updateService.refreshAllActiveTwins(DEFAULT_ORG_ID);
-      if (result.refreshed > 0 || result.failed > 0) {
-        logger.info(`[TwinRefresh] Refreshed ${result.refreshed}, failed ${result.failed}`);
+        const result = await updateService.refreshAllActiveTwins(DEFAULT_ORG_ID);
+        if (result.refreshed > 0 || result.failed > 0) {
+          logger.info(`[TwinRefresh] Refreshed ${result.refreshed}, failed ${result.failed}`);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("[TwinRefresh] Scheduled refresh failed:", undefined, message);
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error("[TwinRefresh] Scheduled refresh failed:", undefined, message);
-    }
-  }, INTERVAL_MS);
+    },
+    () => logger.warn("[TwinRefresh] Previous refresh still running; skipping tick")
+  );
+  setInterval(tick, INTERVAL_MS);
   logger.info("✅ Twin refresh schedule configured (every 5 minutes)");
 }
 
 function setupPredictionExpirySchedule(): void {
   const INTERVAL_MS = 15 * 60 * 1000;
-  setInterval(async () => {
-    try {
-      const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
-      const { PredictionGovernanceService } = await import(
-        "../domains/pdm-platform/prediction-governance/prediction-governance.service"
-      );
-      const { PredictionGovernanceAdapter } = await import(
-        "../domains/pdm-platform/prediction-governance/adapter"
-      );
-      const adapter = new PredictionGovernanceAdapter();
-      const service = new PredictionGovernanceService(adapter);
-      const result = await service.expireStale(DEFAULT_ORG_ID);
-      if (result.expiredCount > 0) {
-        logger.info(`[PredictionExpiry] Expired ${result.expiredCount} stale predictions`);
+  const tick = withSingleFlight(
+    async () => {
+      try {
+        const { DEFAULT_ORG_ID } = await import("../../shared/config/tenant");
+        const { PredictionGovernanceService } = await import(
+          "../domains/pdm-platform/prediction-governance/prediction-governance.service"
+        );
+        const { PredictionGovernanceAdapter } = await import(
+          "../domains/pdm-platform/prediction-governance/adapter"
+        );
+        const adapter = new PredictionGovernanceAdapter();
+        const service = new PredictionGovernanceService(adapter);
+        const result = await service.expireStale(DEFAULT_ORG_ID);
+        if (result.expiredCount > 0) {
+          logger.info(`[PredictionExpiry] Expired ${result.expiredCount} stale predictions`);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("[PredictionExpiry] Scheduled expiry failed:", undefined, message);
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error("[PredictionExpiry] Scheduled expiry failed:", undefined, message);
-    }
-  }, INTERVAL_MS);
+    },
+    () => logger.warn("[PredictionExpiry] Previous expiry still running; skipping tick")
+  );
+  setInterval(tick, INTERVAL_MS);
   logger.info("✅ Prediction expiry schedule configured (every 15 minutes)");
 }
 

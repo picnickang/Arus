@@ -4,21 +4,15 @@
 
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:MlAnalytics:DbMlAnalytics");
-import { randomUUID } from "node:crypto";
-import { eq, and, desc, sql, gte, lte, type SQL } from "drizzle-orm";
+import { eq, and, ne, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
-import { getCloudTableOrUndefined } from "../../utils/cloud-guards";
 import {
   mlModels,
   anomalyDetections,
   failurePredictions,
   thresholdOptimizations,
-  featureImportances,
-  calibrationCurves,
   modelPerformanceValidations,
-  engineerOverrides,
   failureHistory,
 } from "@shared/schema-runtime";
 import type {
@@ -40,8 +34,26 @@ import type {
   InsertFailureHistory,
 } from "@shared/schema";
 import { projectFailureHistory } from "../../graph/projector";
-import { rulModels } from "@shared/schema-runtime";
 import type { RulModel, InsertRulModel } from "@shared/schema";
+import {
+  createCalibrationCurve,
+  createEngineerOverride,
+  createFeatureImportance,
+  createRulModel,
+  deleteEngineerOverride,
+  deprecateCalibrationCurve,
+  expireEngineerOverride,
+  getCalibrationCurve,
+  getCalibrationCurves,
+  getEngineerOverrides,
+  getFeatureImportanceById,
+  getFeatureImportancesByEquipment,
+  getFeatureImportancesByPrediction,
+  getRulModel,
+  getRulModels,
+  updateCalibrationCurve,
+  updateEngineerOverride,
+} from "./db-ml-analytics-cloud.js";
 
 function jsonSet(column: AnyPgColumn | SQL, path: string, value: string) {
   return sql`jsonb_set(COALESCE(${column}, '{}'::jsonb), '${sql.raw(path)}', ${JSON.stringify(value)}::jsonb)`;
@@ -94,6 +106,77 @@ export class DatabaseMlAnalyticsStorage {
     }
     return u;
   }
+  /**
+   * Atomically promote `candidateId` to the sole deployed model for its
+   * equipmentType: in one transaction, archive any other currently-deployed
+   * model of that type and mark the candidate deployed. Replaces the previous
+   * non-transactional archive-loop-then-promote, which left the equipmentType
+   * with zero deployed models if the process failed between the two writes.
+   * Returns the promoted row and the ids it replaced.
+   */
+  async promoteMlModel(
+    candidateId: string,
+    equipmentType: string,
+    orgId: string
+  ): Promise<{ promoted: MlModel; replaced: string[] }> {
+    return db.transaction(async (tx) => {
+      const archived = await tx
+        .update(mlModels)
+        .set({ status: "archived", archivedOn: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(mlModels.orgId, orgId),
+            eq(mlModels.equipmentType, equipmentType),
+            eq(mlModels.status, "deployed"),
+            ne(mlModels.id, candidateId)
+          )
+        )
+        .returning({ id: mlModels.id });
+      const [promoted] = await tx
+        .update(mlModels)
+        .set({
+          status: "deployed",
+          deployedOn: new Date(),
+          archivedOn: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(mlModels.id, candidateId), eq(mlModels.orgId, orgId)))
+        .returning();
+      if (!promoted) {
+        throw new Error(`ML Model ${candidateId} not found or access denied`);
+      }
+      return { promoted, replaced: archived.map((a) => a.id) };
+    });
+  }
+
+  /**
+   * Atomically roll back a deployed model: in one transaction, archive
+   * `currentId` and restore `previousId` to deployed — so there is never a
+   * window where neither is the deployed model.
+   */
+  async rollbackMlModel(currentId: string, previousId: string, orgId: string): Promise<MlModel> {
+    return db.transaction(async (tx) => {
+      await tx
+        .update(mlModels)
+        .set({ status: "archived", archivedOn: new Date(), updatedAt: new Date() })
+        .where(and(eq(mlModels.id, currentId), eq(mlModels.orgId, orgId)));
+      const [restored] = await tx
+        .update(mlModels)
+        .set({
+          status: "deployed",
+          deployedOn: new Date(),
+          archivedOn: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(mlModels.id, previousId), eq(mlModels.orgId, orgId)))
+        .returning();
+      if (!restored) {
+        throw new Error(`ML Model ${previousId} not found or access denied`);
+      }
+      return restored;
+    });
+  }
+
   async deleteMlModel(id: string, orgId: string): Promise<void> {
     const r = await db
       .delete(mlModels)
@@ -358,71 +441,27 @@ export class DatabaseMlAnalyticsStorage {
   }
 
   async createFeatureImportance(importance: InsertFeatureImportance): Promise<FeatureImportance> {
-    const table = getCloudTableOrUndefined(featureImportances);
-    if (!table) {
-      throw new Error("Feature importances are not available in vessel mode");
-    }
-    const [n] = await db
-      .insert(table)
-      .values({ ...importance, calculatedAt: new Date() })
-      .returning();
-    if (!n) {
-      throw new Error("createFeatureImportance: insert returned no row");
-    }
-    return n;
+    return createFeatureImportance(importance);
   }
   async getFeatureImportancesByPrediction(
     orgId: string,
     predictionId: number,
     predictionType: "real_time" | "batch" | "anomaly"
   ): Promise<FeatureImportance[]> {
-    const table = getCloudTableOrUndefined(featureImportances);
-    if (!table) {
-      return [];
-    }
-    const c = [eq(table.orgId, orgId)];
-    if (predictionType === "real_time") {
-      c.push(eq(table.realTimePredictionId, predictionId));
-    } else if (predictionType === "batch") {
-      c.push(eq(table.failurePredictionId, predictionId));
-    } else if (predictionType === "anomaly") {
-      c.push(eq(table.anomalyDetectionId, predictionId));
-    }
-    return db
-      .select()
-      .from(table)
-      .where(and(...c))
-      .orderBy(sql`${table.calculatedAt} DESC`);
+    return getFeatureImportancesByPrediction(orgId, predictionId, predictionType);
   }
   async getFeatureImportancesByEquipment(
     orgId: string,
     equipmentId: string,
     limit: number = 50
   ): Promise<FeatureImportance[]> {
-    const table = getCloudTableOrUndefined(featureImportances);
-    if (!table) {
-      return [];
-    }
-    return db
-      .select()
-      .from(table)
-      .where(and(eq(table.orgId, orgId), eq(table.equipmentId, equipmentId)))
-      .orderBy(sql`${table.calculatedAt} DESC`)
-      .limit(limit);
+    return getFeatureImportancesByEquipment(orgId, equipmentId, limit);
   }
   async getFeatureImportanceById(
     id: number,
     orgId: string
   ): Promise<FeatureImportance | undefined> {
-    const table = getCloudTableOrUndefined(featureImportances);
-    if (!table) {
-      return undefined;
-    }
-    const r = await db
-      .select()
-      .from(table)
-      .where(and(eq(table.id, id), eq(table.orgId, orgId)));
-    return r[0];
+    return getFeatureImportanceById(id, orgId);
   }
 
   async getCalibrationCurves(
@@ -431,78 +470,26 @@ export class DatabaseMlAnalyticsStorage {
     equipmentId?: string,
     status?: string
   ): Promise<CalibrationCurve[]> {
-    const table = getCloudTableOrUndefined(calibrationCurves);
-    if (!table) {
-      return [];
-    }
-    const tCols = tableColumns(table);
-    const c = [eq(table.orgId, orgId)];
-    if (modelId) {
-      const col = tCols["modelId"] ?? tCols["modelType"];
-      if (col) {
-        c.push(eq(col, modelId));
-      }
-    }
-    if (equipmentId) {
-      const col = tCols["equipmentId"] ?? tCols["equipmentType"];
-      if (col) {
-        c.push(eq(col, equipmentId));
-      }
-    }
-    if (status) {
-      c.push(eq(table.status, status));
-    }
-    return db
-      .select()
-      .from(table)
-      .where(and(...c))
-      .orderBy(sql`${table.createdAt} DESC`);
+    return getCalibrationCurves(orgId, modelId, equipmentId, status);
   }
   async getCalibrationCurve(id: string, orgId: string): Promise<CalibrationCurve | undefined> {
-    const table = getCloudTableOrUndefined(calibrationCurves);
-    if (!table) {
-      return undefined;
-    }
-    const r = await db
-      .select()
-      .from(table)
-      .where(and(eq(table.id, id), eq(table.orgId, orgId)));
-    return r[0];
+    return getCalibrationCurve(id, orgId);
   }
   async createCalibrationCurve(
     curve: InsertCalibrationCurve,
     orgId: string
   ): Promise<CalibrationCurve> {
-    const table = getCloudTableOrUndefined(calibrationCurves);
-    if (!table) {
-      throw new Error("Calibration curves are not available in vessel mode");
-    }
-    const [n] = await db
-      .insert(table)
-      .values({ ...curve, orgId, createdAt: new Date() })
-      .returning();
-    if (!n) {
-      throw new Error("createCalibrationCurve: insert returned no row");
-    }
-    return n;
+    return createCalibrationCurve(curve, orgId);
   }
   async updateCalibrationCurve(
     id: string,
     updates: Partial<InsertCalibrationCurve>,
     orgId: string
   ): Promise<CalibrationCurve> {
-    const [u] = await db
-      .update(calibrationCurves)
-      .set(updates)
-      .where(and(eq(calibrationCurves.id, id), eq(calibrationCurves.orgId, orgId)))
-      .returning();
-    if (!u) {
-      throw new Error(`Calibration Curve ${id} not found or access denied`);
-    }
-    return u;
+    return updateCalibrationCurve(id, updates, orgId);
   }
   async deprecateCalibrationCurve(id: string, orgId: string): Promise<CalibrationCurve> {
-    return this.updateCalibrationCurve(id, { status: "deprecated" }, orgId);
+    return deprecateCalibrationCurve(id, orgId);
   }
 
   async getEngineerOverrides(
@@ -516,117 +503,39 @@ export class DatabaseMlAnalyticsStorage {
       toDate?: Date | undefined;
     }
   ): Promise<EngineerOverride[]> {
-    const table = getCloudTableOrUndefined(engineerOverrides);
-    if (!table) {
-      return [];
-    }
-    const c = [eq(table.orgId, orgId)];
-    if (filters?.equipmentId) {
-      c.push(eq(table.equipmentId, filters.equipmentId));
-    }
-    if (filters?.engineerId) {
-      c.push(eq(table.engineerId, filters.engineerId));
-    }
-    if (filters?.overrideType) {
-      c.push(eq(table.overrideType, filters.overrideType));
-    }
-    if (filters?.outcomeStatus) {
-      c.push(eq(table.outcomeStatus, filters.outcomeStatus));
-    }
-    if (filters?.fromDate) {
-      c.push(gte(table.createdAt, filters.fromDate));
-    }
-    if (filters?.toDate) {
-      c.push(lte(table.createdAt, filters.toDate));
-    }
-    return db
-      .select()
-      .from(table)
-      .where(and(...c))
-      .orderBy(sql`${table.createdAt} DESC`);
+    return getEngineerOverrides(orgId, filters);
   }
   async createEngineerOverride(
     override: InsertEngineerOverride,
     orgId: string
   ): Promise<EngineerOverride> {
-    const table = getCloudTableOrUndefined(engineerOverrides);
-    if (!table) {
-      throw new Error("Engineer overrides are not available in vessel mode");
-    }
-    const [n] = await db
-      .insert(table)
-      .values({ ...override, orgId, id: randomUUID(), createdAt: new Date() })
-      .returning();
-    if (!n) {
-      throw new Error("createEngineerOverride: insert returned no row");
-    }
-    return n;
+    return createEngineerOverride(override, orgId);
   }
   async updateEngineerOverride(
     id: string,
     updates: Partial<InsertEngineerOverride>,
     orgId: string
   ): Promise<EngineerOverride> {
-    const [u] = await db
-      .update(engineerOverrides)
-      .set({ ...updates } as never)
-      .where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId)))
-      .returning();
-    if (!u) {
-      throw new Error(`Engineer Override ${id} not found or access denied`);
-    }
-    return u;
+    return updateEngineerOverride(id, updates, orgId);
   }
   async deleteEngineerOverride(id: string, orgId: string): Promise<void> {
-    await db
-      .delete(engineerOverrides)
-      .where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId)));
+    return deleteEngineerOverride(id, orgId);
   }
   async expireEngineerOverride(
     id: string,
     expiredBy: string,
     orgId: string
   ): Promise<EngineerOverride> {
-    return this.updateEngineerOverride(
-      id,
-      { status: "expired", expiredBy, expiredAt: new Date() } as Partial<InsertEngineerOverride>,
-      orgId
-    );
+    return expireEngineerOverride(id, expiredBy, orgId);
   }
 
   async getRulModels(orgId?: string): Promise<RulModel[]> {
-    const table = getCloudTableOrUndefined(rulModels);
-    if (!table) {
-      return [];
-    }
-    if (orgId) {
-      return db.select().from(table).where(eq(table.orgId, orgId)).orderBy(desc(table.createdAt));
-    }
-    return db.select().from(table).orderBy(desc(table.createdAt));
+    return getRulModels(orgId);
   }
   async getRulModel(modelId: string, orgId?: string): Promise<RulModel | undefined> {
-    const table = getCloudTableOrUndefined(rulModels);
-    if (!table) {
-      return undefined;
-    }
-    const conditions = orgId
-      ? and(eq(table.modelId, modelId), eq(table.orgId, orgId))
-      : eq(table.modelId, modelId);
-    const [r] = await db.select().from(table).where(conditions);
-    return r;
+    return getRulModel(modelId, orgId);
   }
   async createRulModel(model: InsertRulModel): Promise<RulModel> {
-    const table = getCloudTableOrUndefined(rulModels);
-    if (!table) {
-      throw new Error("RUL models are not available in vessel mode");
-    }
-    const [n] = await db
-      .insert(table)
-      .values({ ...model, createdAt: new Date(), updatedAt: new Date() })
-      .returning();
-    if (!n) {
-      throw new Error("createRulModel: insert returned no row");
-    }
-    return n;
+    return createRulModel(model);
   }
 }

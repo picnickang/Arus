@@ -15,34 +15,21 @@
  *   nextRecommendedReplacement to equipment_lifecycle)
  */
 
-import { randomUUID } from "node:crypto";
 import { eq, and, desc, gte, lte, inArray, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   maintenanceCosts,
-  laborRates,
-  expenses,
   equipmentLifecycle,
   performanceMetrics,
-  parts,
-  stock,
   equipment,
-  metricsHistory,
-  insightSnapshots,
 } from "@shared/schema-runtime";
 import type {
   MaintenanceCost,
   InsertMaintenanceCost,
-  LaborRate,
-  InsertLaborRate,
-  Expense,
-  InsertExpense,
   EquipmentLifecycle,
   InsertEquipmentLifecycle,
   PerformanceMetric,
   InsertPerformanceMetric,
-  Part,
-  InsightSnapshot,
 } from "@shared/schema";
 import type {
   CostSummary,
@@ -50,6 +37,20 @@ import type {
   PerformanceOverview,
   PerformanceTrendPoint,
 } from "./types.js";
+import {
+  createExpense,
+  createLaborRate,
+  getExpenses,
+  getLaborRates,
+  updateExpenseStatus,
+  updatePartCost,
+  updatePartStockQuantities,
+} from "./db-analytics-finance-inventory.js";
+import {
+  getLatestInsightSnapshot,
+  getMetricsHistory,
+  recordMetricsHistory,
+} from "./db-analytics-history.js";
 
 export class DatabaseAnalyticsStorage {
   // ──────────────────────────────────────────────────────────────────────
@@ -171,26 +172,8 @@ export class DatabaseAnalyticsStorage {
     partId: string,
     updateData: { unitCost: number; supplier: string },
     orgId: string
-  ): Promise<Part> {
-    if (!orgId || orgId.trim() === "") {
-      throw new Error("Organization ID is required");
-    }
-    await db
-      .update(parts)
-      .set({ standardCost: updateData.unitCost, updatedAt: new Date() })
-      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
-    await db
-      .update(stock)
-      .set({ unitCost: updateData.unitCost, updatedAt: new Date() })
-      .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
-    const [u] = await db
-      .select()
-      .from(parts)
-      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
-    if (!u) {
-      throw new Error(`Part ${partId} not found`);
-    }
-    return u;
+  ): ReturnType<typeof updatePartCost> {
+    return updatePartCost(partId, updateData, orgId);
   }
 
   async updatePartStockQuantities(
@@ -202,182 +185,37 @@ export class DatabaseAnalyticsStorage {
       maxStockLevel?: number;
     },
     orgId: string
-  ): Promise<Part> {
-    if (!orgId || orgId.trim() === "") {
-      throw new Error("Organization ID is required");
-    }
-    if (updateData.quantityReserved !== undefined && updateData.quantityReserved < 0) {
-      throw new Error("validation: Reserved quantity cannot be negative");
-    }
-    if (updateData.minStockLevel !== undefined && updateData.minStockLevel < 0) {
-      throw new Error("validation: Minimum stock level cannot be negative");
-    }
-    if (updateData.maxStockLevel !== undefined && updateData.maxStockLevel < 0) {
-      throw new Error("validation: Maximum stock level cannot be negative");
-    }
-    const currentPart = await db
-      .select()
-      .from(parts)
-      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)))
-      .limit(1);
-    if (currentPart.length === 0) {
-      throw new Error(`Part ${partId} not found`);
-    }
-    const part = currentPart[0];
-    if (!part) {
-      throw new Error(`Part ${partId} not found`);
-    }
-    const [currentStockRow] = await db
-      .select()
-      .from(stock)
-      .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)))
-      .limit(1);
-    const newMinStock = updateData.minStockLevel ?? part.minStockQty ?? 0;
-    const newMaxStock = updateData.maxStockLevel ?? part.maxStockQty ?? 0;
-    if (newMinStock > newMaxStock) {
-      throw new Error("validation: Minimum stock level cannot be greater than maximum stock level");
-    }
-    if (updateData.minStockLevel !== undefined || updateData.maxStockLevel !== undefined) {
-      await db
-        .update(parts)
-        .set({ minStockQty: newMinStock, maxStockQty: newMaxStock, updatedAt: new Date() })
-        .where(eq(parts.id, partId));
-    }
-    const stockUpdates: Partial<{
-      quantityOnHand: number;
-      quantityReserved: number;
-      updatedAt: Date;
-    }> = { updatedAt: new Date() };
-    if (updateData.quantityOnHand !== undefined) {
-      stockUpdates.quantityOnHand = updateData.quantityOnHand;
-    }
-    if (updateData.quantityReserved !== undefined) {
-      stockUpdates.quantityReserved = updateData.quantityReserved;
-    }
-    if (Object.keys(stockUpdates).length > 1) {
-      if (currentStockRow) {
-        await db
-          .update(stock)
-          .set(stockUpdates)
-          .where(and(eq(stock.id, currentStockRow.id), eq(stock.orgId, orgId)));
-      } else {
-        await db.insert(stock).values({
-          id: randomUUID(),
-          orgId,
-          partId,
-          partNo: part.partNo,
-          location: "MAIN",
-          quantityOnHand: updateData.quantityOnHand ?? 0,
-          quantityReserved: updateData.quantityReserved ?? 0,
-          unitCost: part.standardCost ?? 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    }
-    const [u] = await db
-      .select()
-      .from(parts)
-      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
-    if (!u) {
-      throw new Error(`Part ${partId} not found`);
-    }
-    return u;
-  }
-
-  private calculateStockStatus(
-    quantityOnHand: number,
-    quantityReserved: number,
-    minStockLevel: number,
-    maxStockLevel: number
-  ): "critical" | "low_stock" | "adequate" | "excess_stock" | "out_of_stock" {
-    const available = Math.max(0, quantityOnHand - quantityReserved);
-    if (quantityOnHand <= 0) {
-      return "out_of_stock";
-    }
-    if (available <= 0) {
-      return "critical";
-    }
-    if (available < minStockLevel * 0.5) {
-      return "critical";
-    }
-    if (available < minStockLevel) {
-      return "low_stock";
-    }
-    if (available > maxStockLevel) {
-      return "excess_stock";
-    }
-    return "adequate";
+  ): ReturnType<typeof updatePartStockQuantities> {
+    return updatePartStockQuantities(partId, updateData, orgId);
   }
 
   // ──────────────────────────────────────────────────────────────────────
   // Labor Rates & Expenses
   // ──────────────────────────────────────────────────────────────────────
 
-  async getLaborRates(orgId?: string): Promise<LaborRate[]> {
-    const c = [];
-    if (orgId) {
-      c.push(eq(laborRates.orgId, orgId));
-    }
-    c.push(eq(laborRates.isActive, true));
-    return db
-      .select()
-      .from(laborRates)
-      .where(and(...c))
-      .orderBy(laborRates.skillLevel);
+  async getLaborRates(orgId?: string): ReturnType<typeof getLaborRates> {
+    return getLaborRates(orgId);
   }
 
-  async createLaborRate(rate: InsertLaborRate): Promise<LaborRate> {
-    const [n] = await db.insert(laborRates).values(rate).returning();
-    if (!n) {
-      throw new Error("createLaborRate: no row returned");
-    }
-    return n;
+  async createLaborRate(
+    ...args: Parameters<typeof createLaborRate>
+  ): ReturnType<typeof createLaborRate> {
+    return createLaborRate(...args);
   }
 
-  async getExpenses(dateFrom?: Date, dateTo?: Date, orgId?: string): Promise<Expense[]> {
-    const c = [];
-    if (orgId) {
-      c.push(eq(expenses.orgId, orgId));
-    }
-    if (dateFrom) {
-      c.push(gte(expenses.expenseDate, dateFrom));
-    }
-    if (dateTo) {
-      c.push(lte(expenses.expenseDate, dateTo));
-    }
-    let query = db.select().from(expenses).$dynamic();
-    if (c.length > 0) {
-      query = query.where(and(...c));
-    }
-    return query.orderBy(desc(expenses.expenseDate));
+  async getExpenses(...args: Parameters<typeof getExpenses>): ReturnType<typeof getExpenses> {
+    return getExpenses(...args);
   }
 
-  async createExpense(expense: InsertExpense): Promise<Expense> {
-    const [n] = await db.insert(expenses).values(expense).returning();
-    if (!n) {
-      throw new Error("createExpense: no row returned");
-    }
-    return n;
+  async createExpense(...args: Parameters<typeof createExpense>): ReturnType<typeof createExpense> {
+    return createExpense(...args);
   }
 
   async updateExpenseStatus(
     expenseId: string,
     status: "pending" | "approved" | "rejected"
-  ): Promise<Expense> {
-    const [u] = await db
-      .update(expenses)
-      .set({
-        approvalStatus: status,
-        approvedAt: status !== "pending" ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(expenses.id, expenseId))
-      .returning();
-    if (!u) {
-      throw new Error(`Expense ${expenseId} not found`);
-    }
-    return u;
+  ): ReturnType<typeof updateExpenseStatus> {
+    return updateExpenseStatus(expenseId, status);
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -627,17 +465,8 @@ export class DatabaseAnalyticsStorage {
   // Metrics History
   // ──────────────────────────────────────────────────────────────────────
 
-  async getMetricsHistory(
-    orgId: string,
-    days: number = 7
-  ): Promise<(typeof metricsHistory.$inferSelect)[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    return db
-      .select()
-      .from(metricsHistory)
-      .where(and(eq(metricsHistory.orgId, orgId), gte(metricsHistory.recordedAt, cutoffDate)))
-      .orderBy(desc(metricsHistory.recordedAt));
+  async getMetricsHistory(orgId: string, days: number = 7): ReturnType<typeof getMetricsHistory> {
+    return getMetricsHistory(orgId, days);
   }
 
   async recordMetricsHistory(record: {
@@ -650,26 +479,8 @@ export class DatabaseAnalyticsStorage {
     healthyEquipment: number;
     warningEquipment: number;
     criticalEquipment: number;
-  }): Promise<typeof metricsHistory.$inferSelect> {
-    const [n] = await db
-      .insert(metricsHistory)
-      .values({
-        orgId: record.orgId,
-        recordedAt: new Date(),
-        activeDevices: record.activeDevices,
-        fleetHealth: record.fleetHealth,
-        openWorkOrders: record.openWorkOrders,
-        riskAlerts: record.riskAlerts,
-        totalEquipment: record.totalEquipment,
-        healthyEquipment: record.healthyEquipment,
-        warningEquipment: record.warningEquipment,
-        criticalEquipment: record.criticalEquipment,
-      })
-      .returning();
-    if (!n) {
-      throw new Error("Failed to create fleet metric record");
-    }
-    return n;
+  }): ReturnType<typeof recordMetricsHistory> {
+    return recordMetricsHistory(record);
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -679,13 +490,7 @@ export class DatabaseAnalyticsStorage {
   async getLatestInsightSnapshot(
     orgId: string,
     scope: string
-  ): Promise<InsightSnapshot | undefined> {
-    const [result] = await db
-      .select()
-      .from(insightSnapshots)
-      .where(and(eq(insightSnapshots.orgId, orgId), eq(insightSnapshots.scope, scope)))
-      .orderBy(desc(insightSnapshots.createdAt))
-      .limit(1);
-    return result;
+  ): ReturnType<typeof getLatestInsightSnapshot> {
+    return getLatestInsightSnapshot(orgId, scope);
   }
 }

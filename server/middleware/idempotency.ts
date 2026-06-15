@@ -2,9 +2,11 @@ import type { Request, Response, NextFunction } from "express";
 import { authenticatedRequest } from "./auth";
 import { logger } from "../utils/logger";
 import {
+  claimKey,
   deleteExpiredResponses,
   getStoredResponse,
   hashIdempotentRequest,
+  releaseClaim,
   storeResponse,
 } from "../storage/idempotency-repository";
 
@@ -21,6 +23,18 @@ const processedKeys = new Map<
 >();
 
 const KEY_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Keys whose first request is still executing in THIS process. The cached
+ * response is only written when the handler responds, so without this guard
+ * two concurrent requests for the same key (a client timeout-retry, or the
+ * outbox replaying while the original is still in flight) both miss the cache
+ * and both run the mutation. The second concurrent caller is bounced with a
+ * retryable status instead; by the time it retries the first has populated the
+ * cache. Note: this is per-process — cross-replica concurrent double-submit
+ * still requires a durable reservation (tracked in the security ledger).
+ */
+const inFlightKeys = new Set<string>();
 
 /**
  * Marks requests already claimed by an idempotency middleware instance, so the
@@ -66,6 +80,23 @@ function sendKeyReused(res: Response): void {
       code: "IDEMPOTENCY_KEY_REUSED",
       message:
         "This Idempotency-Key was already used with a different request body. Use a fresh key for new work.",
+    },
+  });
+}
+
+/**
+ * A request with this key is already executing. 425 Too Early (not 409) is
+ * deliberate: the offline-outbox client treats 409/412 as a *data* conflict
+ * and would pause the operation, whereas 425 falls through to its transient
+ * retry path — the right behaviour, since the first request is about to
+ * populate the cache.
+ */
+function sendInProgress(res: Response): void {
+  res.setHeader("Retry-After", "1");
+  res.status(425).json({
+    error: {
+      code: "IDEMPOTENCY_IN_PROGRESS",
+      message: "A request with this Idempotency-Key is already being processed. Retry shortly.",
     },
   });
 }
@@ -164,9 +195,73 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
       logger.warn(LOG_CTX, `Durable idempotency lookup failed, proceeding: ${String(error)}`);
     }
 
+    // Reservation: no cached response exists yet. The in-process set is the
+    // fast path and the only gate single-process vessels need; the durable
+    // claim below extends mutual exclusion across cloud replicas sharing one
+    // Postgres. The check+add is synchronous (no await), so it is atomic on the
+    // event loop — two same-process callers cannot both pass it.
+    if (inFlightKeys.has(fullKey)) {
+      sendInProgress(res);
+      return;
+    }
+    inFlightKeys.add(fullKey);
+
+    let durablyClaimed = false;
+    let completed = false;
+    const releaseInFlight = () => {
+      inFlightKeys.delete(fullKey);
+      // A claim we won but never completed (handler error, non-2xx, or client
+      // abort) must be released so a retry — here or on another replica — can
+      // re-claim immediately instead of waiting for the claim to expire.
+      if (durablyClaimed && !completed) {
+        releaseClaim(fullKey).catch((error) => {
+          logger.warn(LOG_CTX, `Failed to release idempotency claim: ${String(error)}`);
+        });
+      }
+    };
+    res.on("finish", releaseInFlight);
+    res.on("close", releaseInFlight);
+
+    // Durable cross-replica reservation (B2 residual). Insert a pending row
+    // keyed by fullKey; the first replica to land it wins and runs the
+    // mutation, later replicas lose. A claim failure (DB unavailable) falls
+    // through to processing — availability over strictness, matching the L2
+    // lookup above.
+    try {
+      durablyClaimed = await claimKey({ fullKey, orgId, idempotencyKey, requestHash });
+      if (!durablyClaimed) {
+        // Another replica owns the key. It may have completed between our L2
+        // read and now, so re-check the durable store before bouncing.
+        try {
+          const stored = await getStoredResponse(fullKey);
+          if (stored) {
+            if (stored.requestHash !== undefined && stored.requestHash !== requestHash) {
+              sendKeyReused(res);
+              return;
+            }
+            processedKeys.set(fullKey, {
+              statusCode: stored.statusCode,
+              body: stored.body,
+              processedAt: Date.now(),
+              requestHash,
+            });
+            res.status(stored.statusCode).json(stored.body);
+            return;
+          }
+        } catch (error) {
+          logger.warn(LOG_CTX, `Durable idempotency re-check failed: ${String(error)}`);
+        }
+        sendInProgress(res);
+        return;
+      }
+    } catch (error) {
+      logger.warn(LOG_CTX, `Durable idempotency claim failed, proceeding: ${String(error)}`);
+    }
+
     const originalJson = res.json.bind(res);
     res.json = function (body: unknown) {
       if (res.statusCode >= 200 && res.statusCode < 300) {
+        completed = true;
         processedKeys.set(fullKey, {
           statusCode: res.statusCode,
           body,
@@ -197,6 +292,7 @@ export default idempotencyMiddleware;
 export const _internals = {
   cleanupExpiredKeys,
   processedKeys,
+  inFlightKeys,
   stopCleanupInterval() {
     if (cleanupInterval) {
       clearInterval(cleanupInterval);

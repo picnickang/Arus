@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Bot, Plus, ArrowLeft, Clock, Upload } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
-import { ALLOWED_FILE_TYPES, MAX_ATTACHMENTS, MAX_FILE_SIZE_BYTES, MAX_RETRIES } from "./constants";
+import { MAX_RETRIES } from "./constants";
 import { fetchStreamWithRetry, readStreamWithRetry } from "./streamClient";
-import { ConversationHistory } from "./ConversationHistory";
-import { EmptyState } from "./EmptyState";
-import { MessageBubble } from "./MessageBubble";
-import { StreamingIndicator } from "./StreamingIndicator";
-import { MessageInputBar } from "./MessageInputBar";
+import { AgentChatPanelShell } from "./AgentChatPanelShell";
+import { useAgentChatAttachments } from "./useAgentChatAttachments";
+import { useAgentChatVoice } from "./useAgentChatVoice";
 import type {
   ChatMessage,
   Conversation,
@@ -23,21 +17,6 @@ import type {
   StreamChunk,
   ToolCallTrace,
 } from "./types";
-
-interface MinimalSpeechRecognitionEvent {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>;
-}
-
-interface MinimalSpeechRecognition {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: MinimalSpeechRecognitionEvent) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-}
 
 export function AgentChatPanel({
   open,
@@ -54,21 +33,30 @@ export function AgentChatPanel({
   const [streamingMessages, setStreamingMessages] = useState<ChatMessage[]>([]);
   const [pendingToolCalls, setPendingToolCalls] = useState<ToolCallTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [streamText, setStreamText] = useState("");
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [filePreviews, setFilePreviews] = useState<Map<string, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const convIdRef = useRef<string | null>(null);
-  const recognitionRef = useRef<MinimalSpeechRecognition | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const {
+    attachedFiles,
+    fileInputRef,
+    filePreviews,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
+    handleFileSelect,
+    isDragOver,
+    removeFile,
+    setAttachedFiles,
+    setFilePreviews,
+    setUploadProgress,
+    uploadProgress,
+  } = useAgentChatAttachments();
+  const { isListening, toggleVoiceInput } = useAgentChatVoice({ setMessage });
 
   convIdRef.current = conversationId;
 
@@ -173,128 +161,6 @@ export function AgentChatPanel({
       initialMessageRef.current = null;
     }
   }, [open, initialMessage, isStreaming]);
-
-  const generatePreview = useCallback((file: File) => {
-    if (file.type.startsWith("image/")) {
-      const key = `${file.name}-${file.size}`;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          setFilePreviews((prev) => new Map(prev).set(key, result));
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  }, []);
-
-  const addFiles = useCallback(
-    (files: File[]) => {
-      const valid = files.filter(
-        (f) => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= MAX_FILE_SIZE_BYTES
-      );
-      if (valid.length < files.length) {
-        toast({
-          title: "Some files skipped",
-          description: "Only PNG/JPG images, PDFs, and CSV files under 10MB are supported.",
-          variant: "destructive",
-        });
-      }
-      valid.forEach(generatePreview);
-      setAttachedFiles((prev) => [...prev, ...valid].slice(0, MAX_ATTACHMENTS));
-    },
-    [toast, generatePreview]
-  );
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    addFiles(files);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setAttachedFiles((prev) => {
-      const removed = prev[index];
-      if (removed) {
-        const key = `${removed.name}-${removed.size}`;
-        setFilePreviews((p) => {
-          const n = new Map(p);
-          n.delete(key);
-          return n;
-        });
-      }
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(false);
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      if (droppedFiles.length > 0) {
-        addFiles(droppedFiles);
-      }
-    },
-    [addFiles]
-  );
-
-  const toggleVoiceInput = useCallback(() => {
-    type SpeechRecognitionConstructor = new () => MinimalSpeechRecognition;
-    const W = window as Window & {
-      SpeechRecognition?: SpeechRecognitionConstructor;
-      webkitSpeechRecognition?: SpeechRecognitionConstructor;
-    };
-    const SpeechRecognitionAPI = W.SpeechRecognition || W.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      toast({
-        title: "Not supported",
-        description: "Voice input is not supported in this browser.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
-
-    recognition.onresult = (event: MinimalSpeechRecognitionEvent) => {
-      const transcript = event.results[0]?.[0]?.transcript;
-      if (transcript) {
-        setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript));
-      }
-      setIsListening(false);
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-  }, [isListening, toast]);
 
   const sendMessage = useCallback(async () => {
     if ((!message.trim() && attachedFiles.length === 0) || isStreaming) {
@@ -550,138 +416,42 @@ export function AgentChatPanel({
   const approvalPending = approveMutation.isPending || rejectMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="right"
-        className="w-full sm:w-[440px] p-0 flex flex-col"
-        data-testid="card-agent-chat-panel"
-      >
-        <SheetHeader className="px-4 py-3 border-b flex-shrink-0">
-          <div className="flex items-center justify-between">
-            {showHistory ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowHistory(false)}
-                  aria-label="Back to chat"
-                  data-testid="button-back-to-chat"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <SheetTitle className="text-base">Conversations</SheetTitle>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-primary" />
-                <SheetTitle className="text-base">ARUS Copilot</SheetTitle>
-                {pendingDraftCount > 0 && (
-                  <span
-                    className="h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium"
-                    data-testid="badge-pending-drafts"
-                  >
-                    {pendingDraftCount}
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="flex gap-1">
-              {!showHistory && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowHistory(true)}
-                    aria-label="Show conversation history"
-                    data-testid="button-show-history"
-                  >
-                    <Clock className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={startNewConversation}
-                    aria-label="Start new conversation"
-                    data-testid="button-new-conversation"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </SheetHeader>
-
-        {showHistory ? (
-          <ConversationHistory
-            conversations={conversations}
-            selectedId={conversationId}
-            onSelect={selectConversation}
-          />
-        ) : (
-          <>
-            <div
-              className={cn(
-                "flex-1 overflow-y-auto relative",
-                isDragOver && "ring-2 ring-primary ring-inset"
-              )}
-              ref={scrollRef}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {isDragOver && (
-                <div className="absolute inset-0 bg-primary/5 z-10 flex items-center justify-center pointer-events-none">
-                  <div className="flex flex-col items-center gap-2 text-primary">
-                    <Upload className="h-8 w-8" />
-                    <span className="text-sm font-medium">Drop files here</span>
-                  </div>
-                </div>
-              )}
-              <div className="p-4 space-y-4">
-                {allMessages.length === 0 && !isStreaming && (
-                  <EmptyState onSelectPrompt={(q) => setMessage(q)} />
-                )}
-
-                {allMessages.map((msg) => (
-                  <MessageBubble
-                    key={msg.id}
-                    msg={msg}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    approvalPending={approvalPending}
-                  />
-                ))}
-
-                {isStreaming && (
-                  <StreamingIndicator
-                    pendingToolCalls={pendingToolCalls}
-                    retryStatus={retryStatus}
-                    streamText={streamText}
-                  />
-                )}
-              </div>
-            </div>
-
-            <MessageInputBar
-              message={message}
-              setMessage={setMessage}
-              attachedFiles={attachedFiles}
-              filePreviews={filePreviews}
-              uploadProgress={uploadProgress}
-              isStreaming={isStreaming}
-              isListening={isListening}
-              onRemoveFile={removeFile}
-              onPickFiles={handleFileSelect}
-              onToggleVoice={toggleVoiceInput}
-              onSubmit={sendMessage}
-              inputRef={inputRef}
-              fileInputRef={fileInputRef}
-              formRef={chatFormRef}
-            />
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
+    <AgentChatPanelShell
+      allMessages={allMessages}
+      approvalPending={approvalPending}
+      attachedFiles={attachedFiles}
+      chatFormRef={chatFormRef}
+      conversationId={conversationId}
+      conversations={conversations}
+      fileInputRef={fileInputRef}
+      filePreviews={filePreviews}
+      handleApprove={handleApprove}
+      handleDragLeave={handleDragLeave}
+      handleDragOver={handleDragOver}
+      handleDrop={handleDrop}
+      handleFileSelect={handleFileSelect}
+      handleReject={handleReject}
+      inputRef={inputRef}
+      isDragOver={isDragOver}
+      isListening={isListening}
+      isStreaming={isStreaming}
+      message={message}
+      onClose={onClose}
+      open={open}
+      pendingDraftCount={pendingDraftCount}
+      pendingToolCalls={pendingToolCalls}
+      removeFile={removeFile}
+      retryStatus={retryStatus}
+      scrollRef={scrollRef}
+      selectConversation={selectConversation}
+      sendMessage={sendMessage}
+      setMessage={setMessage}
+      setShowHistory={setShowHistory}
+      showHistory={showHistory}
+      startNewConversation={startNewConversation}
+      streamText={streamText}
+      toggleVoiceInput={toggleVoiceInput}
+      uploadProgress={uploadProgress}
+    />
   );
 }

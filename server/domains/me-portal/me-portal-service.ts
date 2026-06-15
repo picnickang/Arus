@@ -16,7 +16,6 @@ import {
   deleteUserSessionByToken,
   getDashboardPrefs,
   upsertDashboardPrefs,
-  getCrewLinkId,
   findUserByUsername,
   touchUserLastLogin,
   getUserById,
@@ -28,16 +27,9 @@ import {
   type PilotFeedbackWithSubmitter,
 } from "./infrastructure/me-portal-queries";
 import type { PilotFeedback, PilotFeedbackDraft, PilotFeedbackReview } from "@shared/schema";
-import {
-  dbAlertStorage,
-  dbMaintenanceStorage,
-  dbSystemAdminStorage,
-  vesselService,
-  workOrderService,
-} from "../../repositories";
+import { dbSystemAdminStorage, vesselService } from "../../repositories";
 import { crewAdminService } from "../../services/crew-admin-facade";
 import { safetyAlarmService, AlarmValidationError } from "../../services/safety-alarm-facade";
-import { crewTaskService } from "../../services/crew-task-facade";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -45,11 +37,11 @@ import {
   ALARM_SEVERITY_RANK,
   mergeDashboardConfigs,
   applyUserDashboardPrefs,
-  scopeForSource,
   scopeForAlarms,
 } from "@shared/role-dashboard";
 import type { SafetyAlarmWithAcks, UserAlarmScope } from "../../services/safety-alarm-facade";
 import type { VesselAssignmentEntity } from "../../services/crew-admin-facade";
+import { buildMePortalTasks } from "./me-portal-task-feed";
 
 const BCRYPT_COST = 12;
 const MIN_PASSWORD_LENGTH = 8;
@@ -115,21 +107,6 @@ interface SessionResult {
 
 function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-/** Normalize a priority field that may arrive as a string or a numeric rank. */
-function asPriority(value: unknown): string | null {
-  if (typeof value === "string") {
-    return value;
-  }
-  if (typeof value === "number") {
-    return String(value);
-  }
-  return null;
 }
 
 export class MePortalService {
@@ -255,138 +232,7 @@ export class MePortalService {
 
   async getTasks(user: MeUser): Promise<TaskItem[]> {
     await this.assertPasswordChangeNotRequired(user);
-    const configs = await crewAdminService.resolveEffectiveConfigList(
-      user.orgId,
-      user.id,
-      user.role
-    );
-    const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
-    const sources = new Set<TaskSourceKey>(configs.flatMap((c) => c.taskSources));
-    const items: TaskItem[] = [];
-
-    if (sources.has("work_orders")) {
-      // Scope work orders ONLY by the roles that grant the work_orders source —
-      // never by a broader scope a different role holds for a different feed.
-      const scope = this.computeScope(assignments, scopeForSource(configs, "work_orders"));
-      const workOrders = (await workOrderService.getWorkOrdersWithDetails(
-        undefined,
-        user.orgId
-      )) as unknown[];
-      for (const raw of workOrders) {
-        if (typeof raw !== "object" || raw === null) {
-          continue;
-        }
-        const wo = raw as Record<string, unknown>;
-        const vesselId = asString(wo["vesselId"]);
-        if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
-          continue;
-        }
-        const id = asString(wo["id"]);
-        if (!id) {
-          continue;
-        }
-        items.push({
-          id,
-          source: "work_orders",
-          title: asString(wo["title"]) ?? asString(wo["description"]) ?? "Work order",
-          status: asString(wo["status"]),
-          priority: asString(wo["priority"]),
-          vesselId,
-          link: `/work-orders?id=${id}`,
-        });
-      }
-    }
-
-    if (sources.has("maintenance_schedules")) {
-      const scope = this.computeScope(
-        assignments,
-        scopeForSource(configs, "maintenance_schedules")
-      );
-      const schedules = (await dbMaintenanceStorage.getMaintenanceSchedules(
-        undefined,
-        user.orgId
-      )) as unknown[];
-      for (const raw of schedules) {
-        if (typeof raw !== "object" || raw === null) {
-          continue;
-        }
-        const row = raw as Record<string, unknown>;
-        const vesselId = asString(row["vesselId"]);
-        if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
-          continue;
-        }
-        const id = asString(row["id"]);
-        if (!id) {
-          continue;
-        }
-        items.push({
-          id,
-          source: "maintenance_schedules",
-          title:
-            asString(row["description"]) ??
-            asString(row["maintenanceType"]) ??
-            "Maintenance schedule",
-          status: asString(row["status"]),
-          priority: asPriority(row["priority"]),
-          vesselId,
-          link: `/maintenance?id=${id}`,
-        });
-      }
-    }
-
-    if (sources.has("alerts")) {
-      const scope = this.computeScope(assignments, scopeForSource(configs, "alerts"));
-      // Only unacknowledged alerts are actionable for a personal task feed.
-      const alerts = (await dbAlertStorage.getAlertNotifications(false, user.orgId)) as unknown[];
-      for (const raw of alerts) {
-        if (typeof raw !== "object" || raw === null) {
-          continue;
-        }
-        const row = raw as Record<string, unknown>;
-        const vesselId = asString(row["vesselId"]);
-        if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
-          continue;
-        }
-        const id = asString(row["id"]);
-        if (!id) {
-          continue;
-        }
-        items.push({
-          id,
-          source: "alerts",
-          title: asString(row["title"]) ?? asString(row["message"]) ?? "Alert",
-          status: row["acknowledged"] === true ? "acknowledged" : "active",
-          priority: asString(row["severity"]) ?? asString(row["alertType"]),
-          vesselId,
-          link: `/alerts?id=${id}`,
-        });
-      }
-    }
-
-    if (sources.has("crew_tasks")) {
-      // Personal crew-task feed = tasks assigned to THIS user's crew record.
-      // The portal identity is a `users` row; crew tasks reference `crew.id`,
-      // so resolve the 1:1 crew link first. No crew record => no crew tasks.
-      const crewMember = await getCrewLinkId(user.orgId, user.id);
-      if (crewMember) {
-        const tasks = await crewTaskService.listTasks(user.orgId, {
-          assignedCrewId: crewMember.id,
-        });
-        for (const task of tasks) {
-          items.push({
-            id: task.id,
-            source: "crew_tasks",
-            title: task.title,
-            status: task.status,
-            priority: task.priority,
-            vesselId: task.vesselId,
-            link: `/crew-management?taskId=${task.id}`,
-          });
-        }
-      }
-    }
-
-    return items;
+    return buildMePortalTasks(user, (assignments, scope) => this.computeScope(assignments, scope));
   }
 
   async getVisibleAlarms(user: MeUser): Promise<MeAlarmView[]> {

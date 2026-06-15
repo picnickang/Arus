@@ -29,18 +29,17 @@ import { test, expect, type ConsoleMessage, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { navigationCategories, migrateRoute } from "../../client/src/config/navigationConfig";
-import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
+import { isMobileReadinessReplacementPath } from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
+import {
+  installRoleFixtures,
+  isBenignConsoleError,
+  loginRole,
+  navigateWithinAuthenticatedSpa,
+} from "./helpers/spa-auth";
+import { buildNavTargets, type NavTarget } from "./helpers/hub-targets";
+import { expectedScreenTestId } from "./helpers/roles";
 
 type RoleKey = "system_admin" | "deck_officer";
-
-interface NavTarget {
-  readonly label: string;
-  readonly href: string;
-  readonly resolved: string;
-  readonly category: string;
-  readonly kind: "hub" | "child";
-}
 
 interface Viewport {
   readonly name: "mobile" | "tablet" | "desktop";
@@ -66,94 +65,20 @@ const VIEWPORTS: readonly Viewport[] = [
 
 const ROLES: readonly RoleKey[] = ["system_admin", "deck_officer"];
 
-/**
- * Build the full list of nav targets from the single source of truth.
- * De-dupe by resolved URL so we don't visit `/foo` twice when two
- * children alias the same destination after `migrateRoute`.
- */
-function buildTargets(): NavTarget[] {
-  const seen = new Set<string>();
-  const out: NavTarget[] = [];
-  for (const cat of navigationCategories) {
-    const hubResolved = migrateRoute(cat.hubRoute);
-    if (!seen.has(hubResolved)) {
-      seen.add(hubResolved);
-      out.push({
-        label: cat.name,
-        href: cat.hubRoute,
-        resolved: hubResolved,
-        category: cat.id,
-        kind: "hub",
-      });
-    }
-    for (const child of cat.children) {
-      const resolvedChild = migrateRoute(child.href);
-      if (seen.has(resolvedChild)) {
-        continue;
-      }
-      seen.add(resolvedChild);
-      out.push({
-        label: child.name,
-        href: child.href,
-        resolved: resolvedChild,
-        category: cat.id,
-        kind: "child",
-      });
-    }
-  }
-  return out;
-}
+const NAV_TARGETS = buildNavTargets();
 
-const NAV_TARGETS = buildTargets();
-
-/**
- * Narrowly-scoped allowlist of known benign dev-only console noise.
- * Mirrors `tests/playwright/smoke.spec.ts` exactly so the matrix
- * inherits the same blast radius — never broaden without review.
- */
-function isBenignConsoleError(text: string): boolean {
-  if (text.includes("Failed to load resource") && text.includes("favicon")) {
-    return true;
-  }
-  if (text.includes("[vite] connecting...")) {
-    return true;
-  }
-  if (text.includes("[vite] connected.")) {
-    return true;
-  }
-  return false;
-}
-
-function attachErrorListeners(page: Page, consoleErrors: string[], pageErrors: string[]) {
-  const onConsole = (msg: ConsoleMessage) => {
-    if (msg.type() !== "error") {
-      return;
-    }
-    const text = msg.text();
-    if (isBenignConsoleError(text)) {
-      return;
-    }
-    consoleErrors.push(text);
-  };
-  const onPageError = (err: Error) => {
-    pageErrors.push(`${err.name}: ${err.message}`);
-  };
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
-}
-
-async function seedRole(page: Page, role: RoleKey): Promise<void> {
-  await page.addInitScript(
-    ({ key, value }) => {
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem(key, value);
-      } catch {
-        /* private mode — fine */
-      }
-    },
-    { key: ROLE_STORAGE_KEY, value: role }
+function isRegularAllowedTarget(target: NavTarget): boolean {
+  const path = new URL(target.resolved, "http://arus.local").pathname;
+  return (
+    path === "/logs" ||
+    path.startsWith("/logs/") ||
+    path === "/fleet" ||
+    path.startsWith("/fleet/") ||
+    path === "/vessel-intelligence" ||
+    path.startsWith("/vessel-intelligence/") ||
+    path === "/crew-management" ||
+    path === "/pdm-platform" ||
+    path.startsWith("/pdm/equipment/")
   );
 }
 
@@ -162,7 +87,7 @@ async function seedRole(page: Page, role: RoleKey): Promise<void> {
  * not the NotFound fallback. We assert `<main>` (or `#root` if a page
  * doesn't wrap with `<main>`) renders non-empty visible content.
  */
-async function expectRouteRendered(page: Page, target: NavTarget): Promise<void> {
+async function expectRouteRendered(page: Page, target: NavTarget, role: RoleKey): Promise<void> {
   await page.waitForLoadState("domcontentloaded");
   // The Wouter `<Route component={NotFound}/>` fallback renders the
   // text "404 Page Not Found" — fail loudly if the matrix lands on it.
@@ -177,6 +102,23 @@ async function expectRouteRendered(page: Page, target: NavTarget): Promise<void>
   const root = page.locator("#root");
   await expect(root).toBeAttached();
   await expect(root).not.toBeEmpty({ timeout: 10_000 });
+
+  await expect(page.getByTestId("text-admin-hubs-title")).toHaveCount(0);
+  await expect(page.getByTestId("shell-admin-hubs")).toHaveCount(0);
+
+  if (role !== "system_admin" && !isRegularAllowedTarget(target)) {
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
+    return;
+  }
+
+  if (isMobileReadinessReplacementPath(target.resolved)) {
+    await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
+  }
+  await expect(
+    page.getByTestId(expectedScreenTestId(target.resolved, { fallback: "universal-ops-shell" }))
+  ).toBeVisible();
 }
 
 const results: MatrixResult[] = [];
@@ -192,11 +134,12 @@ test.describe("UI nav regression matrix", () => {
       test(`${role} @ ${viewport.name} (${viewport.width}x${viewport.height})`, async ({
         page,
       }) => {
-        await seedRole(page, role);
+        await installRoleFixtures(page, { role });
         await page.setViewportSize({
           width: viewport.width,
           height: viewport.height,
         });
+        await loginRole(page, role);
 
         const failures: string[] = [];
 
@@ -223,16 +166,19 @@ test.describe("UI nav regression matrix", () => {
           let finalUrl = "";
           try {
             await test.step(`${target.kind} "${target.label}" → ${target.resolved}`, async () => {
-              const response = await page.goto(target.href, {
-                waitUntil: "domcontentloaded",
-              });
-              expect(response, `navigation response for ${target.href}`).not.toBeNull();
-              expect(response!.status(), `${target.href} HTTP status`).toBeLessThan(500);
-
-              await expectRouteRendered(page, target);
+              await navigateWithinAuthenticatedSpa(page, target.href);
+              await expectRouteRendered(page, target, role);
 
               const url = new URL(page.url());
               finalUrl = url.pathname + url.search;
+
+              if (role !== "system_admin" && !isRegularAllowedTarget(target)) {
+                expect(
+                  url.pathname,
+                  `${target.href} should redirect regular users to command`
+                ).toBe("/");
+                return;
+              }
 
               // The URL after navigation should equal either the
               // declared href OR its migrated target — legacyRedirects
@@ -258,7 +204,9 @@ test.describe("UI nav regression matrix", () => {
           } catch (err) {
             stepStatus = "fail";
             const msg = err instanceof Error ? err.message : String(err);
-            failures.push(`${target.label} (${target.href}): ${msg.split("\n")[0]}`);
+            const firstDetail =
+              stepConsole[0]?.split("\n")[0] || stepPage[0]?.split("\n")[0] || msg.split("\n")[0];
+            failures.push(`${target.label} (${target.href}): ${firstDetail}`);
           } finally {
             page.off("console", onConsole);
             page.off("pageerror", onPage);
@@ -338,38 +286,40 @@ test.describe("UI nav regression matrix", () => {
  */
 test.describe("Reskin smoke — admin home interactions", () => {
   test.beforeEach(async ({ page }) => {
-    await seedRole(page, "system_admin");
+    await installRoleFixtures(page, { role: "system_admin" });
     await page.setViewportSize({ width: 375, height: 812 });
+    await loginRole(page, "system_admin");
   });
 
-  test("Admin Hubs list renders with the role pill", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
-    await expect(page.getByTestId("list-admin-hubs")).toBeVisible();
-    await expect(page.getByTestId("pill-role")).toBeVisible();
+  test("Command Queue renders with the replacement mobile shell", async ({ page }) => {
+    await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
+    await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
+    await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
+    await expect(page.getByTestId("text-admin-hubs-title")).toHaveCount(0);
+    await expect(page.getByTestId("shell-admin-hubs")).toHaveCount(0);
   });
 
-  test("Maintenance hub card routes to /maint", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    const card = page.getByTestId("card-hub-maintenance");
-    await expect(card).toBeVisible();
-    await card.click();
-    await expect(page).toHaveURL(/\/maint(\?|$)/);
+  test("Tasks bottom-nav item routes to the replacement work queue", async ({ page }) => {
+    const tasks = page.getByTestId("mobile-readiness-nav-tasks");
+    await expect(tasks).toBeVisible();
+    await tasks.click();
+    await expect(page).toHaveURL(/\/work-orders(\?|$)/);
+    await expect(page.getByTestId("mobile-readiness-screen-work-queue")).toBeVisible();
   });
 });
 
 test.describe("Reskin smoke — user home interactions", () => {
   test.beforeEach(async ({ page }) => {
-    await seedRole(page, "deck_officer");
+    await installRoleFixtures(page, { role: "deck_officer" });
     await page.setViewportSize({ width: 375, height: 812 });
+    await loginRole(page, "deck_officer");
   });
 
-  test("user-portal Feedback CTA opens /feedback", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    const cta = page.getByTestId("button-user-open-feedback");
-    await expect(cta).toBeVisible();
-    await cta.click();
-    await expect(page).toHaveURL(/\/feedback(\?|$)/);
-    await expect(page.getByTestId("page-feedback")).toBeVisible();
+  test("Logs bottom-nav item opens the replacement logs screen", async ({ page }) => {
+    const logs = page.getByTestId("mobile-readiness-nav-logs");
+    await expect(logs).toBeVisible();
+    await logs.click();
+    await expect(page).toHaveURL(/\/logs(\?|$)/);
+    await expect(page.getByTestId("mobile-readiness-screen-logs")).toBeVisible();
   });
 });

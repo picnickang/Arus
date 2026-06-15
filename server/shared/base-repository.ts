@@ -143,9 +143,14 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     filters?: FilterOptions,
     sort?: SortOptions
   ): Promise<PaginatedResult<T>> {
-    const page = pagination.page ?? 1;
-    const pageSize = pagination.pageSize ?? pagination.limit ?? 20;
-    const offset = pagination.offset ?? (page - 1) * pageSize;
+    // Clamp pagination to sane integers so out-of-range input (0, negative, or
+    // NaN) can't produce a negative LIMIT/OFFSET or an `Infinity` totalPages
+    // (which serializes to `null`). Callers that validate still get exact values.
+    const clampInt = (v: number | undefined, min: number, fallback: number): number =>
+      Number.isFinite(v) ? Math.max(min, Math.trunc(v as number)) : fallback;
+    const page = clampInt(pagination.page, 1, 1);
+    const pageSize = clampInt(pagination.pageSize ?? pagination.limit, 1, 20);
+    const offset = clampInt(pagination.offset, 0, (page - 1) * pageSize);
 
     const conditions: SQL[] = [eq(this.requireCol(this.orgIdColumn), orgId)];
 

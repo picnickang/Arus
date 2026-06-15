@@ -13,6 +13,7 @@ import type {
   InsertNotificationQueue as InsertNotificationQueueItem,
 } from "@shared/schema";
 import { format } from "date-fns";
+import type { SendResult } from "./types.js";
 import { log, calculateBackoff } from "./logger.js";
 import { emailSender } from "./email-sender.js";
 
@@ -22,17 +23,25 @@ export async function queueNotification(
   return dbNotificationsStorage.createNotificationQueueItem(item);
 }
 
-export async function processQueueItem(item: NotificationQueueItem): Promise<void> {
+export async function processQueueItem(item: NotificationQueueItem): Promise<SendResult> {
   const currentAttempt = (item.attemptCount ?? 0) + 1;
   const maxAttempts = Number.parseInt(process.env["EMAIL_MAX_RETRIES"] || "3", 10) + 1;
   const retryConfig = emailSender.getRetryConfig();
 
-  const result = await emailSender.sendEmail({
-    to: item.recipients as string[],
-    subject: item.subject,
-    text: item.body,
-    html: item.bodyHtml || undefined,
-  });
+  const result = await emailSender.sendEmail(
+    {
+      to: item.recipients as string[],
+      subject: item.subject,
+      text: item.body,
+      html: item.bodyHtml || undefined,
+    },
+    item.orgId,
+    {
+      alertType: item.notificationType,
+      relatedEntityType: item.relatedEntityType,
+      relatedEntityId: item.relatedEntityId,
+    }
+  );
 
   if (result.success) {
     await dbNotificationsStorage.updateNotificationQueueItem(
@@ -46,7 +55,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       },
       item.orgId
     );
-    return;
+    return result;
   }
 
   const shouldRetry = result.retriable && currentAttempt < maxAttempts;
@@ -90,6 +99,8 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       item.orgId
     );
   }
+
+  return result;
 }
 
 export async function processDigestQueue(): Promise<number> {
@@ -132,12 +143,16 @@ export async function processDigestQueue(): Promise<number> {
       </div>
     `;
 
-    const result = await emailSender.sendEmail({
-      to: items[0]!.recipients as string[],
-      subject: digestSubject,
-      text: digestText,
-      html: digestHtml,
-    });
+    const result = await emailSender.sendEmail(
+      {
+        to: items[0]!.recipients as string[],
+        subject: digestSubject,
+        text: digestText,
+        html: digestHtml,
+      },
+      items[0]!.orgId,
+      { alertType: "digest" }
+    );
 
     for (const item of items) {
       await dbNotificationsStorage.updateNotificationQueueItem(
@@ -156,6 +171,27 @@ export async function processDigestQueue(): Promise<number> {
   }
 
   return processedCount;
+}
+
+/**
+ * Drain immediate (non-digest) pending notifications: rows with recipients and
+ * no scheduledFor — e.g. RMS alerts inserted directly into notification_queue.
+ * Each is sent individually via processQueueItem (with its retry/backoff
+ * semantics). Digest-scheduled rows (scheduledFor set) are handled by
+ * processDigestQueue; rows with no recipients (in-app feed entries) are skipped.
+ */
+export async function processPendingNotifications(): Promise<number> {
+  const pendingItems = await dbNotificationsStorage.getNotificationQueue("pending");
+  const immediate = pendingItems.filter(
+    (item) => !item.scheduledFor && ((item.recipients as string[] | null)?.length ?? 0) > 0
+  );
+
+  let processed = 0;
+  for (const item of immediate) {
+    await processQueueItem(item);
+    processed++;
+  }
+  return processed;
 }
 
 export async function retryFailedNotifications(maxAttempts: number = 3): Promise<number> {

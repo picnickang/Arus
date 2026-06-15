@@ -2,19 +2,6 @@
  * Inventory/Parts - Types
  */
 
-export type {
-  Part,
-  InsertPart,
-  PartsInventory,
-  InsertPartsInventory,
-  Supplier,
-  InsertSupplier,
-  Stock,
-  InsertStock,
-  PartSubstitution,
-  InsertPartSubstitution,
-} from "@shared/schema-runtime";
-
 export interface PartFilters {
   category?: string | undefined;
   location?: string | undefined;

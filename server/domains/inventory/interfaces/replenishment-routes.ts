@@ -8,6 +8,9 @@ import { workOrderDemandRepository } from "../infrastructure/work-order-demand-r
 export const replenishmentRouter = Router();
 
 const generalLimit = RateLimiters.general();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+replenishmentRouter.use(generalLimit);
 const service = new ReplenishmentSuggestionService(workOrderDemandRepository);
 
 replenishmentRouter.get(

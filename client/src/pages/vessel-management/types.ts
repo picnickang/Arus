@@ -1,11 +1,9 @@
 import type { Equipment } from "@shared/schema";
+import type { EquipmentHealth } from "@/lib/api/equipment";
 
-export interface EquipmentHealth {
-  equipmentId: string;
-  healthScore: number;
-  status: string;
-  [key: string]: unknown;
-}
+// Canonical EquipmentHealth lives in the API layer; re-exported here so existing
+// imports from this module keep working without a duplicate definition.
+export type { EquipmentHealth };
 
 export interface EquipmentWithHealth extends Equipment {
   health?: EquipmentHealth;

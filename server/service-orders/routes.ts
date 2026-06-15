@@ -31,6 +31,17 @@ function getOrgId(req: Request): string {
 }
 
 /**
+ * Derive the acting user's id from the authenticated session for audit
+ * attribution on status transitions. Never trust a client-supplied
+ * `req.body.userId` for this — the actor written to the service-order event
+ * log must be the logged-in user, not a value the caller can set to anyone.
+ */
+function getActorUserId(req: Request): string | undefined {
+  const authReq = authenticatedRequest(req);
+  return authReq.user?.id ?? authReq.session?.userId;
+}
+
+/**
  * Express types req.params as `Record<string, string | undefined>` under
  * noUncheckedIndexedAccess, but the underlying route pattern guarantees the
  * matched segment is present. Funnel each path-param lookup through this
@@ -108,6 +119,9 @@ async function triggerProcurementAggregation(
 const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
+    if (k === "__proto__" || k === "constructor" || k === "prototype") {
+      continue;
+    }
     result[k] = v === "" ? null : v;
   }
   return result;
@@ -276,7 +290,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
     pathParam(req, "id"),
     orgId,
     "sent",
-    req.body.userId
+    getActorUserId(req)
   );
   if (!updated) {
     return res.status(500).json({ error: "Failed to update service order status" });
@@ -338,7 +352,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
     pathParam(req, "id"),
     orgId,
     "confirmed",
-    req.body.userId
+    getActorUserId(req)
   );
   return res.json(updated);
 });
@@ -362,7 +376,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
     pathParam(req, "id"),
     orgId,
     "in_progress",
-    req.body.userId
+    getActorUserId(req)
   );
   return res.json(updated);
 });
@@ -394,7 +408,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
     pathParam(req, "id"),
     orgId,
     "completed",
-    req.body.userId
+    getActorUserId(req)
   );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "completed");
 
@@ -433,7 +447,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
     pathParam(req, "id"),
     orgId,
     "cancelled",
-    req.body.userId,
+    getActorUserId(req),
     { reason: req.body.reason }
   );
   await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "cancelled");

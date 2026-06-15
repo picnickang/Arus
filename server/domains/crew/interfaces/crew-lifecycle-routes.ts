@@ -10,6 +10,7 @@ import {
 import { asyncHandler } from "../../../lib/async-handler";
 import { logger } from "../../../utils/logger.js";
 import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import { requirePermission } from "../../../lib/permissions-middleware.js";
 import { z } from "zod";
 
@@ -17,6 +18,9 @@ const idParamSchema = z.object({ id: z.string().min(1) });
 const historyIdParamSchema = z.object({ historyId: z.string().min(1) });
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 router.post(
   "/:id/retire",

@@ -8,6 +8,8 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   mergeDashboardConfigs,
   safeMinimalDashboardConfig,
@@ -21,6 +23,23 @@ import {
 } from "../../shared/role-dashboard";
 
 describe("mergeDashboardConfigs", () => {
+  it("keeps the public role-dashboard module delegated to internal policy data files", () => {
+    const sharedDir = join(process.cwd(), "shared");
+    const roleDashboard = readFileSync(join(sharedDir, "role-dashboard.ts"), "utf-8");
+    const defaults = readFileSync(join(sharedDir, "role-dashboard-defaults.ts"), "utf-8");
+    const alarms = readFileSync(join(sharedDir, "role-dashboard-alarms.ts"), "utf-8");
+    const access = readFileSync(join(sharedDir, "role-dashboard-access.ts"), "utf-8");
+
+    expect(roleDashboard).toContain('from "./role-dashboard-defaults"');
+    expect(roleDashboard).toContain('from "./role-dashboard-alarms"');
+    expect(roleDashboard).toContain('from "./role-dashboard-access"');
+    expect(roleDashboard).toContain("createDefaultRoleDashboardConfigs");
+    expect(roleDashboard).not.toContain("super_admin: {");
+    expect(defaults).toContain("export function createDefaultRoleDashboardConfigs");
+    expect(alarms).toContain("export const PROTECTED_ALARM_TYPES");
+    expect(access).toContain("export function resolveEffectiveHubAccess");
+  });
+
   it("returns the safe-minimal config for an empty list", () => {
     expect(mergeDashboardConfigs([])).toEqual(safeMinimalDashboardConfig());
   });

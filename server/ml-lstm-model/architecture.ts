@@ -3,6 +3,12 @@
  * Model creation and compilation
  */
 
+// SECURITY: @tensorflow/tfjs-node pulls a HIGH transitive advisory chain via
+// `tar` / `@mapbox/node-pre-gyp`. Upstream-blocked (npm's only "fix" is a
+// nonsensical tfjs-node@0.1.11 downgrade) — accepted risk pending a tfjs
+// release. See docs/SECURITY-REVIEW-FOLLOWUPS.md. This is an internal
+// model-training/inference dependency, not a request-path parser of untrusted
+// input, so the advisory is not reachable as an external attack vector.
 import * as tf from "@tensorflow/tfjs-node";
 import type { LSTMConfig } from "./types.js";
 

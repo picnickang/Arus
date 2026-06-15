@@ -65,7 +65,9 @@ describe("GET /api/pdm/health/:equipmentId", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       equipmentId: "eq-1",
-      healthScore: 62,
+      // healthScore prefers the PdM model's healthIdx (60) over the equipment
+      // record's coarse healthIndex (62); status is derived from it (60 -> warning).
+      healthScore: 60,
       status: "warning",
       pFail30d: 0.2,
       confidence: "high",

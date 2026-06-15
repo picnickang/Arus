@@ -16,7 +16,7 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { dbEquipmentStorage, dbDevicesStorage } from "../../../repositories";
+import { pdmHealthDirectory } from "../../../composition/pdm-health-directory.js";
 
 const router = Router();
 
@@ -37,6 +37,18 @@ function mapStatus(status: string | null | undefined): PdmHealthResponse["status
     return status;
   }
   return "unknown";
+}
+
+// Data-driven status from the PdM health index (0–100, higher = healthier),
+// matching the client's color bands (green >= 70, amber >= 30, red < 30).
+function statusFromHealthScore(healthIdx: number): PdmHealthResponse["status"] {
+  if (healthIdx >= 70) {
+    return "healthy";
+  }
+  if (healthIdx >= 30) {
+    return "warning";
+  }
+  return "critical";
 }
 
 function remainingDays(predictedDueDate: Date | null | undefined): number | null {
@@ -71,8 +83,8 @@ router.get("/:equipmentId", async (req: Request, res: Response) => {
     }
 
     const [healthRows, pdmScores] = await Promise.all([
-      dbEquipmentStorage.getEquipmentHealth(orgId, { equipmentId }),
-      dbDevicesStorage.getPdmScores(equipmentId, orgId),
+      pdmHealthDirectory.getEquipmentHealth(orgId, { equipmentId }),
+      pdmHealthDirectory.getPdmScores(equipmentId, orgId),
     ]);
 
     const equipmentHealth = healthRows.find((eq) => eq.id === equipmentId);
@@ -85,7 +97,9 @@ router.get("/:equipmentId", async (req: Request, res: Response) => {
       (a, b) => new Date(b.ts ?? 0).getTime() - new Date(a.ts ?? 0).getTime()
     )[0];
 
-    const healthScore = equipmentHealth.healthIndex ?? latestScore?.healthIdx ?? 100;
+    // Prefer the PdM model's computed health index (data-driven) over the
+    // equipment record's coarse healthIndex, which today is a hardcoded stub.
+    const healthScore = latestScore?.healthIdx ?? equipmentHealth.healthIndex ?? 100;
     const rul = remainingDays(latestScore?.predictedDueDate);
     const response: PdmHealthResponse = {
       equipmentId,
@@ -95,9 +109,11 @@ router.get("/:equipmentId", async (req: Request, res: Response) => {
       // carries no interval today, and the UI renders this as "± N days".
       rulUncertainty: rul == null ? null : Math.round(rul * 0.2),
       status:
-        latestScore || equipmentHealth.healthIndex != null
-          ? mapStatus(equipmentHealth.status)
-          : "unknown",
+        latestScore?.healthIdx != null
+          ? statusFromHealthScore(latestScore.healthIdx)
+          : equipmentHealth.healthIndex != null
+            ? mapStatus(equipmentHealth.status)
+            : "unknown",
       pFail30d: latestScore?.pFail30d ?? 0,
       aiSummary: null,
       lastUpdated: (latestScore?.ts ? new Date(latestScore.ts) : new Date()).toISOString(),

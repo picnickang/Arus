@@ -1,4 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
+import type {} from '@capacitor/app';
+import type {} from '@capacitor/filesystem';
+import type {} from '@capacitor/network';
+import type {} from '@capacitor/status-bar';
 
 const config: CapacitorConfig = {
   appId: 'com.arus.marine',

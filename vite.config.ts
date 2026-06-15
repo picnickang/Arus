@@ -55,33 +55,9 @@ export default defineConfig({
             if (id.includes("@tanstack")) {
               return "vendor-tanstack";
             }
-            if (id.includes("jspdf") || id.includes("xlsx") || id.includes("html2canvas") || id.includes("pdf-lib")) {
+            if (id.includes("jspdf") || id.includes("xlsx") || id.includes("pdf-lib")) {
               return "vendor-export";
             }
-            if (id.includes("zod") || id.includes("drizzle") || id.includes("date-fns")) {
-              return "vendor-utils";
-            }
-          }
-          if (id.includes("/features/scheduling/") || id.includes("/components/scheduling/")) {
-            return "features-scheduling";
-          }
-          if (id.includes("/features/crew/") || id.includes("/components/crew/")) {
-            return "features-crew";
-          }
-          if (id.includes("/features/compliance/") || id.includes("/pages/logs-")) {
-            return "features-logs";
-          }
-          if (id.includes("/features/analytics/") || id.includes("/pages/analytics")) {
-            return "features-analytics";
-          }
-          if (id.includes("/features/ml-ai/") || id.includes("/pages/ai-")) {
-            return "features-ml-ai";
-          }
-          if (id.includes("/features/admin/") || id.includes("/pages/admin")) {
-            return "features-admin";
-          }
-          if (id.includes("/features/maintenance/") || id.includes("/pages/maint")) {
-            return "features-maintenance";
           }
           return undefined;
         },
@@ -102,7 +78,6 @@ export default defineConfig({
       "@radix-ui/react-scroll-area",
       "@radix-ui/react-tooltip",
       "@radix-ui/react-popover",
-      "@radix-ui/react-accordion",
       "@radix-ui/react-separator",
       "@radix-ui/react-switch",
       "@radix-ui/react-label",
@@ -120,9 +95,8 @@ export default defineConfig({
       "react-hook-form",
       "@hookform/resolvers",
       "recharts",
-      "framer-motion",
     ],
-    exclude: ["jspdf", "xlsx", "html2canvas", "pdf-lib"],
+    exclude: ["jspdf", "xlsx", "pdf-lib"],
     esbuildOptions: {
       target: "esnext",
     },

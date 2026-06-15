@@ -1,11 +1,11 @@
 {
   "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
-  "generatedAt": "2026-06-11T11:28:04.072Z",
+  "generatedAt": "2026-06-11T22:17:38.765Z",
   "totals": {
-    "dynamicImports": 404,
-    "routeStorageImports": 108,
-    "crossDomainStorage": 86,
-    "total": 598
+    "dynamicImports": 400,
+    "routeStorageImports": 103,
+    "crossDomainStorage": 80,
+    "total": 583
   },
   "samples": {
     "dynamicImports": [
@@ -16,10 +16,6 @@
       {
         "file": "server/app.ts",
         "target": "./routes.js"
-      },
-      {
-        "file": "server/background-jobs.ts",
-        "target": "./telemetry-cron-schedules.js"
       },
       {
         "file": "server/bootstrap/background-services.ts",
@@ -108,6 +104,10 @@
       {
         "file": "server/bootstrap/schedulers.ts",
         "target": "../domains/pdm-platform/digital-twin/twin-state/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
       }
     ],
     "routeStorageImports": [
@@ -156,11 +156,11 @@
         "storage": "dbCrewStorage"
       },
       {
-        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "file": "server/domains/crew-extensions/interfaces/scheduler-run-routes.ts",
         "storage": "dbSchedulerStorage"
       },
       {
-        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "file": "server/domains/crew-extensions/interfaces/scheduler-suggestion-routes.ts",
         "storage": "dbCrewStorage"
       },
       {
@@ -280,7 +280,7 @@
         "toDomain": "crew"
       },
       {
-        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "file": "server/domains/crew-extensions/interfaces/scheduler-suggestion-routes.ts",
         "storage": "dbCrewStorage",
         "fromDomain": "crew-extensions",
         "toDomain": "crew"

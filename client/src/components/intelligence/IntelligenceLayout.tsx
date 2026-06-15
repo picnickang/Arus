@@ -39,8 +39,8 @@ export function IntelligenceLayout({ children }: IntelligenceLayoutProps) {
   const breadcrumbLabel = getActiveTabLabel(location);
 
   return (
-    <div className="min-h-screen bg-[#080e1a] text-slate-200" data-testid="intelligence-layout">
-      <header className="sticky top-0 z-40 border-b border-slate-700/20 bg-[#080e1a]/95 backdrop-blur supports-[backdrop-filter]:bg-[#080e1a]/80">
+    <div className="min-h-screen bg-brand-ink text-slate-200" data-testid="intelligence-layout">
+      <header className="sticky top-0 z-40 border-b border-slate-700/20 bg-brand-ink/95 backdrop-blur supports-[backdrop-filter]:bg-brand-ink/80">
         <div className="flex h-14 items-center gap-4 px-4 md:px-6">
           <Link href="/">
             <Button

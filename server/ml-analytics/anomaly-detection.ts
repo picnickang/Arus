@@ -13,6 +13,7 @@ import { eq, and, gte, sql } from "drizzle-orm";
 import { llmGateway } from "../composition/llm-gateway";
 import type { StatisticalBaseline, AnomalyResult } from "./types";
 import { calculateTrend, detectSeasonality } from "./statistical";
+import { hourBucketExpr, hourlyAvg } from "./sql-dialect";
 
 export async function calculateStatisticalBaseline(
   equipmentId: string,
@@ -23,11 +24,11 @@ export async function calculateStatisticalBaseline(
   // Hourly buckets aggregated on the fly from live telemetry (0044 — the
   // former telemetry_aggregates table was never written, so this path
   // previously always returned the fallback baseline below).
-  const hourBucket = sql`date_trunc('hour', ${equipmentTelemetry.ts})`;
+  const hourBucket = hourBucketExpr(equipmentTelemetry.ts);
   const historicalData = await db
     .select({
       windowStart: sql<Date>`${hourBucket}`.as("window_start"),
-      avgValue: sql<number>`avg(${equipmentTelemetry.value})::float8`.as("avg_value"),
+      avgValue: hourlyAvg(equipmentTelemetry.value).as("avg_value"),
     })
     .from(equipmentTelemetry)
     .where(

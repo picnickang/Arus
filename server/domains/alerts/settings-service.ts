@@ -10,7 +10,7 @@ import {
   type EmailConfig,
   type EmailPayload,
 } from "../../services/email-provider-service";
-import { encryptSecret } from "../../lib/crypto-service";
+import { encryptSecret, decryptSecret } from "../../lib/crypto-service";
 import { logger } from "../../utils/logger.js";
 import type {
   AlertSettings,
@@ -20,9 +20,11 @@ import type {
   AlertThreshold,
   InsertAlertThreshold,
   AlertEmailLog,
+  InsertAlertEmailLog,
   CrewAlertSettings,
   InsertCrewAlertSettings,
 } from "@shared/schema";
+import type { ClaimResult, CooldownSnapshot } from "./settings/types.js";
 
 // Alias kept for callsite readability after the 2026-05-17 schema
 // reconciliation: AlertSettings now natively contains every email/SMTP/test
@@ -98,7 +100,7 @@ export class AlertSettingsService {
       smtpPort: 587,
       smtpUser: null,
       smtpUseTls: true,
-      fromEmail: "noreply@arus-marine.com",
+      fromEmail: "noreply@arus.io",
       fromName: "ARUS Marine",
       alertCooldownMinutes: 30,
       dailyDigestEnabled: false,
@@ -127,7 +129,7 @@ export class AlertSettingsService {
       smtpPort: settings.smtpPort ?? null,
       smtpUser: settings.smtpUser ?? null,
       smtpUseTls: settings.smtpUseTls ?? true,
-      fromEmail: settings.fromEmail || "noreply@arus-marine.com",
+      fromEmail: settings.fromEmail || "noreply@arus.io",
       fromName: settings.fromName || "ARUS Marine",
       alertCooldownMinutes: settings.alertCooldownMinutes ?? 30,
       dailyDigestEnabled: settings.dailyDigestEnabled ?? false,
@@ -262,17 +264,41 @@ export class AlertSettingsService {
   }
 
   private buildEmailConfig(settings: AlertSettingsRaw): EmailConfig {
+    // emailProviderService is a plaintext transport, so decrypt the stored
+    // credentials here (this service owns their encrypted-at-rest storage).
     return {
-      provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp" | "ses",
-      sendgridApiKey: settings.apiKeyEncrypted || undefined,
+      provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp",
+      sendgridApiKey: settings.apiKeyEncrypted
+        ? decryptSecret(settings.apiKeyEncrypted)
+        : undefined,
       smtpHost: settings.smtpHost || undefined,
       smtpPort: settings.smtpPort || 587,
       smtpUser: settings.smtpUser || undefined,
-      smtpPassword: settings.smtpEncryptedPassword || undefined,
+      smtpPassword: settings.smtpEncryptedPassword
+        ? decryptSecret(settings.smtpEncryptedPassword)
+        : undefined,
       smtpUseTls: settings.smtpUseTls ?? true,
-      fromEmail: settings.fromEmail || "noreply@arus-marine.com",
+      fromEmail: settings.fromEmail || "noreply@arus.io",
       fromName: settings.fromName || "ARUS Marine",
     };
+  }
+
+  /**
+   * Resolve the org's send-ready (decrypted) email config, or null when the org
+   * has no usable provider configured. Used by the notification sender so that
+   * compliance/logbook/alert/crew emails honour the org's configured provider
+   * (SendGrid/SMTP/SES) instead of being SendGrid-env-only.
+   */
+  async resolveOrgEmailConfig(orgId: string): Promise<EmailConfig | null> {
+    const settings = await alertSettingsRepository.getOrgSettings(orgId);
+    if (!settings || !settings.emailEnabled) {
+      return null;
+    }
+    const config = this.buildEmailConfig(settings);
+    const hasUsableCreds =
+      (config.provider === "sendgrid" && !!config.sendgridApiKey) ||
+      (config.provider === "smtp" && !!config.smtpHost);
+    return hasUsableCreds ? config : null;
   }
 
   async getVesselSettings(orgId: string, vesselId: string): Promise<AlertSettingsVessel | null> {
@@ -331,6 +357,47 @@ export class AlertSettingsService {
     }
   ): Promise<AlertEmailLog[]> {
     return alertSettingsRepository.getEmailLogs(orgId, options);
+  }
+
+  /**
+   * Record an outbound email to the unified alert_email_log audit trail. Used by
+   * the notification sender so Stack B (notification_queue) sends are logged the
+   * same way as the Stack A alert-settings sends.
+   */
+  async logEmail(data: InsertAlertEmailLog): Promise<AlertEmailLog> {
+    return alertSettingsRepository.logEmail(data);
+  }
+
+  /**
+   * Atomically claim an alert-send slot for dedup keyed by
+   * (org, vessel, alertType, alertKey, entity). Returns claimed:false when an
+   * email for the same key was sent within cooldownMs (or a claim is in flight).
+   * On a successful send, call recordAlertEmailSent; on failure, revertAlertSlot.
+   */
+  async claimAlertSlot(
+    orgId: string,
+    alertType: string,
+    alertKey: string,
+    cooldownMs: number,
+    vesselId?: string,
+    entityId?: string
+  ): Promise<ClaimResult> {
+    return alertSettingsRepository.atomicClaimAlertSlot(
+      orgId,
+      alertType,
+      alertKey,
+      cooldownMs,
+      vesselId,
+      entityId
+    );
+  }
+
+  async recordAlertEmailSent(cooldownId: string): Promise<void> {
+    return alertSettingsRepository.recordEmailSent(cooldownId);
+  }
+
+  async revertAlertSlot(cooldownId: string, snapshot: CooldownSnapshot): Promise<boolean> {
+    return alertSettingsRepository.revertCooldownClaim(cooldownId, snapshot);
   }
 
   async getCrewAlertSettings(orgId: string, vesselId?: string): Promise<CrewAlertSettings | null> {

@@ -1,0 +1,69 @@
+name: Visual + Stress (nightly, advisory)
+
+# Advisory lanes — NON-BLOCKING by design (every run step is continue-on-error).
+# Visual regression uses native Playwright toHaveScreenshot baselines, which are
+# sensitive to the Chromium build + OS; until baselines are proven stable across
+# the CI runner they must not gate PRs. Stress thresholds (heap growth) likewise
+# need calibration from real runs. Promote to a blocking gate once both are
+# settled. Both lanes mock all /api responses, so no database is required.
+
+on:
+  schedule:
+    # 07:00 UTC daily — after the work day in most timezones, before the next.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: "Regenerate visual baselines (linux) and upload them as an artifact"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  visual-stress:
+    name: Visual + Stress
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      # Pin chromium to the @playwright/test version. If this drifts from the
+      # version that generated the committed baselines, the visual lane will diff
+      # — that's why it stays advisory (continue-on-error) until stable.
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Visual regression (advisory)
+        if: ${{ !inputs.update_baselines }}
+        continue-on-error: true
+        run: npm run test:visual
+
+      - name: Stress (heap + nav-race, advisory)
+        continue-on-error: true
+        run: npm run test:stress
+
+      - name: Regenerate visual baselines (manual dispatch only)
+        if: ${{ inputs.update_baselines }}
+        continue-on-error: true
+        run: npm run test:visual:update
+
+      - name: Upload Playwright report + screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-stress-report
+          path: |
+            playwright-report/
+            test-results/
+            tests/playwright/visual/**/*-snapshots/**
+          retention-days: 14

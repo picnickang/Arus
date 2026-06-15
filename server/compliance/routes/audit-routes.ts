@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { z } from "zod";
 import { createLogger } from "../../lib/structured-logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -11,6 +12,9 @@ import {
 } from "../immutable-audit.service";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 const requireComplianceAccess = requireAdminAuth;
 

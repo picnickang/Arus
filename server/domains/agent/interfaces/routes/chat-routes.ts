@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import type { Multer } from "multer";
+import { z } from "zod";
 import { authenticatedRequest } from "../../../../middleware/auth";
 import type { AgentOrchestrator } from "../../application/orchestrator";
 import { agentRepo } from "../../infrastructure/repository";
@@ -22,6 +23,20 @@ export interface ChatRouteDeps {
   rateLimit: RateLimitMiddleware;
 }
 
+const chatBodySchema = z
+  .object({
+    message: z.string().min(1),
+    conversationId: z.string().optional(),
+  })
+  .strip();
+const conversationParamsSchema = z.object({ id: z.string().min(1) });
+const chatStreamQuerySchema = z
+  .object({
+    message: z.string().min(1),
+    conversationId: z.string().optional(),
+  })
+  .strip();
+
 export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
   const { orchestrator, upload, rateLimit } = deps;
 
@@ -33,11 +48,12 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
         const userRole = authenticatedRequest(req).user?.role;
-        const { message, conversationId } = req.body;
+        const body = chatBodySchema.safeParse(req.body);
 
-        if (!message || typeof message !== "string") {
+        if (!body.success) {
           return res.status(400).json({ error: "Message is required" });
         }
+        const { message, conversationId } = body.data;
 
         const result = await orchestrator.run(orgId, userId, conversationId, message, userRole);
 
@@ -80,11 +96,12 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
         const userRole = authenticatedRequest(req).user?.role;
-        const { message, conversationId } = req.body;
+        const body = chatBodySchema.safeParse(req.body);
 
-        if (!message || typeof message !== "string") {
+        if (!body.success) {
           return res.status(400).json({ error: "Message is required" });
         }
+        const { message, conversationId } = body.data;
 
         const attachments = files.map((f) => ({
           filename: f.originalname,
@@ -146,7 +163,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
       try {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
-        const conversationId = req.params["id"] ?? "";
+        const { id: conversationId } = conversationParamsSchema.parse(req.params);
 
         const existing = await agentRepo.conversations.get(conversationId, orgId);
         if (!existing) {
@@ -223,7 +240,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = authenticatedRequest(req).orgId;
-        const conversationId = req.params["id"] ?? "";
+        const { id: conversationId } = conversationParamsSchema.parse(req.params);
         const files = await listConversationFiles(conversationId, orgId);
         return res.json({
           files: files.map((f) => ({
@@ -249,12 +266,12 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
         const userRole = authenticatedRequest(req).user?.role;
-        const message = req.query["message"] as string;
-        const conversationId = req.query["conversationId"] as string | undefined;
+        const query = chatStreamQuerySchema.safeParse(req.query);
 
-        if (!message) {
+        if (!query.success) {
           return res.status(400).json({ error: "Message query parameter is required" });
         }
+        const { message, conversationId } = query.data;
 
         res.writeHead(200, {
           "Content-Type": "text/event-stream",

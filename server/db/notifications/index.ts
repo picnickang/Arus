@@ -17,7 +17,6 @@
  * Notifications Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseNotificationsStorage } from "./db-notifications.js";
 
 import { createLogger } from "../../lib/structured-logger";

@@ -17,7 +17,6 @@
  * DTC Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseDtcStorage } from "./db-dtc.js";
 
 import { createLogger } from "../../lib/structured-logger";

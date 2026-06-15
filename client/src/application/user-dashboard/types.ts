@@ -6,7 +6,7 @@
 
 export type AlertSeverity = "low" | "medium" | "high" | "critical";
 
-export interface CurrentVesselSlot {
+interface CurrentVesselSlot {
   id: string;
   name: string;
   /** IMO registration number, when the vessel record carries one. */
@@ -74,7 +74,7 @@ export interface AssignedSummary {
   completionPct: number;
 }
 
-export interface UpcomingMaintenanceSlot {
+interface UpcomingMaintenanceSlot {
   id: string;
   title: string;
   scheduledDate: Date;

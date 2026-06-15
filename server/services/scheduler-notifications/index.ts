@@ -183,12 +183,15 @@ ${crewAssignments.map((a) => `<li><strong>${a.vesselName || a.vesselId}:</strong
 <p>Please review your schedule and contact your supervisor if you have any questions.</p>
 <p>Best regards,<br>ARUS Scheduling System</p>`;
 
-    const result = await emailSender.sendEmail({
-      to: emails,
-      subject,
-      text,
-      html,
-    });
+    const result = await emailSender.sendEmail(
+      {
+        to: emails,
+        subject,
+        text,
+        html,
+      },
+      context.orgId
+    );
 
     if (result.success) {
       sentCount++;
@@ -237,11 +240,14 @@ Please review and confirm your availability.
 Best regards,
 ARUS Scheduling System`;
 
-  const result = await emailSender.sendEmail({
-    to: emails,
-    subject,
-    text,
-  });
+  const result = await emailSender.sendEmail(
+    {
+      to: emails,
+      subject,
+      text,
+    },
+    context.orgId
+  );
 
   return { success: result.success };
 }
@@ -290,11 +296,14 @@ Please review and take appropriate action.
 Best regards,
 ARUS Scheduling System`;
 
-  const result = await emailSender.sendEmail({
-    to: emails,
-    subject,
-    text,
-  });
+  const result = await emailSender.sendEmail(
+    {
+      to: emails,
+      subject,
+      text,
+    },
+    context.orgId
+  );
 
   return { success: result.success };
 }
@@ -343,11 +352,14 @@ Immediate action is required to ensure crew safety and regulatory compliance.
 Best regards,
 ARUS Scheduling System`;
 
-  const result = await emailSender.sendEmail({
-    to: emails,
-    subject,
-    text,
-  });
+  const result = await emailSender.sendEmail(
+    {
+      to: emails,
+      subject,
+      text,
+    },
+    context.orgId
+  );
 
   return { success: result.success };
 }

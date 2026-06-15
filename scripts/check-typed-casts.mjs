@@ -121,6 +121,20 @@ function stripCommentsAndStrings(src) {
   return out;
 }
 
+// Blank out `import …;` declarations and `export { … } [from …];` re-export
+// blocks so their module-alias specifiers (`Original as Local`, `* as ns`)
+// are not miscounted as type-assertion casts. The guard measures assertion
+// expressions (`expr as ConcreteType`), not import/export renames. Anchored
+// to line starts so dynamic `import(...)` and `export const x = y as Foo`
+// (real casts) are left untouched.
+function stripModuleAliasClauses(src) {
+  return src
+    .replace(/(^|\n)[ \t]*import\b[^;{]*\{[^}]*\}[^;]*;/g, "$1 ")
+    .replace(/(^|\n)[ \t]*import\b[^;{}]*;/g, "$1 ")
+    .replace(/(^|\n)[ \t]*export\s+(?:type\s+)?\{[^}]*\}[^;]*;/g, "$1 ")
+    .replace(/(^|\n)[ \t]*export\s+\*\s+as\s+\w+[^;]*;/g, "$1 ");
+}
+
 function countFile(file) {
   let body;
   try {
@@ -128,7 +142,7 @@ function countFile(file) {
   } catch {
     return [];
   }
-  const stripped = stripCommentsAndStrings(body);
+  const stripped = stripModuleAliasClauses(stripCommentsAndStrings(body));
   const matches = [];
   CANDIDATE_RE.lastIndex = 0;
   let m;

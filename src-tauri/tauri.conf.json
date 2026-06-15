@@ -1,6 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ARUS",
+  "productName": "ARUS Desktop",
+  "mainBinaryName": "ARUS Desktop",
   "version": "1.0.0",
   "identifier": "com.arus.marine",
   "build": {
@@ -29,7 +30,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"],
     "category": "Utility",
     "shortDescription": "ARUS Marine Predictive Maintenance System",
@@ -39,15 +40,12 @@
       "minimumSystemVersion": "12.0"
     },
     "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller"
+      },
       "nsis": {
         "installMode": "perMachine",
-        "installerIcon": "icons/icon.ico",
-        "installWebview2Mode": "offlineInstaller"
-      },
-      "wix": {
-        "language": "en-US",
-        "fragmentPaths": ["windows/wix/service-component.wxs"],
-        "componentRefs": ["ARUSBackendBinaries", "ARUSBackendService"]
+        "installerIcon": "icons/icon.ico"
       }
     }
   },

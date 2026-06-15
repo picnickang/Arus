@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { LayoutGrid, Menu, Search } from "lucide-react";
+import { LayoutGrid, Menu } from "lucide-react";
+import { ObcIconButton } from "@oicl/openbridge-webcomponents-react/components/icon-button/icon-button.js";
+import { ObiSearch } from "@oicl/openbridge-webcomponents-react/icons/icon-search.js";
 import { pruneOverrideToPolicyIds } from "@/application/navigation/role-navigation-policy";
 import {
   readUserRole,
@@ -30,6 +32,7 @@ import {
 import { OpsShell } from "./OpsShell";
 import { OpsSidebar, type OpsSidebarItem } from "./OpsSidebar";
 import { OpsTopBar } from "./OpsTopBar";
+import { OpsStatusRailContainer } from "./OpsStatusRailContainer";
 
 interface UniversalOpsShellProps {
   currentPath: string;
@@ -111,30 +114,42 @@ function UniversalSubnav({ currentPath, items }: { currentPath: string; items: N
     <nav
       className="border-b border-border/60 bg-background/80 px-3 py-2 backdrop-blur md:px-5"
       data-testid="universal-ops-subnav"
+      data-mobile-horizontal-nav="true"
+      data-overflow-affordance="edge-fade"
       aria-label="Hub navigation"
     >
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = childIsActive(currentPath, item);
-          return (
-            <Link
-              key={`${item.name}-${item.href}`}
-              href={item.href}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
-                active
-                  ? "border-primary/60 bg-primary/15 text-primary"
-                  : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              )}
-              data-testid={`universal-ops-subnav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-              aria-current={active ? "page" : undefined}
-            >
-              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-              {item.name}
-            </Link>
-          );
-        })}
+      <div className="relative -mx-3 md:mx-0">
+        <div
+          className="flex scroll-px-3 gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-0"
+          data-horizontal-scrollport="true"
+          data-testid="universal-ops-subnav-scroll"
+        >
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = childIsActive(currentPath, item);
+            return (
+              <Link
+                key={`${item.name}-${item.href}`}
+                href={item.href}
+                className={cn(
+                  "inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors md:min-h-9 md:text-xs",
+                  active
+                    ? "border-primary/60 bg-primary/15 text-primary"
+                    : "border-border/70 bg-background/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                )}
+                data-testid={`universal-ops-subnav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" aria-hidden="true" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-1 right-0 top-0 w-8 bg-gradient-to-l from-background via-background/85 to-transparent md:hidden"
+        />
       </div>
     </nav>
   );
@@ -155,11 +170,11 @@ function UniversalMobileDrawer({
         <Button
           variant="outline"
           size="icon"
-          className="h-9 w-9 md:hidden"
+          className="h-11 w-11 md:hidden"
           aria-label="Open admin navigation"
           data-testid="universal-ops-mobile-menu-trigger"
         >
-          <Menu className="h-4 w-4" />
+          <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -279,6 +294,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
       }
       topBar={
         <>
+          <OpsStatusRailContainer />
           <OpsTopBar
             leading={
               <UniversalMobileDrawer
@@ -296,16 +312,14 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
             subtitle={activeHub?.description ?? "Universal admin hub navigation"}
             trailing={
               <span className="inline-flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                <ObcIconButton
                   onClick={() => window.dispatchEvent(new CustomEvent("arus:open-command-palette"))}
                   aria-label="Search (Ctrl+K)"
                   title="Search (Ctrl+K)"
                   data-testid="button-global-search"
                 >
-                  <Search className="h-4 w-4" aria-hidden="true" />
-                </button>
+                  <ObiSearch className="inline-block h-5 w-5" aria-hidden="true" />
+                </ObcIconButton>
                 {activeHub ? (
                   <Badge variant="outline" data-testid="universal-ops-active-hub">
                     {activeHub.name}
@@ -317,10 +331,9 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
           <UniversalSubnav currentPath={currentPath} items={navModel.activeChildren} />
         </>
       }
+      statusRail={<OpsStatusRailContainer />}
     >
       {children}
     </OpsShell>
   );
 }
-
-export default UniversalOpsShell;

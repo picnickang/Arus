@@ -192,119 +192,265 @@ export async function runSystemSettingsCompatibilityMigration(client: LibsqlClie
   logger.info("✓ System settings compatibility migration completed");
 }
 
-export async function runEquipmentCompatibilityMigration(client: LibsqlClient): Promise<void> {
-  const cols = await getTableColumns(client, "equipment");
+export async function runUsersAuthCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "users");
   if (!cols.length) {
     return;
   }
 
   const expectedColumns: Array<[string, string]> = [
-    ["plain_language_name", "TEXT"],
-    ["system_type", "TEXT"],
-    ["component_type", "TEXT"],
-    ["criticality_level", "TEXT DEFAULT 'medium'"],
-    ["emergency_labor_multiplier", "REAL"],
-    ["emergency_parts_multiplier", "REAL"],
-    ["emergency_downtime_multiplier", "REAL"],
-    ["downtime_cost_per_hour", "REAL"],
-    ["default_service_provider_id", "TEXT"],
-    ["purchase_value", "REAL"],
-    ["purchase_date", "INTEGER"],
-    ["purchase_currency", "TEXT DEFAULT 'USD'"],
-    ["service_life_hours", "REAL"],
-    ["service_life_years", "REAL"],
-    ["depreciation_method", "TEXT DEFAULT 'straight_line'"],
-    ["depreciation_rate", "REAL"],
-    ["salvage_value", "REAL"],
-    ["decommissioned_at", "INTEGER"],
-    ["decommissioned_by", "TEXT"],
-    ["decommission_status", "TEXT DEFAULT 'active'"],
-    ["decommission_event_id", "TEXT"],
-    ["reinstated_at", "INTEGER"],
-    ["reinstated_by", "TEXT"],
-    ["parent_equipment_id", "TEXT"],
-    ["hierarchy_level", "INTEGER DEFAULT 0"],
-    ["hierarchy_path", "TEXT DEFAULT ''"],
+    ["username", "TEXT"],
+    ["password_hash", "TEXT"],
+    ["password_updated_at", "INTEGER"],
+    ["job_title", "TEXT"],
+    ["phone", "TEXT"],
+    ["timezone", "TEXT DEFAULT 'UTC'"],
+    ["login_enabled", "INTEGER DEFAULT 1"],
+    ["must_change_password", "INTEGER DEFAULT 0"],
+    ["supervisor_user_id", "TEXT"],
+    ["hub_admin", "INTEGER DEFAULT 0"],
+    ["hub_access", "TEXT"],
   ];
 
   for (const [col, definition] of expectedColumns) {
     if (!cols.includes(col)) {
-      await safeAddColumn(client, "equipment", col, definition);
+      await safeAddColumn(client, "users", col, definition);
     }
   }
 
-  logger.info("✓ Equipment compatibility migration completed");
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_users_org_username ON users(org_id, username)`
+  );
+  logger.info("✓ Users auth compatibility migration completed");
 }
 
-export async function runPermissionCompatibilityMigration(client: LibsqlClient): Promise<void> {
-  const roleCols = await getTableColumns(client, "roles");
-  if (roleCols.length) {
-    const expectedRoleColumns: Array<[string, string]> = [
-      ["org_id", "TEXT NOT NULL DEFAULT 'default-org-id'"],
-      ["name", "TEXT NOT NULL DEFAULT ''"],
-      ["display_name", "TEXT NOT NULL DEFAULT ''"],
-      ["description", "TEXT"],
-      ["department", "TEXT"],
-      ["hierarchy_level", "INTEGER NOT NULL DEFAULT 50"],
-      ["parent_role_id", "TEXT"],
-      ["template_id", "TEXT"],
-      ["permissions", "TEXT"],
-      ["is_system_role", "INTEGER DEFAULT 0"],
-      ["is_active", "INTEGER DEFAULT 1"],
-      ["hub_admin", "INTEGER NOT NULL DEFAULT 0"],
-      ["hub_access", "TEXT"],
-      ["created_at", "INTEGER"],
-      ["updated_at", "INTEGER"],
-    ];
-    for (const [col, definition] of expectedRoleColumns) {
-      if (!roleCols.includes(col)) {
-        await safeAddColumn(client, "roles", col, definition);
-      }
+export async function runCrewCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "crew");
+  if (!cols.length) {
+    return;
+  }
+
+  const expectedColumns: Array<[string, string]> = [
+    ["employee_id", "TEXT"],
+    ["first_name", "TEXT NOT NULL DEFAULT ''"],
+    ["last_name", "TEXT NOT NULL DEFAULT ''"],
+    ["user_id", "TEXT"],
+    ["watch_keeping", "TEXT"],
+    ["join_date", "INTEGER"],
+    ["photo_path", "TEXT"],
+    ["crew_code", "TEXT"],
+    ["status", "TEXT DEFAULT 'active'"],
+    ["employment_type", "TEXT"],
+    ["reports_to_id", "TEXT"],
+    ["rotation_on_days", "INTEGER"],
+    ["rotation_off_days", "INTEGER"],
+  ];
+
+  for (const [col, definition] of expectedColumns) {
+    if (!cols.includes(col)) {
+      await safeAddColumn(client, "crew", col, definition);
     }
   }
 
-  const grantCols = await getTableColumns(client, "permission_grants");
-  if (grantCols.length) {
-    const expectedGrantColumns: Array<[string, string]> = [
-      ["role_id", "TEXT NOT NULL DEFAULT ''"],
-      ["resource_code", "TEXT NOT NULL DEFAULT ''"],
-      ["action_code", "TEXT NOT NULL DEFAULT ''"],
-      ["is_granted", "INTEGER DEFAULT 1"],
-      ["condition", "TEXT"],
-      ["created_at", "INTEGER"],
-      ["created_by", "TEXT"],
-    ];
-    for (const [col, definition] of expectedGrantColumns) {
-      if (!grantCols.includes(col)) {
-        await safeAddColumn(client, "permission_grants", col, definition);
-      }
-    }
+  const refreshedCols = await getTableColumns(client, "crew");
+  if (refreshedCols.includes("name") && refreshedCols.includes("first_name")) {
+    await client.execute(
+      "UPDATE crew SET first_name = name WHERE (first_name IS NULL OR first_name = '') AND name IS NOT NULL"
+    );
+  }
+  if (refreshedCols.includes("status")) {
+    await client.execute(
+      "UPDATE crew SET status = 'active' WHERE (status IS NULL OR status = '') AND is_active = 1"
+    );
   }
 
-  const assignmentCols = await getTableColumns(client, "user_role_assignments");
-  if (assignmentCols.length) {
-    const expectedAssignmentColumns: Array<[string, string]> = [
-      ["org_id", "TEXT"],
-      ["user_id", "TEXT NOT NULL DEFAULT ''"],
-      ["role_id", "TEXT NOT NULL DEFAULT ''"],
-      ["assigned_by", "TEXT"],
-      ["is_active", "INTEGER DEFAULT 1"],
-    ];
-    for (const [col, definition] of expectedAssignmentColumns) {
-      if (!assignmentCols.includes(col)) {
-        await safeAddColumn(client, "user_role_assignments", col, definition);
-      }
-    }
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_crew_user ON crew(user_id)");
+  logger.info("✓ Crew compatibility migration completed");
+}
+
+export async function runAdminSessionsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "admin_sessions");
+  if (!cols.length) {
+    return;
+  }
+
+  if (!cols.includes("admin_email")) {
+    await safeAddColumn(client, "admin_sessions", "admin_email", "TEXT");
+  }
+  if (!cols.includes("last_activity_at")) {
+    await safeAddColumn(client, "admin_sessions", "last_activity_at", "INTEGER");
   }
 
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_roles_org_name ON roles(org_id, name)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at)`
   );
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_permission_grants ON permission_grants(role_id, resource_code, action_code)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_org ON admin_sessions(org_id)`
+  );
+  logger.info("✓ Admin sessions compatibility migration completed");
+}
+
+export async function runErrorLogsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "error_logs");
+  if (!cols.length) {
+    return;
+  }
+
+  const expectedColumns: Array<[string, string]> = [
+    ["timestamp", "INTEGER"],
+    ["category", "TEXT NOT NULL DEFAULT 'application'"],
+    ["error_type", "TEXT NOT NULL DEFAULT 'application'"],
+    ["error_message", "TEXT"],
+    ["error_code", "TEXT"],
+    ["message", "TEXT NOT NULL DEFAULT ''"],
+    ["user_id", "TEXT"],
+    ["request_id", "TEXT"],
+    ["endpoint", "TEXT"],
+    ["severity", "TEXT NOT NULL DEFAULT 'error'"],
+    ["resolved", "INTEGER DEFAULT 0"],
+    ["resolved_at", "INTEGER"],
+    ["resolved_by", "TEXT"],
+    ["created_at", "INTEGER"],
+  ];
+
+  for (const [col, definition] of expectedColumns) {
+    if (!cols.includes(col)) {
+      await safeAddColumn(client, "error_logs", col, definition);
+    }
+  }
+
+  const refreshedCols = await getTableColumns(client, "error_logs");
+  if (refreshedCols.includes("message") && refreshedCols.includes("error_message")) {
+    await client.execute(
+      `UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL`
+    );
+    await client.execute(
+      `UPDATE error_logs SET error_message = message WHERE (error_message IS NULL OR error_message = '') AND message IS NOT NULL`
+    );
+  }
+  if (refreshedCols.includes("timestamp") && refreshedCols.includes("created_at")) {
+    await client.execute(
+      `UPDATE error_logs SET timestamp = created_at WHERE timestamp IS NULL AND created_at IS NOT NULL`
+    );
+  }
+
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp ON error_logs(timestamp)`
   );
   await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_user_role ON user_role_assignments(org_id, user_id, role_id)`
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_category ON error_logs(category)`
   );
-  logger.info("✓ Permission compatibility migration completed");
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON error_logs(severity)`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON error_logs(resolved)`
+  );
+  logger.info("✓ Error logs compatibility migration completed");
+}
+
+export async function runPdmScoreLogsCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "pdm_score_logs");
+  if (!cols.length) {
+    return; // no table yet (ensureDeclaredTablesAndIndexes creates the canonical one)
+  }
+
+  // Legacy vessel shape carried score/computed_at as NOT NULL — incompatible with
+  // the canonical PG-aligned columns the PdM code reads/writes
+  // (ts/health_idx/p_fail_30d/predicted_due_date/context_json). The vessel table
+  // is unpopulated today (writers went through the cloud-only undefined table), so
+  // recreate with the canonical shape rather than carry dead NOT NULL columns that
+  // would block canonical inserts.
+  if (cols.includes("score") || !cols.includes("health_idx")) {
+    await client.execute(`DROP TABLE IF EXISTS pdm_score_logs`);
+    await client.execute(
+      `CREATE TABLE pdm_score_logs (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, ts INTEGER, health_idx REAL, p_fail_30d REAL, predicted_due_date INTEGER, context_json TEXT, created_at INTEGER)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_psl_equipment ON pdm_score_logs(equipment_id)`
+    );
+    logger.info("✓ Recreated pdm_score_logs with the canonical shape");
+  }
+}
+
+export async function runAnomalyDetectionsCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
+  const cols = await getTableColumns(client, "anomaly_detections");
+  if (!cols.length) {
+    return;
+  }
+
+  // Legacy vessel shape (detected_at/z_score/notes) diverged from BOTH the PG
+  // columns the ML repos write (detection_timestamp/anomaly_score/detected_value/
+  // contributing_factors/…) and the SQLite drizzle model. The vessel table is
+  // unpopulated today (those writes never matched the legacy SQLite shape, so
+  // they failed), so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("z_score") ||
+    cols.includes("detected_at") ||
+    !cols.includes("detection_timestamp")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS anomaly_detections`);
+    await client.execute(
+      `CREATE TABLE anomaly_detections (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, sensor_type TEXT NOT NULL, detection_timestamp INTEGER, anomaly_score REAL NOT NULL, anomaly_type TEXT, severity TEXT NOT NULL, detected_value REAL, expected_value REAL, deviation REAL, model_id TEXT, contributing_factors TEXT, recommended_actions TEXT, acknowledged_by TEXT, acknowledged_at INTEGER, resolved_by_work_order_id TEXT, actual_failure_occurred INTEGER, outcome_label TEXT, outcome_verified_at INTEGER, outcome_verified_by TEXT, metadata TEXT, created_at INTEGER, updated_at INTEGER)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_ad_equipment_time ON anomaly_detections(equipment_id, detection_timestamp)`
+    );
+    logger.info("✓ Recreated anomaly_detections with the canonical shape");
+  }
+}
+
+export async function runFailurePredictionsCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
+  const cols = await getTableColumns(client, "failure_predictions");
+  if (!cols.length) {
+    return;
+  }
+  // Legacy vessel shape (prediction_type/estimated_days_to_failure/failure_type)
+  // diverged from the PG columns the ML repos write (prediction_timestamp/
+  // risk_level/remaining_useful_life/maintenance_recommendations/…). Unpopulated
+  // today, so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("prediction_type") ||
+    cols.includes("estimated_days_to_failure") ||
+    !cols.includes("prediction_timestamp")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS failure_predictions`);
+    await client.execute(
+      `CREATE TABLE failure_predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, equipment_type TEXT, prediction_timestamp INTEGER, failure_probability REAL NOT NULL, predicted_failure_date INTEGER, remaining_useful_life INTEGER, confidence REAL, confidence_interval TEXT, failure_mode TEXT, risk_level TEXT NOT NULL, model_type TEXT, model_id TEXT, input_features TEXT, maintenance_recommendations TEXT, cost_impact TEXT, resolved_by_work_order_id TEXT, actual_failure_date INTEGER, actual_failure_mode TEXT, prediction_accuracy REAL, time_to_failure_error INTEGER, outcome_label TEXT, outcome_verified_at INTEGER, outcome_verified_by TEXT, prediction_valid_until INTEGER, model_version_id TEXT, feature_set_version TEXT, feature_snapshot_id TEXT, review_status TEXT DEFAULT 'pending', reviewed_by TEXT, reviewed_at INTEGER, suppression_reason TEXT, governance_metadata TEXT, metadata TEXT)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_fp_equipment_risk ON failure_predictions(equipment_id, risk_level)`
+    );
+    logger.info("✓ Recreated failure_predictions with the canonical shape");
+  }
+}
+
+export async function runComponentDegradationCompatibilityMigration(
+  client: LibsqlClient
+): Promise<void> {
+  const cols = await getTableColumns(client, "component_degradation");
+  if (!cols.length) {
+    return;
+  }
+  // Legacy vessel shape (component_name/degradation_percent/health_index) diverged
+  // from the PG columns (component_type/degradation_metric/sensor-level fields).
+  // Unpopulated today, so recreate with the canonical PG-aligned shape.
+  if (
+    cols.includes("component_name") ||
+    cols.includes("degradation_percent") ||
+    !cols.includes("component_type")
+  ) {
+    await client.execute(`DROP TABLE IF EXISTS component_degradation`);
+    await client.execute(
+      `CREATE TABLE component_degradation (id INTEGER PRIMARY KEY AUTOINCREMENT, org_id TEXT NOT NULL, equipment_id TEXT NOT NULL, component_type TEXT NOT NULL, measurement_timestamp INTEGER, degradation_metric REAL NOT NULL, degradation_rate REAL, vibration_level REAL, temperature REAL, oil_condition REAL, acoustic_signature REAL, wear_particle_count INTEGER, operating_hours INTEGER, cycle_count INTEGER, load_factor REAL, environment_conditions TEXT, trend_analysis TEXT, predicted_failure_date INTEGER, confidence_score REAL, metadata TEXT)`
+    );
+    await client.execute(
+      `CREATE INDEX IF NOT EXISTS idx_cd_equipment_time ON component_degradation(equipment_id, measurement_timestamp)`
+    );
+    logger.info("✓ Recreated component_degradation with the canonical shape");
+  }
 }

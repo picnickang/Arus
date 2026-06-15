@@ -17,9 +17,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_parts_inventory_org_part_number
   WHERE part_number IS NOT NULL;
 
 -- inventory_parts: (org_id, part_number)
-CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_parts_org_part_number
-  ON inventory_parts (org_id, part_number)
-  WHERE part_number IS NOT NULL;
+-- Guarded: inventory_parts is a legacy table dropped in 0044, so it is absent
+-- from a current-schema (drizzle-push) baseline. to_regclass() returns NULL
+-- when the table doesn't exist, so the index is created only where it applies.
+DO $$
+BEGIN
+  IF to_regclass('public.inventory_parts') IS NOT NULL THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_parts_org_part_number
+      ON inventory_parts (org_id, part_number)
+      WHERE part_number IS NOT NULL;
+  END IF;
+END $$;
 
 -- maintenance_templates: (org_id, name, equipment_type)
 -- All three columns are NOT NULL on this table, so no partial clause.

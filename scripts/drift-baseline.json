@@ -1,6 +1,6 @@
 {
   "_comment": "Auto-generated baseline of known PG/SQLite drift. Do not edit manually — regenerate with: node scripts/regen-drift-baseline.mjs",
-  "generatedAt": "2026-04-22T20:04:49.009Z",
+  "generatedAt": "2026-06-14T21:16:43.822Z",
   "missingTables": ["organizations", "syncConflicts", "syncJournal", "syncOutbox", "users"],
   "columnDrift": {
     "vessels": {
@@ -89,7 +89,6 @@
       "sqliteOnly": ["action", "changeReason", "changedBy", "changedByName"]
     },
     "maintenanceRecords": {
-      "pgOnly": ["completedDate", "cost", "description", "performedBy", "scheduledDate"],
       "sqliteOnly": [
         "actualDuration",
         "actualEndTime",
@@ -142,7 +141,6 @@
       ]
     },
     "downtimeEvents": {
-      "pgOnly": ["category", "estimatedCost", "severity"],
       "sqliteOnly": [
         "downtimeType",
         "impactLevel",
@@ -189,33 +187,6 @@
         "weight"
       ]
     },
-    "inventoryParts": {
-      "pgOnly": [
-        "currentStock",
-        "description",
-        "lastUsage30d",
-        "leadTimeDays",
-        "maxStockLevel",
-        "minStockLevel",
-        "partNumber",
-        "riskLevel",
-        "supplier",
-        "unitCost"
-      ],
-      "sqliteOnly": [
-        "binNumber",
-        "lastCountDate",
-        "location",
-        "maxStock",
-        "partId",
-        "quantityOnHand",
-        "quantityOnOrder",
-        "quantityReserved",
-        "reorderPoint",
-        "vesselId",
-        "warehouseId"
-      ]
-    },
     "inventoryMovements": {
       "pgOnly": ["notes", "quantityAfter", "quantityBefore", "reservedAfter", "reservedBefore"],
       "sqliteOnly": ["fromLocation", "reason", "toLocation"]
@@ -246,7 +217,7 @@
       "sqliteOnly": ["isActive", "originalPartId", "priority", "substitutePartId"]
     },
     "partFailureHistory": {
-      "pgOnly": ["costImpact", "downtimeHours", "environment", "replacementPartId"],
+      "pgOnly": ["downtimeHours"],
       "sqliteOnly": ["impactLevel", "notes"],
       "typeDrift": ["operatingHours"]
     },
@@ -275,7 +246,7 @@
         "terminationNotes",
         "terminationType"
       ],
-      "sqliteOnly": ["department", "employeeId", "firstName", "isActive", "joinDate", "lastName"]
+      "sqliteOnly": ["employeeId", "firstName", "isActive", "joinDate", "lastName"]
     },
     "skills": {
       "pgOnly": ["active", "maxLevel"],
@@ -656,103 +627,6 @@
       ],
       "sqliteOnly": ["lastTrainedAt", "metadata", "modelPath", "modelType", "trainingDataCount"]
     },
-    "failurePredictions": {
-      "pgOnly": [
-        "actualFailureDate",
-        "actualFailureMode",
-        "confidenceInterval",
-        "costImpact",
-        "failureMode",
-        "featureSetVersion",
-        "featureSnapshotId",
-        "governanceMetadata",
-        "inputFeatures",
-        "maintenanceRecommendations",
-        "modelVersionId",
-        "outcomeLabel",
-        "outcomeVerifiedAt",
-        "outcomeVerifiedBy",
-        "predictionAccuracy",
-        "predictionTimestamp",
-        "predictionValidUntil",
-        "remainingUsefulLife",
-        "resolvedByWorkOrderId",
-        "reviewStatus",
-        "reviewedAt",
-        "reviewedBy",
-        "riskLevel",
-        "suppressionReason",
-        "timeToFailureError"
-      ],
-      "sqliteOnly": [
-        "confidence",
-        "contributingFactors",
-        "failureType",
-        "predictionDate",
-        "recommendation",
-        "riskScore",
-        "severity",
-        "status",
-        "validatedAt",
-        "validationResult"
-      ],
-      "typeDrift": ["id"]
-    },
-    "anomalyDetections": {
-      "pgOnly": [
-        "actualFailureOccurred",
-        "contributingFactors",
-        "detectedValue",
-        "detectionTimestamp",
-        "modelId",
-        "outcomeLabel",
-        "outcomeVerifiedAt",
-        "outcomeVerifiedBy",
-        "recommendedActions",
-        "resolvedByWorkOrderId"
-      ],
-      "sqliteOnly": [
-        "actualValue",
-        "description",
-        "detectedAt",
-        "resolvedAt",
-        "rootCause",
-        "status"
-      ],
-      "typeDrift": ["id"]
-    },
-    "componentDegradation": {
-      "pgOnly": [
-        "acousticSignature",
-        "componentType",
-        "confidenceScore",
-        "cycleCount",
-        "degradationMetric",
-        "environmentConditions",
-        "loadFactor",
-        "measurementTimestamp",
-        "metadata",
-        "oilCondition",
-        "operatingHours",
-        "predictedFailureDate",
-        "temperature",
-        "trendAnalysis",
-        "vibrationLevel",
-        "wearParticleCount"
-      ],
-      "sqliteOnly": [
-        "assessmentMethod",
-        "componentName",
-        "contributingFactors",
-        "degradationLevel",
-        "estimatedRulDays",
-        "healthScore",
-        "lastAssessedAt",
-        "recommendation",
-        "status"
-      ],
-      "typeDrift": ["id"]
-    },
     "failureHistory": {
       "pgOnly": [
         "ageAtFailure",
@@ -915,23 +789,6 @@
         "vesselId"
       ]
     },
-    "telemetryAggregates": {
-      "pgOnly": [
-        "anomalyScore",
-        "metadata",
-        "qualityScore",
-        "stdDev",
-        "timeWindow",
-        "windowEnd",
-        "windowStart"
-      ],
-      "sqliteOnly": ["aggregationType", "periodEnd", "periodStart", "sumValue"],
-      "typeDrift": ["id"]
-    },
-    "telemetryRollups": {
-      "pgOnly": ["bucket", "bucketSize", "unit"],
-      "sqliteOnly": ["rollupDate", "rollupType", "stdDev"]
-    },
     "dtcDefinitions": {
       "pgOnly": ["fmi", "fmiName", "manufacturer", "spn", "spnName"],
       "sqliteOnly": [
@@ -1005,17 +862,7 @@
       ]
     },
     "j1939Configurations": {
-      "pgOnly": [
-        "baudRate",
-        "canBusId",
-        "deviceId",
-        "enabled",
-        "filterMode",
-        "pgns",
-        "pollIntervalMs",
-        "sourceAddress",
-        "targetAddress"
-      ],
+      "pgOnly": ["baudRate", "deviceId"],
       "sqliteOnly": [
         "description",
         "equipmentId",
@@ -1202,7 +1049,7 @@
       ]
     },
     "complianceDocs": {
-      "pgOnly": ["expiresAt", "fileHash", "filePath", "issuedAt", "issuingAuthority"],
+      "pgOnly": ["expiresAt", "issuedAt"],
       "sqliteOnly": [
         "equipmentId",
         "expiryDate",
@@ -1211,8 +1058,7 @@
         "fileUrl",
         "mimeType",
         "uploadedBy"
-      ],
-      "typeDrift": ["version"]
+      ]
     },
     "complianceAuditLog": {
       "pgOnly": ["complianceStandard", "details", "regulatoryReference", "timestamp"],
@@ -1292,11 +1138,10 @@
       "sqliteOnly": ["category", "equipmentId", "incurredAt", "receiptUrl", "vesselId"]
     },
     "portCall": {
-      "pgOnly": ["arrivalDate", "departureDate", "status"],
+      "pgOnly": ["status"],
       "sqliteOnly": ["arrivalTime", "departureTime", "notes"]
     },
     "drydockWindow": {
-      "pgOnly": ["scope"],
       "sqliteOnly": ["actualCost", "notes"]
     },
     "visualizationAssets": {
@@ -1335,40 +1180,7 @@
         "targetType"
       ]
     },
-    "adminSystemSettings": {
-      "pgOnly": [
-        "category",
-        "defaultValue",
-        "isReadonly",
-        "isSecret",
-        "key",
-        "updatedBy",
-        "validationRule",
-        "value"
-      ],
-      "sqliteOnly": ["isEncrypted", "settingKey", "settingValue"]
-    },
     "immutableAuditTrail": {
-      "pgOnly": [
-        "changedFields",
-        "complianceStandard",
-        "deviceId",
-        "eventCategory",
-        "eventTimestamp",
-        "eventType",
-        "hash",
-        "ipAddress",
-        "newState",
-        "performedByName",
-        "performedByRole",
-        "performedByType",
-        "prevHash",
-        "previousState",
-        "retentionExpiresAt",
-        "retentionRequired",
-        "serverTimestamp",
-        "vesselId"
-      ],
       "sqliteOnly": [
         "action",
         "data",
@@ -1414,14 +1226,7 @@
       ]
     },
     "predictionDataQuality": {
-      "pgOnly": [
-        "dataConsistency",
-        "equipmentId",
-        "evaluationDate",
-        "issuesDetected",
-        "overallQuality",
-        "qualityGrade"
-      ],
+      "pgOnly": ["equipmentId"],
       "sqliteOnly": ["anomalyRate", "assessedAt", "issues", "overallQualityScore", "predictionId"]
     },
     "userSessions": {
@@ -1523,11 +1328,10 @@
       "sqliteOnly": ["features", "isActive", "minClientVersion"]
     },
     "errorLogs": {
-      "pgOnly": ["category", "timestamp"],
       "sqliteOnly": ["endpoint", "errorType", "requestId", "userId"]
     },
     "idempotencyLog": {
-      "pgOnly": ["expiresAt", "key"],
+      "pgOnly": ["key"],
       "sqliteOnly": [
         "endpoint",
         "id",
@@ -1540,14 +1344,11 @@
       ]
     },
     "requestIdempotency": {
-      "pgOnly": ["requestId"],
       "sqliteOnly": ["idempotencyKey", "orgId", "requestHash"]
     },
     "arMaintenanceProcedures": {
       "pgOnly": [
         "arAssets",
-        "createdBy",
-        "difficultyLevel",
         "equipmentId",
         "estimatedDuration",
         "procedureType",
@@ -1586,7 +1387,7 @@
     },
     "dbSchemaVersion": {
       "sqliteOnly": ["description"],
-      "typeDrift": ["id", "version"]
+      "typeDrift": ["id"]
     },
     "llmBudgetConfigs": {
       "pgOnly": [
@@ -1705,20 +1506,10 @@
       ]
     },
     "scheduleAssignments": {
-      "pgOnly": ["assignmentType", "date", "reason", "runId"],
-      "sqliteOnly": [
-        "assignmentDate",
-        "endTime",
-        "notes",
-        "orgId",
-        "role",
-        "schedulerRunId",
-        "startTime"
-      ]
+      "sqliteOnly": ["assignmentDate", "endTime", "notes", "schedulerRunId", "startTime"]
     },
     "scheduleUnfilled": {
-      "pgOnly": ["date", "runId"],
-      "sqliteOnly": ["assignmentDate", "orgId", "schedulerRunId"]
+      "sqliteOnly": ["assignmentDate", "schedulerRunId"]
     }
   }
 }

@@ -44,7 +44,17 @@ export function registerTelemetryRoutes(app: Express, config: SensorManagementCo
         res.json(sinkRows);
         return;
       }
-      const history = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
+      // `hours` is a time window, not a row cap. getTelemetryHistory's third
+      // positional arg is `limit`, so passing hours there silently truncated
+      // the result to N rows with no time filtering. Use the date-range query.
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - hours * 60 * 60 * 1000);
+      const history = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
+        equipmentId,
+        startDate,
+        endDate,
+        sensorType || undefined
+      );
       res.json(history);
     } catch {
       res.status(500).json({ message: "Failed to fetch telemetry history" });

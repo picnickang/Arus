@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T04:57:34Z
+Generated: 2026-06-12T14:06:02.251Z
 
 ## Policy
 
@@ -8,8 +8,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `146` counted files.
+- The temporary ceiling is `0` counted files.
+- The current counted inventory is `0` files.
 - The original release baseline was `52` files.
+- The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
 - Production code is not excluded from the count.
 - Test fixtures matching `server/tests/*/fixtures.ts` are excluded from the ratchet and tracked here as fixture debt.
@@ -18,233 +20,176 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   146 |
-| Server                    |    62 |
-| Server route-like files   |    16 |
-| Server service-like files |    17 |
-| Client                    |    75 |
-| Client page files         |    28 |
-| Shared                    |     9 |
-| Counted tests             |     1 |
+| Total counted long files  |     0 |
+| Server                    |     0 |
+| Server route-like files   |     0 |
+| Server service-like files |     0 |
+| Client                    |     0 |
+| Client page files         |     0 |
+| Shared                    |     0 |
+| Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
 
 Excluded fixture:
 
 - `server/tests/telemetry-pipeline/fixtures.ts` - 735 lines
 
-Completed splits: `client/src/pages/vessel-intelligence/registry-screens.tsx` (former rank 1,
-1,766 lines) was split 2026-06-11 into a 111-line dispatcher plus per-screen files under
-`registry-screens/` following the `equipment-hub/` template.
+Completed splits:
 
-## Top 30 Longest Files
+- `client/src/pages/vessel-intelligence/registry-screens.tsx` was previously split into a dispatcher plus per-screen files under `registry-screens/`.
+- `client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx` dropped below the threshold by moving `CounterTile` to `CrewRegistryLandingCounterTile.tsx`.
+- `client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx` dropped below the threshold by moving rows, dialogs, stats, presentation helpers, and overlay/activity pieces to `CrewTaskTrackerParts/`.
+- `server/import-adapters/shipmate/import-service.ts` dropped below the threshold by moving types, vessel resolution, row upserts, running-hour sync, and RAG document helpers to sibling modules.
+- `server/db/inventory/index.ts` dropped below the threshold by moving projection, reservation-ledger, work-order-part mutation, and parts/stock query helpers to sibling modules.
+- `shared/role-dashboard.ts` dropped below the threshold by moving access policy, default configs, and safety alarm constants to sibling modules.
+- `server/routes/domain-router-registry.ts` dropped below the threshold by moving declarative router inventory to config modules.
+- `server/import-adapters/amos/import-service.ts` dropped below the threshold by moving AMOS types, row upserts, and RAG document helpers to sibling modules.
+- The vessel diagram registry route file dropped below the threshold by moving schemas, context, and route groups to focused modules.
+- The vessel diagram Postgres store dropped below the threshold by moving diagram, section-map, section, assignment, validation, thumbnail, and helper persistence groups to focused modules.
+- `server/domains/crew-extensions/interfaces/scheduler-routes.ts` dropped below the threshold by moving schemas and endpoint groups to focused scheduler route modules.
+- `server/domains/crew-admin/application/crew-admin-service.ts` dropped below the threshold by moving role, dashboard, readiness, credential, and account/offboarding workflows to internal helper modules.
+- `server/telemetry-batch-writer.ts` dropped below the threshold by moving buffer management, metrics, persistence, post-flush work, quota checks, and direct-write orchestration to sibling modules.
+- `server/websocket.ts` dropped below the threshold by moving upgrade auth, telemetry throttling, fanout delivery/replay, shared types, and broadcast payload helpers to sibling modules.
+- `server/domains/permissions/routes.ts` dropped below the threshold by moving role, user-admin/setup, and dev diagnostic route groups plus shared schemas to focused modules.
+- `server/pdm/routes.ts` dropped below the threshold by moving export, equipment/telemetry, analysis, and shared filter/CSV helpers to focused modules.
+- `server/config/default-role-templates.ts` dropped below the threshold by moving role-template groups and types to focused config modules.
+- `server/config/permission-registry.ts` dropped below the threshold by moving action, resource, category, and type definitions to focused config modules.
+- `server/domains/crew-admin/interfaces/routes.ts` dropped below the threshold by moving role, dashboard, user, credential, and account route groups to focused modules.
+- `server/services/domains/work-order-service.ts` dropped below the threshold by moving query, lifecycle, clone, completion, and shared type operations to focused service modules.
+- `shared/schema/admin.ts` dropped below the threshold by moving admin schema table groups to focused schema modules while preserving the public barrel.
+- `server/domains/workflow/application/attention-service.ts` dropped below the threshold by moving exported types, state helpers, formatting helpers, and workflow aggregation to focused modules.
+- `server/domains/vessel-diagram-registry/application/service.ts` dropped below the threshold by moving section-map templates, media helpers, and replacement behavior orchestration to focused modules.
+- `shared/schema/logbooks.ts` dropped below the threshold by moving deck, engine, automation, fuel, track, and condition table groups to focused schema modules while preserving the public barrel.
+- `shared/schema/ml-analytics-advanced.ts` dropped below the threshold by moving validation/vibration/PdM, realtime/retraining, and registry/runtime table groups to internal schema modules while preserving public insert schemas and types.
+- `shared/schema/alerts.ts` dropped below the threshold by moving core alert, settings, and queue table groups to focused schema modules while preserving the public barrel.
+- `shared/schema-runtime.ts` dropped below the threshold by moving mode-aware table groups to focused runtime modules while preserving public schema-runtime table names.
+- `shared/schema/crew.ts` dropped below the threshold by moving people and operations table groups to focused schema modules while preserving the public barrel.
+- `shared/schema/equipment.ts` dropped below the threshold by moving registry/lifecycle and analytics table groups to focused schema modules while preserving the public barrel.
+- `shared/schema/purchasing.ts` dropped below the threshold by moving procurement and service-order table groups to focused schema modules while preserving the public barrel.
+- `server/lib/domain-event-bus/types.ts` dropped below the threshold by moving event envelopes, payloads, and event map types to internal modules while preserving the public factory/barrel.
+- `server/integrations/fmcc-types.ts` dropped below the threshold by moving FMCC snapshot/polling types and register maps to internal modules while preserving the public barrel.
+- `server/tests/pdm/get-schedule.test.ts` dropped below the threshold by moving local fixture builders to a counted helper module while preserving the test coverage.
+- `server/services/rms/alert-service.ts` dropped below the threshold by moving alert config and row helpers to a sibling module while preserving `rmsAlertService`.
+- `server/domains/rms/routes.ts` dropped below the threshold by moving route schemas and request/row helpers to a sibling module while preserving `rmsRouter`.
+- `server/utils/statistics.ts` dropped below the threshold by moving signal-processing, time-series, correlation, forecasting, and error helpers to focused utility modules while preserving the public barrel.
+- `server/services/ml/model-evaluation-gate.ts` dropped below the threshold by moving gate config, types, and metric helpers to a sibling support module while preserving `ModelEvaluationGate`.
+- `server/domains/agent/tools/weather-tools.ts` dropped below the threshold by moving weather schemas, types, and fetch helpers to a sibling support module while preserving registered tool names.
+- `client/src/lib/offline-sync.ts` dropped below the threshold by moving offline sync public types and IndexedDB schema typing to a sibling type module while preserving the public runtime entry point.
+- `client/src/components/UnifiedCrewManagement/CurrentRoster.tsx` dropped below the threshold by moving current roster row and group-section rendering to a sibling component module while preserving roster grouping controls and test IDs.
+- `client/src/features/suppliers/components/SupplierForm.tsx` dropped below the threshold by moving supplier form schema/default-value helpers to a sibling module while preserving the public form component.
+- `client/src/components/engine-logbook/row-components.tsx` dropped below the threshold by moving event/watch card rendering to a sibling module while preserving the existing row-components import path.
+- `client/src/pages/work-orders.tsx` remains below the threshold after the current mainline replacement route delegates to `MobileWorkOrdersPage`.
+- `client/src/pages/logs-compliance-hub.tsx` dropped below the threshold by moving logbook status cards to a sibling page-parts module while preserving the route component and tab IDs.
+- `client/src/features/work-orders/hooks/useWorkOrdersPageData.ts` dropped below the threshold by moving work-order page formatters to a sibling lib module while preserving public exports from the hook module.
+- `client/src/pages/agent-activity.tsx` dropped below the threshold by moving activity rows, summary metrics, and activity types to a sibling page-parts module while preserving the route component and test IDs.
+- `server/domains/crew-extensions/infrastructure/schedule-planner-read-model.ts` dropped below the threshold by moving vessel summary/count query helpers to a sibling infrastructure module while preserving the adapter and `schedulePlannerReadModel` exports.
+- `client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx` dropped below the threshold by moving convert/reject dialog controls to a sibling page dialog module while preserving the exported page component.
+- `client/src/features/crew/hooks/useShiftPlanning.ts` dropped below the threshold by moving scheduling payload and data-shape types to a sibling hook type module while preserving the exported hook and return type.
+- `client/src/pages/pdm-equipment-detail.tsx` dropped below the threshold by moving anomaly and maintenance history tab rendering to a sibling tab module while preserving the route component.
+- `server/integrations/fmcc-polling-service.ts` dropped below the threshold by moving FMCC raw poll normalization to a pure snapshot builder while preserving the polling service exports.
+- `server/services/anomaly-correlation/anomaly-correlator.ts` dropped below the threshold by moving sensor normalization and failure-signature matching to a pure helper module while preserving `AnomalyCorrelator`.
+- `server/services/ml/prediction-outcome-tracker.ts` dropped below the threshold by moving tracker config and payload/data-shape types to a sibling type module while preserving `PredictionOutcomeTracker`.
+- `server/db/equipment/db-equipment.ts` dropped below the threshold by moving graph projection/retraction side effects to a sibling helper while preserving `DatabaseEquipmentStorage`.
+- `server/scripts/migrate.ts` dropped below the threshold by moving critical post-migration object metadata to a sibling script module while preserving `runBootMigrations` and CLI behavior.
+- `server/services/ml/prediction-calibration.ts` dropped below the threshold by moving calibration math/types to a sibling helper while preserving `PredictionCalibrator`.
+- `client/src/components/scheduling/crew-scheduler-cards.tsx` dropped below the threshold by moving certification/qualification helpers to a sibling component module while preserving the existing scheduler cards export surface.
+- `client/src/pages/analytics-hub.tsx` dropped below the threshold by moving predictive insights, metric cards, domain strips, findings, and response types to a sibling page-parts module while preserving the route component.
+- `client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx` dropped below the threshold by moving role default fields and payload helpers to a sibling component module while preserving `CrewRoleManager`.
+- `client/src/components/admin/SystemSettingsTab.tsx` dropped below the threshold by moving OpenAI API key controls to a sibling card module while preserving the exported settings tab.
+- `client/src/pages/knowledge-base.tsx` dropped below the threshold by moving upload, filter, and semantic-search widgets to a sibling page-parts module while preserving the route component.
+- `client/src/pages/desktop-setup.tsx` dropped below the threshold by moving setup progress and backend connection controls to a sibling steps module while keeping real account sign-in in the route file.
+- `client/src/config/navigationConfig.ts` dropped below the threshold by moving the route-to-resource map to a sibling config module while preserving the original public export.
+- `server/routes/kb-routes.ts` dropped below the threshold by moving KB upload storage, MIME filtering, and multer error normalization to a sibling route middleware module while preserving route URLs.
+- `server/db/crew-extensions/db-crew-extensions.ts` dropped below the threshold by moving notification/alert and port/drydock scheduling persistence helpers to sibling modules while preserving `DbCrewExtensionsStorage`.
+- `server/compliance/data-anonymization/service.ts` dropped below the threshold by moving field-name and likely-contact classification helpers to a sibling pure module while preserving `DataAnonymizationService`.
+- `server/services/patch-applicator.ts` dropped below the threshold by moving backup creation, rollback, listing, and cleanup lifecycle helpers to a sibling module while preserving `PatchApplicator`.
+- `server/domains/crew/application/crew-service.ts` dropped below the threshold by moving crew application port contracts to a sibling type module while preserving public type exports from `crew-service`.
+- `server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts` dropped below the threshold by moving in-memory record builders and mutation helpers to a sibling module while preserving `InMemoryVesselDiagramRegistryStore`.
+- `server/pdm/adapters/pdm-postgres.repository.ts` dropped below the threshold by moving risk queue presentation mappers and relative-time helpers to a sibling module while preserving `pdmPostgresRepository`.
+- `server/domains/equipment-intelligence/infrastructure/postgres-repository.ts` dropped below the threshold by moving risk/trend/status, signal parsing, work-order summary, and label helpers to a sibling module while preserving `PostgresEquipmentIntelligenceRepository`.
+- `server/routes/wo-so-bridge-routes.ts` dropped below the threshold by moving create/sync bridge operations to a sibling module while preserving route URLs and compatibility exports.
+- `server/domains/agent/application/suggestion-engine.ts` dropped below the threshold by moving preference/severity helpers, prediction cost formatting, AI summarization, and notification queueing to a sibling support module while preserving `SuggestionEngine`.
+- `server/domains/equipment/routes.ts` dropped below the threshold by moving lifecycle, sensor setup, and parts lookup endpoints to a sibling route group while preserving `registerEquipmentRoutes` and route URLs.
+- `server/domains/scheduling/routes.ts` dropped below the threshold by moving scheduling-settings endpoints to a sibling route group while preserving `registerSchedulingRoutes` and route URLs.
+- `server/domains/me-portal/me-portal-service.ts` dropped below the threshold by moving personal task-feed assembly to a sibling helper while preserving `MePortalService.getTasks`.
+- `server/purchasing/po-routes.ts` dropped below the threshold by moving purchase-order fulfillment and events endpoints to a sibling route group while preserving the default router and route URLs.
+- `server/ml-routes/model-routes.ts` dropped below the threshold by moving ML promotion approval, promote, and rollback routes to a sibling route group while preserving `modelRoutes` and route URLs.
+- `server/compliance/routes/data-privacy-routes.ts` dropped below the threshold by moving DSAR list, detail, state transition, collection, erasure, and statistics endpoints to a sibling route group while preserving `complianceDataPrivacyRouter` and route URLs.
+- `server/db/ml-analytics/db-ml-analytics.ts` dropped below the threshold by moving feature importance, calibration, engineer override, and RUL model helpers to a sibling cloud helper while preserving `DatabaseMlAnalyticsStorage`.
+- `server/import-adapters/shipmate/field-mapping.ts` dropped below the threshold by moving Shipmate value transforms and CSV header normalization to sibling helper modules while preserving the public mapping exports.
+- `server/domains/permissions/repository.ts` dropped below the threshold by moving access, dashboard seeding, and permissions diagnostic queries to a sibling repository query module while preserving the public repository exports.
+- `server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts` dropped below the threshold by moving crew user access, assignment, credential, session, and crew-login link persistence to a sibling infrastructure module while preserving `CrewAdminRepositoryAdapter`.
+- `server/db/analytics/db-analytics.ts` dropped below the threshold by moving finance/inventory helpers and metrics history/insight snapshot persistence to sibling modules while preserving `DatabaseAnalyticsStorage`.
+- `server/objectStorage.ts` dropped below the threshold by moving lazy client initialization, MIME content-type policy, and object path signing helpers to sibling modules while preserving `ObjectStorageService` and public helper exports.
+- `server/domains/agent/tools/enhanced-report-tools.ts` dropped below the threshold by moving report artifact persistence and report formatting/export helpers to sibling modules while preserving registered tool names and `getReportArtifact`.
+- `server/db/checklists/db-checklists.ts` dropped below the threshold by moving template workflow and work-order task/checklist/worklog record groups to sibling storage base classes while preserving `DatabaseChecklistsStorage`.
+- `server/scheduler/scheduler-controller.ts` dropped below the threshold by moving scheduler input loading, simulation/apply/revert helpers, and run lifecycle actions to sibling modules while preserving the public controller exports.
+- `server/domains/agent/application/orchestrator.ts` dropped below the threshold by moving shared run/context types, message/context assembly, and the unified iteration loop to orchestrator helper modules while preserving `AgentOrchestrator`.
+- `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` dropped below the threshold by moving hub summary/fetch helpers and activity timeline assembly to sibling modules while preserving `PostgresEquipmentHubRepository`.
+- `server/routes/service-request-routes.ts` dropped below the threshold by moving read, edit/create, and review/convert route groups plus shared request helpers to sibling route modules while preserving `registerServiceRequestRoutes`.
+- `server/routes/rag-routes.ts` dropped below the threshold by moving ask/streaming, conversation/feedback/cache, extended export/analytics/compare/alert route groups, and shared RAG route helpers to sibling modules while preserving `registerRagRoutes`.
+- `client/src/lib/queryClient.ts` dropped below the threshold by moving request, header, envelope, timeout, quota-error, and query function mechanics to `queryClient-request.ts` while preserving the public `queryClient` import path.
+- `client/src/pages/vessel-intelligence/registry-api.ts` dropped below the threshold by moving registry API types, shared query/invalidation/upload helpers, and diagram/version hooks to sibling modules while preserving the public `registry-api` import path.
+- `client/src/features/crew/hooks/useUnifiedCrewData.ts` dropped below the threshold by moving aggregate/access queries, access indexes, roster filtering, and photo upload mechanics to a sibling hook-parts module while preserving the public `useUnifiedCrewData` import path.
+- `client/src/features/mobile-readiness/mobile-readiness-model.ts` dropped below the threshold by moving model types, navigation, queue/fleet data, machinery/work data, and support screen builders to sibling modules while preserving the public model import path.
+- `client/src/components/work-orders/WorkOrderDetailDrawer.tsx` dropped below the threshold by moving detail tabs and drawer actions to sibling modules while preserving the public drawer export and test IDs.
+- `client/src/components/equipment/EquipmentFormDialog.tsx` dropped below the threshold by moving form fields and action controls to a sibling component while preserving create/edit dialog exports and test IDs.
+- `client/src/pages/vessel-dashboard/index.tsx` dropped below the threshold by moving dashboard rendering to a sibling view component while preserving the route export and dashboard test IDs.
 
-| Rank | Lines | File                                                                      | Owner/module                | Risk   | Suggested tests before refactor                |
-| ---: | ----: | ------------------------------------------------------------------------- | --------------------------- | ------ | ---------------------------------------------- |
-|    1 |  1290 | `client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx`         | Crew UI                     | High   | Crew unit tests, crew mobile smoke             |
-|    2 |  1261 | `server/domains/vessel-diagram-registry/infrastructure/postgres-store.ts` | Vessel registry persistence | High   | Vessel Diagram Registry API coverage           |
-|    3 |  1147 | `server/import-adapters/shipmate/import-service.ts`                       | Shipmate import             | High   | Shipmate import integration/unit tests         |
-|    4 |  1137 | `server/db/inventory/index.ts`                                            | Inventory persistence       | High   | Inventory receive/reserve/consume tests        |
-|    5 |  1112 | `client/src/pages/admin/equipment-dependencies.tsx`                       | Admin equipment UI          | Medium | Equipment dependency page tests                |
-|    6 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             | Scheduling UI               | Medium | Scheduling component tests                     |
-|    7 |  1077 | `client/src/components/HoursOfRestGrid/index.tsx`                         | Hours of rest UI            | High   | Hours of rest unit and route tests             |
-|    8 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          | Crew UI                     | High   | Crew form validation tests                     |
-|    9 |  1065 | `server/domains/crew-extensions/interfaces/scheduler-routes.ts`           | Crew scheduler routes       | High   | Crew scheduler integration tests               |
-|   10 |  1062 | `server/routes/domain-router-registry.ts`                                 | Route registration          | High   | `npm run check:route-registration`, boot smoke |
-|   11 |  1051 | `server/domains/vessel-diagram-registry/interfaces/routes.ts`             | Vessel registry routes      | High   | Vessel Diagram Registry route tests            |
-|   12 |  1042 | `server/domains/crew-admin/application/crew-admin-service.ts`             | Crew admin service          | High   | Crew admin permission and CRUD tests           |
-|   13 |  1040 | `client/src/components/scheduling/SchedulePlanner.tsx`                    | Scheduling UI               | Medium | Schedule planner tests                         |
-|   14 |  1017 | `client/src/components/crew-admin/SafetyTab.tsx`                          | Crew admin safety UI        | Medium | Safety tab component tests                     |
-|   15 |   990 | `client/src/pages/ml-training.tsx`                                        | ML training UI              | Medium | ML training page tests                         |
-|   16 |   987 | `shared/role-dashboard.ts`                                                | Role dashboard policy       | High   | Role dashboard and permission tests            |
-|   17 |   971 | `server/websocket.ts`                                                     | WebSocket runtime           | High   | WebSocket tenant propagation tests             |
-|   18 |   941 | `client/src/pages/admin/3d-models.tsx`                                    | Admin 3D models UI          | Medium | Admin 3D page tests                            |
-|   19 |   932 | `shared/schema/ml-analytics-advanced.ts`                                  | Shared ML schema            | High   | `npm run check:schema`, ML schema tests        |
-|   20 |   913 | `server/domains/agent/application/orchestrator.ts`                        | Agent orchestration         | High   | Agent orchestration unit tests                 |
-|   21 |   910 | `server/import-adapters/amos/import-service.ts`                           | AMOS import                 | High   | AMOS import integration/unit tests             |
-|   22 |   889 | `server/domains/permissions/routes.ts`                                    | Permission routes           | High   | Permission matrix route tests                  |
-|   23 |   885 | `server/services/domains/work-order-service.ts`                           | Work order service          | High   | Work order CRUD and completion tests           |
-|   24 |   885 | `client/src/components/unified-crew-components.tsx`                       | Crew UI shared components   | Medium | Crew component tests                           |
-|   25 |   872 | `client/src/pages/copilot-admin.tsx`                                      | Copilot admin UI            | Medium | Copilot admin route tests                      |
-|   26 |   869 | `client/src/pages/system-administration.tsx`                              | System admin UI             | Medium | System administration tests                    |
-|   27 |   852 | `server/domains/workflow/application/attention-service.ts`                | Workflow attention service  | High   | Workflow attention unit tests                  |
-|   28 |   841 | `client/src/pages/findings.tsx`                                           | Findings UI                 | Medium | Findings page tests                            |
-|   29 |   838 | `client/src/pages/deck-logbook/index.tsx`                                 | Deck logbook UI             | High   | Deck logbook unit and route tests              |
-|   30 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         | Analytics UI                | Medium | Analytics component tests                      |
+- `client/src/features/mobile-readiness/MobileReadinessScreens.tsx` dropped below the threshold by moving shared shell widgets plus fleet, PdM, work/logs, and admin screen clusters to sibling modules while preserving the public page exports.
+- `client/src/components/admin/SchedulingSettingsTab.tsx` dropped below the threshold by moving rotation template management to a sibling section module while preserving the exported settings tab and test IDs.
+- `client/src/pages/scheduled-reports.tsx` dropped below the threshold by moving create-schedule form constants and dialog controls to sibling route modules while preserving route behavior and test IDs.
+- `client/src/components/analytics/OperationsMode.tsx` dropped below the threshold by moving active telemetry stream filters, fetching, and sparkline rendering to a sibling mode component while preserving test IDs.
+- `client/src/components/work-orders/WorkOrderFormDialog.tsx` dropped below the threshold by moving form fields and action controls to a sibling component while preserving the public dialog shell and test IDs.
+- Upstream dead-client-code cleanup removed obsolete client surfaces, including crew/admin, scheduling, logbook, and vessel-registry UI files, and the merge preserved those deletions instead of resurrecting stale split modules.
+- `client/src/pages/admin/equipment-dependencies.tsx` dropped below the threshold by moving graph/layout model helpers, page state orchestration, and tab/dialog presentation to sibling modules while preserving the admin route shell, query keys, and test IDs.
+- `client/src/pages/ml-training.tsx` dropped below the threshold by moving training tabs, model table, reset dialogs, export card, and shared page types to sibling modules while preserving the route component, query hook, action callbacks, and test IDs.
+- `client/src/components/ai-health/TrainingTab.tsx` dropped below the threshold by moving training, model/export, reset, and tab-shell surfaces to sibling modules while preserving the AI-health tab export and test IDs.
+- `client/src/pages/admin/3d-models.tsx` dropped below the threshold by moving model metadata helpers, vessel upload cards, history management, and pin editor state/rendering to sibling modules while preserving route behavior and test IDs.
+- `client/src/pages/copilot-admin.tsx` dropped below the threshold by moving config dialog, data-management controls, and page data types to sibling modules while preserving route behavior, query keys, action callbacks, and test IDs.
+- `client/src/pages/system-administration.tsx` dropped below the threshold by moving configuration, software update, and GitHub settings tabs to sibling route modules while preserving tab IDs, route behavior, and admin update/password test IDs.
+- `client/src/pages/findings.tsx` dropped below the threshold by moving page header, filter/summary controls, and outcome/output dialogs to a sibling route-parts module while preserving finding query keys, action callbacks, tabs, and test IDs.
+- `client/src/components/analytics/FinanceMode.tsx` dropped below the threshold by moving KPI cards and savings-claim validation/list controls to sibling modules while preserving the public `FinanceMode` export, cost-saving query key, and test IDs.
+- `client/src/features/crew/lib/crewManagementUtils.ts` dropped below the threshold by moving rank/role grouping, vessel grouping, and offboarding helpers to sibling modules while preserving compatibility exports from the original utility path.
+- `client/src/features/crew/hooks/useHoursOfRestData.ts` dropped below the threshold by moving exported hook types and hours-of-rest action callbacks to sibling hook modules while preserving the public `useHoursOfRestData` path.
+- `client/src/pages/maintenance-schedules.tsx` dropped below the threshold by moving calendar, filter/list sections, dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
+- `client/src/pages/organization-management.tsx` dropped below the threshold by moving organization/user list sections, form dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
+- `client/src/pages/MaintenanceTemplatesPage.tsx` dropped below the threshold by moving template cards, checklist/view helpers, dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
+- `client/src/components/ai-health/PerformanceTab.tsx` dropped below the threshold by moving summary cards/table, diagnostic collapsibles, marine/validation sections, explainability, and tab typing to sibling modules while preserving tab behavior and test IDs.
+- `client/src/pages/equipment/index.tsx` dropped below the threshold by moving header/stat cards, active/decommissioned registry tabs, dialogs/drawers, and route model typing to sibling page modules while preserving route behavior and test IDs.
+- `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx` dropped below the threshold by moving service order cards/timeline rendering and the create-service-request dialog to sibling modules while preserving the public panel export and test IDs.
+- `client/src/pages/findings-cards.tsx` dropped below the threshold by moving finding card types/constants, card renderers, and task cards/section logic to sibling modules while preserving the public findings-card import path and test IDs.
+- `client/src/components/agent/AgentChatPanel/index.tsx` dropped below the threshold by moving the panel shell plus attachment and voice-input hooks to sibling modules while preserving the public `AgentChatPanel` export and test IDs.
+- `client/src/features/crew/hooks/useSchedulePlannerData.ts` dropped below the threshold by moving schedule planner types, persisted filter helpers, and offline sync queue handling to sibling hook modules while preserving the public hook path and exported types.
+- `client/src/components/stormgeo-settings.tsx` dropped below the threshold by moving settings form and import-history surfaces to sibling modules while preserving the public `StormGeoSettingsPanel` export and test IDs.
+- `client/src/components/equipment/EquipmentDecommissionDialog.tsx` dropped below the threshold by moving form defaults/helpers and decommission summary/detail/financial/action sections to sibling modules while preserving the public dialog export and test IDs.
+- `client/src/components/ai-health/InsightsTab.tsx` dropped below the threshold by moving vessel intelligence fetching and rendering to a sibling module while preserving the default tab export and test IDs.
+- `client/src/pages/vessel-management/index.tsx` dropped below the threshold by moving action/create-dialog, fleet table, and edit/delete dialog surfaces to sibling route modules while preserving the default route export and test IDs.
+- `client/src/pages/DiagnosticsDashboard.tsx` dropped below the threshold by moving health status panels and status icon rendering to sibling route modules while preserving the default route export and test IDs.
+- `client/src/components/sensors/SensorSetupWizard.tsx` dropped below the threshold by moving bundle selection to a sibling component while preserving the public wizard export and test IDs.
+
+## Top Remaining Long Files
+
+_No counted long files remain._
 
 ## Recommended Extraction Plan
 
-1. Route registry and route files
-   - Split declarative route configuration from registration runtime.
-   - Start with `server/routes/domain-router-registry.ts`, then domain route files over 800 lines.
-   - Required proof: route-registration guard, boot health, focused integration tests for touched domains.
+1. Keep the ratchet at zero for new work.
+   - Run strict hygiene before landing large server, client, or shared changes.
+   - Split new orchestration files before they cross the 500-line limit.
+   - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
-2. Server persistence stores and services
-   - Extract mappers, query builders, DTO adapters, validation helpers, and mutation groups.
-   - Prioritize inventory, vessel registry, crew admin, work orders, imports, permissions, and WebSocket.
-   - Required proof: focused integration tests plus domain-specific unit tests.
+2. Split client route pages and components by stable UI sub-surfaces.
+   - Preserve exported route components, test IDs, query keys, and existing import paths.
+   - Required proof: focused component/source tests and Playwright smoke where routed UI already has coverage.
 
-3. Shared schema files
-   - Split by table group or exported policy surface without changing public barrels.
-   - Required proof: dual schema guard, schema-import guard, stale type guard.
+3. Keep shared schema/runtime and server files below the threshold.
+   - Preserve existing barrels and exported names for any future touch-ups.
+   - Required proof: typecheck, strict hygiene, and focused guard tests for touched surfaces.
 
-4. Client page components
-   - Extract colocated subcomponents and hooks. Preserve route behavior, query keys, and test IDs.
-   - The completed `registry-screens.tsx` split (dispatcher + one file per screen + `shared.tsx`,
-     mirroring `equipment-hub/`) is the template; `vessel-intelligence-hub-v2.test.ts` shows how
-     to keep test-id pins across a split.
-   - Required proof: focused unit/component tests and Playwright smoke for affected pages.
-
-5. Counted test files
-   - Split only after production risks are under control.
-   - Required proof: the split test file still exercises the same behavior.
+4. Preserve headroom in near-threshold files.
+   - Use hooks, helper modules, route groups, and constant modules to leave orchestration files with headroom under 450 lines where practical.
 
 ## Full Counted Inventory
 
-```text
-1290 client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx
-1261 server/domains/vessel-diagram-registry/infrastructure/postgres-store.ts
-1147 server/import-adapters/shipmate/import-service.ts
-1137 server/db/inventory/index.ts
-1112 client/src/pages/admin/equipment-dependencies.tsx
-1090 client/src/components/scheduling/ScheduleGeneratorPanel.tsx
-1077 client/src/components/HoursOfRestGrid/index.tsx
-1073 client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx
-1065 server/domains/crew-extensions/interfaces/scheduler-routes.ts
-1062 server/routes/domain-router-registry.ts
-1051 server/domains/vessel-diagram-registry/interfaces/routes.ts
-1042 server/domains/crew-admin/application/crew-admin-service.ts
-1040 client/src/components/scheduling/SchedulePlanner.tsx
-1017 client/src/components/crew-admin/SafetyTab.tsx
-990 client/src/pages/ml-training.tsx
-987 shared/role-dashboard.ts
-971 server/websocket.ts
-941 client/src/pages/admin/3d-models.tsx
-932 shared/schema/ml-analytics-advanced.ts
-913 server/domains/agent/application/orchestrator.ts
-910 server/import-adapters/amos/import-service.ts
-889 server/domains/permissions/routes.ts
-885 server/services/domains/work-order-service.ts
-885 client/src/components/unified-crew-components.tsx
-872 client/src/pages/copilot-admin.tsx
-869 client/src/pages/system-administration.tsx
-852 server/domains/workflow/application/attention-service.ts
-841 client/src/pages/findings.tsx
-838 client/src/pages/deck-logbook/index.tsx
-836 client/src/components/analytics/FinanceMode.tsx
-832 shared/schema/logbooks.ts
-828 server/pdm/routes.ts
-821 client/src/features/crew/lib/crewManagementUtils.ts
-817 client/src/pages/inventory-management.tsx
-815 client/src/pages/pdm-pack.tsx
-815 client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx
-811 client/src/features/crew/hooks/useHoursOfRestData.ts
-809 server/domains/equipment-intelligence/infrastructure/hub-repository.ts
-791 server/routes/service-request-routes.ts
-787 server/routes/rag-routes.ts
-785 client/src/pages/maintenance-schedules.tsx
-782 client/src/components/CrewDocumentsTab.tsx
-768 server/telemetry-batch-writer.ts
-765 server/config/default-role-templates.ts
-765 client/src/components/CrewNotificationSettingsTab.tsx
-757 client/src/pages/governance-dashboard.tsx
-756 shared/schema/admin.ts
-755 client/src/pages/MaintenanceTemplatesPage.tsx
-753 client/src/pages/organization-management.tsx
-744 client/src/pages/home.tsx
-744 client/src/components/ai-health/TrainingTab.tsx
-728 server/domains/crew-admin/interfaces/routes.ts
-725 client/src/components/ai-health/PerformanceTab.tsx
-711 client/src/pages/equipment/index.tsx
-711 client/src/components/work-orders/LinkedServiceOrdersPanel.tsx
-708 client/src/components/crew-admin/RolesDashboardsTab.tsx
-707 shared/schema-runtime.ts
-706 server/domains/vessel-diagram-registry/application/service.ts
-703 server/db/checklists/db-checklists.ts
-703 client/src/pages/findings-cards.tsx
-692 client/src/components/agent/AgentChatPanel/index.tsx
-690 server/domains/agent/tools/enhanced-report-tools.ts
-685 client/src/components/CrewScheduler.tsx
-681 server/db/analytics/db-analytics.ts
-681 client/src/features/crew/hooks/useSchedulePlannerData.ts
-680 server/scheduler/scheduler-controller.ts
-680 client/src/components/stormgeo-settings.tsx
-671 client/src/components/equipment/EquipmentDecommissionDialog.tsx
-655 client/src/components/vessel/VesselSchematic/SchematicConfigPanel.tsx
-654 client/src/components/ai-health/InsightsTab.tsx
-652 server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts
-652 server/config/permission-registry.ts
-646 server/domains/permissions/repository.ts
-645 server/objectStorage.ts
-641 client/src/pages/vessel-management/index.tsx
-639 server/db/ml-analytics/db-ml-analytics.ts
-638 client/src/pages/vessel-intelligence/registry-api.ts
-638 client/src/pages/DiagnosticsDashboard.tsx
-637 shared/schema/alerts.ts
-636 server/import-adapters/shipmate/field-mapping.ts
-631 client/src/features/crew/hooks/useUnifiedCrewData.ts
-628 client/src/components/crew-admin/UserAccessEditor.tsx
-625 server/compliance/routes/data-privacy-routes.ts
-623 client/src/components/work-orders/WorkOrderFormDialog.tsx
-622 client/src/components/sensors/SensorSetupWizard.tsx
-620 server/domains/scheduling/routes.ts
-617 client/src/components/analytics/OperationsMode.tsx
-614 server/domains/equipment/routes.ts
-614 client/src/components/crew/CrewComplianceDashboard.tsx
-612 server/domains/me-portal/me-portal-service.ts
-612 client/src/components/admin/SchedulingSettingsTab.tsx
-610 client/src/pages/vessel-dashboard/index.tsx
-608 shared/schema/crew.ts
-607 client/src/pages/scheduled-reports.tsx
-606 server/lib/domain-event-bus/types.ts
-596 server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts
-594 client/src/components/equipment/EquipmentFormDialog.tsx
-593 server/routes/wo-so-bridge-routes.ts
-593 client/src/components/crew-admin/UserAssignmentTab.tsx
-592 server/purchasing/po-routes.ts
-591 server/pdm/adapters/pdm-postgres.repository.ts
-591 client/src/pages/desktop-setup.tsx
-590 client/src/lib/queryClient.ts
-589 server/compliance/data-anonymization/service.ts
-586 server/services/patch-applicator.ts
-586 client/src/components/admin/SystemSettingsTab.tsx
-584 server/domains/equipment-intelligence/infrastructure/postgres-repository.ts
-581 server/domains/agent/application/suggestion-engine.ts
-577 client/src/pages/knowledge-base.tsx
-574 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
-571 client/src/config/navigationConfig.ts
-570 server/services/ml/prediction-calibration.ts
-569 server/routes/kb-routes.ts
-566 client/src/components/scheduling/crew-scheduler-cards.tsx
-562 client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx
-559 server/db/crew-extensions/db-crew-extensions.ts
-550 server/utils/statistics.ts
-550 client/src/pages/analytics-hub.tsx
-547 server/services/ml/prediction-outcome-tracker.ts
-547 client/src/pages/pdm-equipment-detail.tsx
-546 server/ml-routes/model-routes.ts
-544 server/services/anomaly-correlation/anomaly-correlator.ts
-539 server/integrations/fmcc-types.ts
-538 client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx
-534 shared/schema/equipment.ts
-532 server/background-jobs.ts
-532 client/src/features/crew/hooks/useShiftPlanning.ts
-530 server/domains/crew-extensions/infrastructure/schedule-planner-read-model.ts
-530 client/src/pages/agent-activity.tsx
-530 client/src/features/work-orders/hooks/useWorkOrdersPageData.ts
-527 server/integrations/fmcc-polling-service.ts
-527 client/src/components/engine-logbook/row-components.tsx
-523 server/tests/pdm/get-schedule.test.ts
-522 client/src/lib/offline-sync.ts
-521 server/db/equipment/db-equipment.ts
-521 client/src/pages/logs-compliance-hub.tsx
-520 server/domains/crew/application/crew-service.ts
-519 server/services/ml/model-evaluation-gate.ts
-516 shared/schema/purchasing.ts
-515 server/domains/agent/tools/weather-tools.ts
-512 client/src/features/suppliers/components/SupplierForm.tsx
-511 server/services/rms/alert-service.ts
-507 client/src/components/UnifiedCrewManagement/CurrentRoster.tsx
-506 client/src/pages/work-orders.tsx
-504 server/domains/rms/routes.ts
-503 client/src/components/scheduling/schedule-planner-dialogs.tsx
-```
+_No counted long files remain._
