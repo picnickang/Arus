@@ -287,6 +287,29 @@ export function registerEquipmentRoutes(
     })
   );
 
+  // GET equipment type catalog (static). MUST precede "/api/equipment/:id" —
+  // the equipment (core) domain is registered before the mounted ml-routes, so
+  // a "/:id" registered first captures the literal "types" segment and 404s.
+  rlRouter.get(
+    "/api/equipment/types",
+    requireOrgId,
+    generalApiRateLimit,
+    withErrorHandling("list equipment types", async (_req: Request, res: Response) => {
+      return res.json([
+        "Engine",
+        "Compressor",
+        "Pump",
+        "Generator",
+        "Hydraulic System",
+        "Gearbox",
+        "Propeller",
+        "Steering Gear",
+        "Boiler",
+        "Heat Exchanger",
+      ]);
+    })
+  );
+
   // GET single equipment by ID
   rlRouter.get(
     "/api/equipment/:id",

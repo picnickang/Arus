@@ -137,21 +137,6 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
   }
 });
 
-router.get("/equipment/types", async (req: AuthenticatedRequest, res: Response) => {
-  sendSuccess(res, [
-    "Engine",
-    "Compressor",
-    "Pump",
-    "Generator",
-    "Hydraulic System",
-    "Gearbox",
-    "Propeller",
-    "Steering Gear",
-    "Boiler",
-    "Heat Exchanger",
-  ]);
-});
-
 // LR-3.5 / TX-2: training is a side-effectful mutation — it inserts an
 // `ml_models` row in status='training' and enqueues a background job.
 // A client that retries the POST on a transient network error without
