@@ -32,6 +32,19 @@ const ALLOWLIST = [
   "test/",
   "serviceWorker",
   "sw.ts",
+  // Error reporting must not depend on app request plumbing (apiRequest could
+  // itself fail/recurse on the error path), so it owns its raw fetch.
+  "components/ErrorBoundary.tsx",
+  "components/patterns/ErrorState.tsx",
+  // Streaming responses are consumed as a ReadableStream; apiRequest unwraps
+  // JSON envelopes and cannot be used for streams.
+  "AgentChatPanel/streamClient.ts",
+  // Connectivity probe must bypass the offline queue/envelope to genuinely
+  // test reachability of /api/healthz.
+  "components/shared/ConnectivityBanner.tsx",
+  // Desktop setup runs before the app/org context is wired; it fetches a
+  // user-supplied backend URL directly with an explicit org header.
+  "pages/desktop-setup.tsx",
 ];
 
 function isAllowlisted(relPath) {
