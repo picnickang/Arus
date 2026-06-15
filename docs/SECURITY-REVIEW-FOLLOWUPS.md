@@ -379,16 +379,17 @@ stock decimals). The items below were **verified as real but deferred** because
 they need a product/compliance decision, a schema migration, or deeper
 state-machine context — do NOT silently half-fix:
 
-- [ ] **GDPR DSAR — erasure DRAFTED; collection completion still open.**
-      Clear bugs fixed (collection queries the correct `crew` table; route 400s
-      on a null identifier). **Erasure is now implemented as a draft**
-      (`executeDataErasure`): anonymizes `users`+`crew` PII in a transaction,
-      retains the hash-chained audit trail + STCW/work-order records (documented
-      exemptions), returns a report, supports `dryRun`. **Before enabling:** a
-      compliance owner must sign off the per-table policy map in
-      `docs/design/gdpr-dsar-completion.md` and a `dryRun` should be run on
-      staging. **Still open:** completing the access export
-      (`workOrders`/`restRecords`/`auditEvents` + id-type dispatch).
+- [ ] **GDPR DSAR — access export + erasure both DRAFTED (pending sign-off).**
+      `collectUserDataForDsar` now resolves the subject across id types and
+      populates all five categories (users/crew/restRecords/workOrders/
+      auditEvents) with per-source `_errors` capture. `executeDataErasure`
+      anonymizes `users`+`crew` PII + the denormalized `crew_rest_sheet.crew_name`
+      in one transaction, retains the hash-chained audit trail + work orders
+      (documented exemptions), returns a report, supports `dryRun`. **Before
+      relying on erasure:** a compliance owner must sign off the per-table policy
+      in `docs/design/gdpr-dsar-completion.md` (open: work-order actor-name
+      handling; workOrders link by completed_by?) and a `dryRun` should be run on
+      staging. typecheck + guards + lint green.
 - [x] **Vetting inspection initial status — VERIFIED FALSE POSITIVE.** The
       raw-SQL `vetting_inspections` table (server/migrations/008-osv-specific.sql)
       defines `status TEXT NOT NULL DEFAULT 'scheduled'`, so an inserted row is

@@ -224,6 +224,14 @@ export class DatabaseGdprStorage {
     return u;
   }
 
+  /**
+   * Collect a data subject's personal data for a DSAR access request (Art. 15).
+   *
+   * Resolves the subject across id types (crewId ↔ userId ↔ email) so every
+   * category is queried by the right key, and captures per-source errors in
+   * `_errors` instead of silently swallowing them. See
+   * docs/design/gdpr-dsar-completion.md (linking keys pending sign-off).
+   */
   async collectUserDataForDsar(
     orgId: string,
     identifier: string,
@@ -236,33 +244,82 @@ export class DatabaseGdprStorage {
       workOrders: [],
       auditEvents: [],
     };
-    try {
-      if (identifierType === "email") {
-        const users = await db.execute(
-          sql`SELECT id, email, name, role FROM users WHERE email = ${identifier} AND org_id = ${orgId}`
-        );
-        result["users"] = users.rows ?? [];
-      } else if (identifierType === "userId") {
-        const users = await db.execute(
-          sql`SELECT id, email, name, role FROM users WHERE id = ${identifier} AND org_id = ${orgId}`
-        );
-        result["users"] = users.rows ?? [];
+    const errors: Record<string, string> = {};
+    const firstStr = (rows: unknown[], key: string): string | null => {
+      const v = (rows[0] as Record<string, unknown> | undefined)?.[key];
+      return typeof v === "string" ? v : null;
+    };
+    const safe = async (
+      key: keyof typeof result,
+      run: () => Promise<{ rows?: unknown[] }>
+    ): Promise<void> => {
+      try {
+        const rows = (await run()).rows ?? [];
+        // Sequential awaits — no concurrent writers to `result`.
+        // eslint-disable-next-line require-atomic-updates
+        result[key] = rows;
+      } catch (e) {
+        errors[key] = e instanceof Error ? e.message : String(e);
       }
-      if (identifierType === "crewId") {
-        const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew WHERE id = ${identifier} AND org_id = ${orgId}`
-        );
-        result["crewMembers"] = crew.rows ?? [];
-      } else {
-        const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew WHERE email = ${identifier} AND org_id = ${orgId}`
-        );
-        result["crewMembers"] = crew.rows ?? [];
-      }
-    } catch {
-      /* tables may not exist */
+    };
+
+    // Phase 1 — resolve the subject's crew + user rows from whichever id we got.
+    const crewWhere = (): SQL => {
+      if (identifierType === "crewId") {return sql`id = ${identifier}`;}
+      if (identifierType === "email") {return sql`email = ${identifier}`;}
+      return sql`user_id = ${identifier}`;
+    };
+    await safe("crewMembers", () =>
+      db.execute(
+        sql`SELECT id, name, email, rank, department, user_id FROM crew WHERE ${crewWhere()} AND org_id = ${orgId}`
+      )
+    );
+    const crewId =
+      identifierType === "crewId" ? identifier : firstStr(result["crewMembers"]!, "id");
+    const linkedUserId = firstStr(result["crewMembers"]!, "user_id");
+
+    const usersWhere = (): SQL => {
+      if (identifierType === "email") {return sql`email = ${identifier}`;}
+      if (identifierType === "userId") {return sql`id = ${identifier}`;}
+      return sql`id = ${linkedUserId}`;
+    };
+    await safe("users", () =>
+      db.execute(
+        sql`SELECT id, email, name, role FROM users WHERE ${usersWhere()} AND org_id = ${orgId}`
+      )
+    );
+    const userId =
+      identifierType === "userId" ? identifier : firstStr(result["users"]!, "id");
+    const email =
+      identifierType === "email"
+        ? identifier
+        : (firstStr(result["users"]!, "email") ?? firstStr(result["crewMembers"]!, "email"));
+
+    // Phase 2 — gather the records linked to the resolved subject keys.
+    if (crewId) {
+      await safe("restRecords", () =>
+        db.execute(
+          sql`SELECT id, crew_id, crew_name, month, year, created_at FROM crew_rest_sheet WHERE crew_id = ${crewId} AND org_id = ${orgId} ORDER BY created_at DESC`
+        )
+      );
+      await safe("workOrders", () =>
+        db.execute(
+          sql`SELECT id, title, status, assigned_crew_id FROM work_orders WHERE assigned_crew_id = ${crewId} AND org_id = ${orgId} ORDER BY created_at DESC`
+        )
+      );
     }
-    return result;
+    if (userId || email) {
+      await safe("auditEvents", () =>
+        db.execute(
+          sql`SELECT id, event_type, event_category, performed_by, performed_by_name, created_at
+              FROM immutable_audit_trail
+              WHERE org_id = ${orgId} AND (performed_by = ${userId} OR performed_by = ${email})
+              ORDER BY created_at DESC`
+        )
+      );
+    }
+
+    return Object.keys(errors).length > 0 ? { ...result, _errors: errors } : result;
   }
 
   /**
@@ -310,11 +367,7 @@ export class DatabaseGdprStorage {
       immutable_audit_trail: {
         action: "retain",
         reason:
-          "append-only, hash-chained ledger — modifying it breaks chain verification (legal + technical exemption)",
-      },
-      crew_rest_sheet: {
-        action: "retain",
-        reason: "STCW rest-hour statutory retention; references the anonymized crew row",
+          "append-only, hash-chained ledger — modifying it breaks chain verification (legal + technical exemption). NOTE: performed_by_name is a denormalized PII residue here; sign-off needed on how to handle it without breaking the chain",
       },
       work_orders: {
         action: "retain",
@@ -352,6 +405,27 @@ export class DatabaseGdprStorage {
       );
       report["users"] = { action: "anonymize", rows: rowCount(u) };
       report["crew"] = { action: "anonymize", rows: rowCount(c) };
+
+      // crew_rest_sheet is retained (STCW), but it denormalizes the crew name —
+      // scrub that PII copy on the retained rows so the name doesn't survive.
+      const crewIds = (c.rows ?? [])
+        .map((r) => (r as { id?: string }).id)
+        .filter((v): v is string => typeof v === "string");
+      if (crewIds.length > 0) {
+        const rs = await tx.execute(
+          sql`UPDATE crew_rest_sheet SET crew_name = ${NAME_TOMB}
+              WHERE org_id = ${orgId} AND crew_id IN (${sql.join(
+                crewIds.map((id) => sql`${id}`),
+                sql`, `
+              )})
+              RETURNING id`
+        );
+        report["crew_rest_sheet"] = {
+          action: "anonymize_pii_retain_record",
+          rows: rowCount(rs),
+          reason: "STCW record retained; denormalized crew_name scrubbed",
+        };
+      }
 
       await tx.execute(
         sql`UPDATE data_subject_requests

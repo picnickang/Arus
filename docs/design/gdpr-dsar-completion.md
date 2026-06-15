@@ -1,9 +1,9 @@
 # Design proposal — completing GDPR DSAR (access + erasure)
 
-Status: **erasure DRAFTED against this design (see `executeDataErasure` in
-`server/db/gdpr/db-gdpr.ts`); the per-table policy below still needs a
-compliance owner's sign-off, and a `dryRun` should be run on staging before the
-endpoint is relied on.** Access-export completion (§1) remains open.
+Status: **both access-export (§1) and erasure (§2) are DRAFTED in
+`server/db/gdpr/db-gdpr.ts`. Before the erasure endpoint is relied on, a
+compliance owner must sign off the per-table policy below and a `dryRun` should
+be run on staging.** Open sign-off questions are listed inline in each section.
 
 ## Erasure — what the draft does (vs. this design)
 `executeDataErasure(dsarId, orgId, erasedBy, reason, { dryRun })` now:
@@ -30,54 +30,49 @@ history). The two items below change behaviour in compliance- and
 retention-sensitive ways, so they are proposed here rather than implemented
 unilaterally.
 
-## 1. Complete the access export (Art. 15)
+## 1. Complete the access export (Art. 15) — DRAFTED
 
-`collectUserDataForDsar(orgId, identifier, identifierType)` declares five result
-categories but only populates `users` + `crewMembers`. It must also populate
-`workOrders`, `restRecords`, `auditEvents`, and resolve the subject across id
-types. Proposed subject→data mapping (confirm the linking keys with the data
-owner):
+`collectUserDataForDsar` now resolves the subject across id types
+(crewId ↔ userId ↔ email) and populates all five categories, capturing
+per-source failures in `_errors` instead of a blanket `try/catch {}`. Linking
+keys used (confirm with the data owner):
 
 | Category      | Table                    | Link to subject |
 |---------------|--------------------------|-----------------|
-| users         | `users`                  | `id` (userId) / `email` |
-| crewMembers   | `crew`                   | `id` (crewId) / `email` |
-| workOrders    | `work_orders`            | `assigned_crew_id` = crewId; (decide: also `completed_by`/`created_by` = userId?) |
-| restRecords   | crew rest table (`crew_rest_*`) | `crew_id` = crewId |
-| auditEvents   | `immutable_audit_trail`  | actor/`user_id` = userId |
+| users         | `users`                  | `id` (userId) / `email` / via `crew.user_id` |
+| crewMembers   | `crew`                   | `id` (crewId) / `email` / `user_id` |
+| workOrders    | `work_orders`            | `assigned_crew_id` = crewId  *(open: also `completed_by` = userId?)* |
+| restRecords   | `crew_rest_sheet`        | `crew_id` = crewId |
+| auditEvents   | `immutable_audit_trail`  | `performed_by` IN (userId, email) |
 
-Also fix the id-type dispatch: today the crew lookup runs `... WHERE email = ?`
-for *any* non-`crewId` type (so a `userId` is queried against the crew email
-column). Dispatch should be: `crewId` → crew by id; `email` → users+crew by
-email; `userId` → users by id, then resolve the linked crew id. Replace the
-broad `try/catch {}` that swallows all errors with per-source error capture so a
-failed source is reported, not silently dropped.
+**Open sign-off question:** should `workOrders` also include work orders a user
+`completed_by` (not just those `assigned_crew_id` to them)?
 
-## 2. Erasure (Art. 17) — the hard part
+## 2. Erasure (Art. 17) — DRAFTED
 
-`executeDataErasure` currently marks the DSAR `status: "completed"` /
-`"erasure_recorded"` but **deletes nothing**. That misrepresents compliance.
-Two coupled decisions are needed:
+`executeDataErasure` previously marked the DSAR `completed` while deleting
+nothing. It now **anonymizes** identity PII per the policy below, in one
+transaction, with a `dryRun` preview and a per-table report.
 
-**(a) Status truthfulness (do first, low risk):** until real erasure exists, the
-endpoint must NOT report `completed`. Use a truthful state (e.g.
-`pending_manual_review`) and a response that says erasure is not yet performed.
+**Per-table policy as implemented:**
+- `users` / `crew` → **anonymize** identity fields (tombstone name/email, null
+  phone/address/photo/emergency-contact/crew-code/notes). Not hard-deleted —
+  referenced by retained records + the hash-chained audit trail.
+- `crew_rest_sheet` → **retain record, anonymize the denormalized `crew_name`**
+  (STCW retention keeps the rest hours; the name copy is scrubbed).
+- `work_orders` → **retain** (operational retention; references anonymized crew).
+- `immutable_audit_trail` → **retain, untouched** — append-only + hash-chained,
+  so modifying it breaks chain verification.
 
-**(b) Erase vs. anonymize, per table:** maritime data has **legal retention**
-requirements that conflict with deletion:
-- `immutable_audit_trail` is append-only + hash-chained — it **cannot** be
-  deleted without breaking the chain. → **anonymize** the actor identity
-  (replace name/email with a tombstone), keep the record.
-- STCW rest-hour records, completed work orders, certificates — likely subject
-  to **statutory retention** → **anonymize** PII fields, retain the operational
-  record.
-- Free-PII tables with no retention basis (e.g. contact/profile rows) →
-  **hard-delete**.
-
-Proposed shape: a per-table policy map `{ table → delete | anonymize | retain }`,
-executed in a single transaction, producing an erasure **report**
-(what was deleted / anonymized / retained-with-reason). DSAR status becomes
-`completed_with_retention_exemptions` (+ the report stored on the request).
+**Open sign-off questions / residual PII:**
+- `immutable_audit_trail.performed_by_name` and `work_orders.completed_by_name`
+  are denormalized name copies on retained records. Audit cannot be modified
+  (chain); work-order actor names *could* be anonymized — decide whether to.
+- Any **free-PII tables** with no retention basis that should be **hard-deleted**
+  rather than anonymized (none are today; add to the transaction if identified).
+- DSAR status is set to `completed` with the report in `processing_notes`;
+  switch to `completed_with_retention_exemptions` if a distinct UI state is
+  wanted.
 
 ## Why this isn't auto-implemented
 Choosing delete-vs-anonymize per table, and which tables are retention-exempt,
