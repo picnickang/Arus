@@ -92,13 +92,14 @@ const kpiSchema = z.object({
 
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
   try {
-    // Express query values can be string | string[]; coerce to a definite
-    // string so the SQL parameters are well-typed (avoids type confusion and
-    // the `as string` assertions that papered over it).
-    const vesselId = typeof req.query["vesselId"] === "string" ? req.query["vesselId"] : undefined;
-    const status = typeof req.query["status"] === "string" ? req.query["status"] : undefined;
-    const charterer =
-      typeof req.query["charterer"] === "string" ? req.query["charterer"] : undefined;
+    // Parse query through a schema (validates + coerces, satisfies the
+    // wire-parse gate, and avoids `as string` on possibly-array params).
+    const listQuerySchema = z.object({
+      vesselId: z.string().optional().catch(undefined),
+      status: z.string().optional().catch(undefined),
+      charterer: z.string().optional().catch(undefined),
+    });
+    const { vesselId, status, charterer } = listQuerySchema.parse(req.query);
     let q = sql`
       SELECT cp.*, v.name as vessel_name
       FROM charter_parties cp

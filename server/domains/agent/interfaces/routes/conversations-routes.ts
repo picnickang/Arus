@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import type { RateLimitMiddleware } from "./_shared";
@@ -52,12 +53,13 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     async (req: Request, res: Response) => {
       try {
         const orgId = authenticatedRequest(req).orgId;
-        const conversation = await agentRepo.conversations.get(req.params["id"] ?? "", orgId);
+        const { id } = z.object({ id: z.string() }).parse(req.params);
+        const conversation = await agentRepo.conversations.get(id, orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
         }
-        const messages = await agentRepo.messages.list(req.params["id"] ?? "");
-        const toolCalls = await agentRepo.toolCalls.list(req.params["id"] ?? "");
+        const messages = await agentRepo.messages.list(id);
+        const toolCalls = await agentRepo.toolCalls.list(id);
         return res.json({ messages, toolCalls });
       } catch (error: unknown) {
         return res
