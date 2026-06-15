@@ -2,13 +2,6 @@
  * Equipment - Types
  */
 
-export type {
-  Equipment,
-  InsertEquipment,
-  EquipmentLifecycle,
-  InsertEquipmentLifecycle,
-} from "@shared/schema-runtime";
-
 export interface EquipmentHealthFilters {
   vesselId?: string | undefined;
   equipmentId?: string | undefined;

@@ -153,19 +153,6 @@ export {
   incrementMqttQueueFlushes,
 } from "./mqtt-metrics";
 
-// Security metrics
-export {
-  tenantIsolationDeniedTotal,
-  authFailureTotal,
-  crossOrgAccessBlockedTotal,
-  suspiciousOrgIdRejectedTotal,
-  forbiddenOrgIdBlockedTotal,
-  recordTenantIsolationDenied,
-  recordAuthFailure,
-  recordSuspiciousOrgId,
-  recordForbiddenOrgIdBlocked,
-} from "./security-metrics";
-
 // ML metrics
 export {
   mlPredictionDuration,
@@ -183,26 +170,6 @@ export {
   setMlCircuitBreakerState,
   recordMlSemaphoreWait,
 } from "./ml-metrics";
-
-// Hub sync metrics
-export {
-  deviceRegistryOperationsTotal,
-  deviceRegistryActiveDevices,
-  sheetLockOperationsTotal,
-  sheetLocksActive,
-  sheetVersionOperationsTotal,
-  sheetVersionsTotal,
-  replayOperationsTotal,
-  replayDuplicatesTotal,
-  recordDeviceRegistryOperation,
-  setActiveDeviceCount,
-  recordSheetLockOperation,
-  setActiveSheetLocks,
-  recordSheetVersionOperation,
-  setSheetVersionsCount,
-  recordReplayOperation,
-  recordReplayDuplicate,
-} from "./hub-sync-metrics";
 
 // RAG metrics
 export {
@@ -268,20 +235,6 @@ export {
   setJobQueueDepth,
   setWorkerUtilization,
 } from "./job-queue-metrics";
-
-// Reconciliation metrics
-export {
-  reconciliationRunsTotal,
-  reconciliationDuration,
-  reconciliationDiscrepanciesFound,
-  reconciliationDiscrepanciesFixed,
-  dataQualityScore,
-  recordReconciliationRun,
-  recordReconciliationDuration,
-  setReconciliationDiscrepancies,
-  recordReconciliationFix,
-  setDataQualityScore,
-} from "./reconciliation-metrics";
 
 // Telemetry ingestion metrics
 export {

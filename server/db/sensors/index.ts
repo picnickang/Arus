@@ -17,7 +17,6 @@
  * Sensors Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DbSensorsStorage } from "./db-sensors.js";
 
 import { createLogger } from "../../lib/structured-logger";

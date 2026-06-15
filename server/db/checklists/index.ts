@@ -17,7 +17,6 @@
  * Checklists Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseChecklistsStorage } from "./db-checklists.js";
 
 import { createLogger } from "../../lib/structured-logger";

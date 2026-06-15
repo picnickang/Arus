@@ -17,7 +17,6 @@
  * Alerts Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseAlertStorage } from "./db-alerts.js";
 
 import { createLogger } from "../../lib/structured-logger";
