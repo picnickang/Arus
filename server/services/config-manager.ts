@@ -17,6 +17,20 @@ function isErrnoException(err: unknown): err is NodeJS.ErrnoException {
   return err instanceof Error && "code" in err;
 }
 
+/** Classify an audit change from its before/after values (avoids a nested ternary). */
+function changeTypeFor(
+  oldValue: string | undefined,
+  newValue: string | undefined
+): "delete" | "create" | "update" {
+  if (newValue === undefined) {
+    return "delete";
+  }
+  if (oldValue === undefined) {
+    return "create";
+  }
+  return "update";
+}
+
 export interface ConfigChange {
   key: string;
   oldValue: string | undefined;
@@ -222,12 +236,7 @@ export class ConfigManager {
             key: change.key,
             oldValue: change.oldValue,
             newValue: change.newValue,
-            changeType:
-              change.newValue === undefined
-                ? "delete"
-                : change.oldValue === undefined
-                  ? "create"
-                  : "update",
+            changeType: changeTypeFor(change.oldValue, change.newValue),
             changedBy: auditInfo.changedBy,
             changedByName: auditInfo.changedByName,
             ipAddress: auditInfo.ipAddress,
@@ -360,8 +369,6 @@ export class ConfigManager {
           throw readErr;
         }
       }
-
-      const oldValue = this.config.get(key);
 
       // Update or add the key=value pair
       const lines = envContent.split("\n");
