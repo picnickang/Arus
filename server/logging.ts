@@ -275,9 +275,11 @@ export function structuredLog(
     const correlationSuffix = logEntry.correlationId ? ` [${logEntry.correlationId}]` : "";
     const orgSuffix = logEntry.orgId ? ` (org:${logEntry.orgId.substring(0, 8)})` : "";
     const durationSuffix = logEntry.duration ? ` (${logEntry.duration}ms)` : "";
+    // Encode CR/LF in the caller-supplied message so it can't forge log lines (CWE-117).
+    const safeMessage = String(message).replace(/\r/g, "\\r").replace(/\n/g, "\\n");
     console.log(
       "%s",
-      `${prefix}${correlationSuffix}${orgSuffix} ${message}${durationSuffix}`,
+      `${prefix}${correlationSuffix}${orgSuffix} ${safeMessage}${durationSuffix}`,
       logEntry.metadata ? logEntry.metadata : ""
     );
   }

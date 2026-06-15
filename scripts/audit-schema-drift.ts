@@ -136,8 +136,7 @@ function normalizeDbType(t: string): string {
     .replace(/^time without.*/, "time")
     .replace(/^double precision/, "double")
     .replace(/^integer$/, "int")
-    .replace(/^smallint$/, "int")
-    .replace(/^array$/, "array");
+    .replace(/^smallint$/, "int");
 }
 
 function normalizeDrizzleType(t: string): string {
@@ -147,18 +146,12 @@ function normalizeDrizzleType(t: string): string {
     .replace(/^text.*/, "text")
     .replace(/^integer/, "int")
     .replace(/^smallint/, "int")
-    .replace(/^bigint/, "bigint")
     .replace(/^serial$/, "int")
     .replace(/^bigserial$/, "bigint")
     .replace(/^smallserial$/, "int")
     .replace(/^numeric.*/, "numeric")
     .replace(/^decimal.*/, "numeric")
     .replace(/^timestamp.*/, "timestamp")
-    .replace(/^date$/, "date")
-    .replace(/^boolean/, "boolean")
-    .replace(/^jsonb/, "jsonb")
-    .replace(/^json$/, "json")
-    .replace(/^real/, "real")
     .replace(/^double precision/, "double")
     .replace(/^vector.*/, "vector");
 }

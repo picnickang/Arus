@@ -115,7 +115,7 @@ export const ML_TERMINOLOGY: Record<string, MLTerm> = {
  * Get friendly name for a model type
  */
 export function getFriendlyModelName(modelType: string): string {
-  const key = modelType.toLowerCase().replaceAll("_", "_");
+  const key = modelType.toLowerCase();
   return ML_TERMINOLOGY[key]?.friendly || modelType;
 }
 
