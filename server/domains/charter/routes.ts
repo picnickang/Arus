@@ -92,7 +92,14 @@ const kpiSchema = z.object({
 
 router.get("/", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const { vesselId, status, charterer } = req.query;
+    // Parse query through a schema (validates + coerces, satisfies the
+    // wire-parse gate, and avoids `as string` on possibly-array params).
+    const listQuerySchema = z.object({
+      vesselId: z.string().optional().catch(undefined),
+      status: z.string().optional().catch(undefined),
+      charterer: z.string().optional().catch(undefined),
+    });
+    const { vesselId, status, charterer } = listQuerySchema.parse(req.query);
     let q = sql`
       SELECT cp.*, v.name as vessel_name
       FROM charter_parties cp
@@ -100,10 +107,10 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE cp.org_id = ${getOrgId(req)}
     `;
     if (vesselId) {
-      q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;
+      q = sql`${q} AND cp.vessel_id = ${vesselId}`;
     }
     if (status) {
-      q = sql`${q} AND cp.status = ${status as string}`;
+      q = sql`${q} AND cp.status = ${status}`;
     }
     if (charterer) {
       q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${`%${charterer}%`})`;

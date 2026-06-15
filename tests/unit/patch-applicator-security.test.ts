@@ -40,11 +40,12 @@ jest.unstable_mockModule("../../server/utils/cloud-guards", () => ({
 
 interface PatchApplicatorInternals {
   verifyPatchTrust(manifest: PatchManifest): Promise<void>;
-  assertSafeArchive(patchPath: string, extractDir: string): Promise<void>;
   applyFileChange(change: FileChange, extractDir: string): Promise<void>;
 }
 
 let PatchApplicator: new () => unknown;
+// assertSafeArchive now lives in patch-applicator-archive.ts; import it directly.
+let assertSafeArchive: (patchPath: string, extractDir: string) => Promise<void>;
 
 function internals(): PatchApplicatorInternals {
   return new PatchApplicator() as unknown as PatchApplicatorInternals;
@@ -52,6 +53,7 @@ function internals(): PatchApplicatorInternals {
 
 beforeAll(async () => {
   ({ PatchApplicator } = await import("../../server/services/patch-applicator"));
+  ({ assertSafeArchive } = await import("../../server/services/patch-applicator-archive"));
 });
 
 const ENV_KEYS = ["NODE_ENV", "UPDATE_SIGNING_PUBLIC_KEY", "ALLOW_UNSIGNED_PATCHES"] as const;
@@ -126,7 +128,7 @@ describe("PatchApplicator — tar-slip protection", () => {
   it("accepts a clean archive of regular files and directories", async () => {
     const archive = await makeArchive([{ name: "server/index.ts" }, { name: "package.json" }]);
     const extractDir = fs.mkdtempSync(path.join(tmpRoot, "extract-"));
-    await expect(internals().assertSafeArchive(archive, extractDir)).resolves.toBeUndefined();
+    await expect(assertSafeArchive(archive, extractDir)).resolves.toBeUndefined();
   });
 
   it("rejects an archive containing a symlink entry", async () => {
@@ -135,7 +137,7 @@ describe("PatchApplicator — tar-slip protection", () => {
       { name: "evil-link", symlinkTo: "/etc/passwd" },
     ]);
     const extractDir = fs.mkdtempSync(path.join(tmpRoot, "extract-"));
-    await expect(internals().assertSafeArchive(archive, extractDir)).rejects.toThrow(
+    await expect(assertSafeArchive(archive, extractDir)).rejects.toThrow(
       /Unsafe patch archive rejected/
     );
   });

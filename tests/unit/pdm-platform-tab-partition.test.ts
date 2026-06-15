@@ -8,6 +8,7 @@ const PAGE = readFileSync(join(process.cwd(), "client/src/pages/pdm-platform.tsx
 const MOBILE_SCREENS = [
   "MobileReadinessScreens.tsx",
   "MobileReadinessShared.tsx",
+  "mobile-readiness-bottom-nav.tsx",
   "MobileReadinessFleetScreens.tsx",
   "MobileReadinessPdmScreens.tsx",
   "MobileReadinessWorkLogsScreens.tsx",

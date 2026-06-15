@@ -125,7 +125,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v5
@@ -137,8 +137,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Run unit tests
-        run: npm run test:unit
+      # The ESM unit lane (--experimental-vm-modules) accumulates module heap
+      # in a single process and OOMs the full suite at the 6 GB ceiling. Run in
+      # three fresh shards so each process stays well under the limit.
+      - name: Run unit tests (sharded)
+        run: |
+          npm run test:unit -- --shard=1/3
+          npm run test:unit -- --shard=2/3
+          npm run test:unit -- --shard=3/3
         env:
           NODE_OPTIONS: --max-old-space-size=6144
 
