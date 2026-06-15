@@ -73,21 +73,25 @@ export function setupEmailDigestSchedule(): void {
     10
   );
 
-  setInterval(async () => {
-    try {
-      const { emailNotificationService } = await import(
-        "../services/email-notification-service.js"
-      );
-      const sent = await emailNotificationService.processPendingNotifications();
-      const digested = await emailNotificationService.processDigestQueue();
-      if (sent + digested > 0) {
-        logger.info(`[EmailDigest] Sent ${sent} pending, processed ${digested} digest item(s)`);
+  const tick = withSingleFlight(
+    async () => {
+      try {
+        const { emailNotificationService } = await import(
+          "../services/email-notification-service.js"
+        );
+        const sent = await emailNotificationService.processPendingNotifications();
+        const digested = await emailNotificationService.processDigestQueue();
+        if (sent + digested > 0) {
+          logger.info(`[EmailDigest] Sent ${sent} pending, processed ${digested} digest item(s)`);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("[EmailDigest] Scheduled digest run failed:", undefined, message);
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error("[EmailDigest] Scheduled digest run failed:", undefined, message);
-    }
-  }, INTERVAL_MS);
+    },
+    () => logger.warn("[EmailDigest] Previous digest run still running; skipping tick")
+  );
+  setInterval(tick, INTERVAL_MS);
 
   logger.info(`✅ Email digest schedule configured (every ${INTERVAL_MS / 60000} minutes)`);
 }

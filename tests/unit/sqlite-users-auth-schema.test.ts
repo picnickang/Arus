@@ -201,12 +201,10 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain(
       "ALTER TABLE immutable_audit_trail ADD COLUMN data_hash TEXT NOT NULL DEFAULT ''"
     );
-    // Legacy duplicate columns are retired (each only ever mirrored a canonical
-    // column and is not part of the audit hash chain) so PG and SQLite converge.
-    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN actor");
-    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN actor_role");
-    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN data_before");
-    expect(executed).toContain("ALTER TABLE immutable_audit_trail DROP COLUMN data_after");
+    // Legacy duplicate columns (actor/actor_role/data_before/data_after) are kept
+    // and reconciled into their canonical counterparts by a non-destructive backfill
+    // rather than dropped, so PG and SQLite converge without a SQLite table rebuild.
+    expect(executed.some((s) => s.includes("DROP COLUMN"))).toBe(false);
   });
 
   it("exposes local error log columns used after portal login", () => {
@@ -215,9 +213,10 @@ describe("SQLite users auth schema", () => {
     expect(errorLogsSqlite.category).toBeDefined();
     expect(errorLogsSqlite.errorType).toBeDefined();
     expect(errorLogsSqlite.errorCode).toBeDefined();
-    // `error_message` was a legacy duplicate of `message` and has been reconciled
-    // away (folded into the canonical `message`) so PG and SQLite converge.
-    expect((errorLogsSqlite as Record<string, unknown>).errorMessage).toBeUndefined();
+    // The canonical SQLite error_logs table carries only `message`, not the legacy
+    // `error_message` duplicate. Existing tables keep their `error_message` column
+    // but reconcile it into `message` via the compatibility migration (no drop).
+    expect("errorMessage" in errorLogsSqlite).toBe(false);
     expect(errorLogsSqlite.message).toBeDefined();
     expect(errorLogsSqlite.userId).toBeDefined();
     expect(errorLogsSqlite.requestId).toBeDefined();
@@ -265,11 +264,11 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN endpoint TEXT");
   });
 
-  it("folds legacy error_message into message and drops it on existing tables", async () => {
+  it("folds legacy error_message into message on existing tables", async () => {
     const executed: string[] = [];
     // Two-phase table_info: the first read (column probe) still has the legacy
     // `error_message` without `message`; the refreshed read (after the add-loop)
-    // has both, so the reconciliation can backfill then drop.
+    // has both, so the reconciliation can backfill bidirectionally (kept, not dropped).
     let probed = false;
     const baseRows = [
       { name: "id" },
@@ -298,6 +297,6 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain(
       "UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL"
     );
-    expect(executed).toContain("ALTER TABLE error_logs DROP COLUMN error_message");
+    expect(executed.some((s) => s.includes("DROP COLUMN error_message"))).toBe(false);
   });
 });
