@@ -50,8 +50,6 @@ export interface VesselIntelligenceAlertRecord {
   acknowledged?: boolean;
 }
 
-export type PdmDashboardRecord = Record<string, unknown>;
-
 export interface RegistryDiagramRecord {
   id: string;
   diagramType: string;

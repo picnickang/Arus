@@ -27,7 +27,6 @@ import {
   type PermissionAction,
   type PermissionGrant,
   type RoleTemplate,
-  type InsertRoleTemplate,
   type PermissionAuditEntry,
   type UserRoleAssignment,
   type InsertUserRoleAssignment,
@@ -100,11 +99,11 @@ function staticRoleTemplates(): RoleTemplate[] {
   }));
 }
 
-export async function seedResourcesAndActions(): Promise<void> {
+async function seedResourcesAndActions(): Promise<void> {
   // Resources and actions are static (no DB tables). No-op kept for API compat.
 }
 
-export async function listRoles(orgId: string): Promise<Role[]> {
+async function listRoles(orgId: string): Promise<Role[]> {
   return db
     .select()
     .from(roles)
@@ -112,7 +111,7 @@ export async function listRoles(orgId: string): Promise<Role[]> {
     .orderBy(roles.hierarchyLevel, roles.displayName);
 }
 
-export async function getRoleById(id: string, orgId: string): Promise<Role | undefined> {
+async function getRoleById(id: string, orgId: string): Promise<Role | undefined> {
   const [role] = await db
     .select()
     .from(roles)
@@ -121,16 +120,7 @@ export async function getRoleById(id: string, orgId: string): Promise<Role | und
   return role;
 }
 
-export async function getRoleByName(name: string, orgId: string): Promise<Role | undefined> {
-  const [role] = await db
-    .select()
-    .from(roles)
-    .where(and(eq(roles.name, name), eq(roles.orgId, orgId)))
-    .limit(1);
-  return role;
-}
-
-export async function createRole(data: InsertRole): Promise<Role> {
+async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
   if (!role) {
     throw new Error("Failed to create role");
@@ -138,7 +128,7 @@ export async function createRole(data: InsertRole): Promise<Role> {
   return role;
 }
 
-export async function updateRole(
+async function updateRole(
   id: string,
   orgId: string,
   data: WidenPartial<InsertRole>
@@ -151,7 +141,7 @@ export async function updateRole(
   return updated;
 }
 
-export async function deleteRole(id: string, orgId: string): Promise<boolean> {
+async function deleteRole(id: string, orgId: string): Promise<boolean> {
   const result = await db
     .update(roles)
     .set({ isActive: false, updatedAt: new Date() })
@@ -159,19 +149,19 @@ export async function deleteRole(id: string, orgId: string): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function listResources(): Promise<PermissionResource[]> {
+async function listResources(): Promise<PermissionResource[]> {
   return staticResources();
 }
 
-export async function listActions(): Promise<PermissionAction[]> {
+async function listActions(): Promise<PermissionAction[]> {
   return staticActions();
 }
 
-export async function getPermissionGrantsForRole(roleId: string): Promise<PermissionGrant[]> {
+async function getPermissionGrantsForRole(roleId: string): Promise<PermissionGrant[]> {
   return db.select().from(permissionGrants).where(eq(permissionGrants.roleId, roleId));
 }
 
-export async function setPermissionGrant(
+async function setPermissionGrant(
   roleId: string,
   resourceCode: string,
   actionCode: string,
@@ -204,7 +194,7 @@ export async function setPermissionGrant(
   }
 }
 
-export async function bulkSetPermissionGrants(
+async function bulkSetPermissionGrants(
   roleId: string,
   grants: Array<{ resourceCode: string; actionCode: string; isGranted: boolean }>
 ): Promise<void> {
@@ -213,21 +203,15 @@ export async function bulkSetPermissionGrants(
   }
 }
 
-export async function listRoleTemplates(): Promise<RoleTemplate[]> {
+async function listRoleTemplates(): Promise<RoleTemplate[]> {
   return staticRoleTemplates();
 }
 
-export async function getRoleTemplateById(id: string): Promise<RoleTemplate | undefined> {
+async function getRoleTemplateById(id: string): Promise<RoleTemplate | undefined> {
   return staticRoleTemplates().find((t) => t.id === id || t.name === id);
 }
 
-export async function createRoleTemplate(_data: InsertRoleTemplate): Promise<RoleTemplate> {
-  throw new Error(
-    "createRoleTemplate is unsupported: role templates are defined in config/default-role-templates.ts"
-  );
-}
-
-export async function createRoleFromTemplate(
+async function createRoleFromTemplate(
   templateId: string,
   orgId: string,
   overrides?: WidenPartial<InsertRole>
@@ -281,7 +265,7 @@ export async function provisionTemplatesForOrg(orgId: string): Promise<Role[]> {
   return provisionedRoles;
 }
 
-export async function getOrProvisionRolesForOrg(orgId: string): Promise<Role[]> {
+async function getOrProvisionRolesForOrg(orgId: string): Promise<Role[]> {
   await provisionTemplatesForOrg(orgId);
   return listRoles(orgId);
 }
@@ -329,7 +313,7 @@ export async function backfillPdmTemplateGrantsForOrg(
   return results;
 }
 
-export async function listUserRoleAssignments(
+async function listUserRoleAssignments(
   userId: string,
   orgId: string
 ): Promise<UserRoleAssignment[]> {
@@ -345,9 +329,7 @@ export async function listUserRoleAssignments(
     );
 }
 
-export async function assignRoleToUser(
-  data: InsertUserRoleAssignment
-): Promise<UserRoleAssignment> {
+async function assignRoleToUser(data: InsertUserRoleAssignment): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
   if (!assignment) {
     throw new Error("Failed to assign role to user");
@@ -355,11 +337,7 @@ export async function assignRoleToUser(
   return assignment;
 }
 
-export async function removeRoleFromUser(
-  userId: string,
-  roleId: string,
-  orgId: string
-): Promise<boolean> {
+async function removeRoleFromUser(userId: string, roleId: string, orgId: string): Promise<boolean> {
   const result = await db
     .update(userRoleAssignments)
     .set({ isActive: false })
@@ -373,7 +351,7 @@ export async function removeRoleFromUser(
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function logPermissionChange(
+async function logPermissionChange(
   orgId: string,
   userId: string,
   action: string,
@@ -426,12 +404,12 @@ export async function getPermissionAuditLog(
   }));
 }
 
-export async function seedDefaultRoleTemplates(): Promise<{ created: number; skipped: number }> {
+async function seedDefaultRoleTemplates(): Promise<{ created: number; skipped: number }> {
   // Templates are static config; nothing to seed.
   return { created: 0, skipped: DEFAULT_ROLE_TEMPLATES.length };
 }
 
-export async function getCrewCountByRoleId(roleId: string, orgId: string): Promise<number> {
+async function getCrewCountByRoleId(roleId: string, orgId: string): Promise<number> {
   const result = await db
     .select({ count: count() })
     .from(crew)
@@ -445,7 +423,6 @@ export const permissionRepository = {
   seedDefaultRoleTemplates,
   listRoles,
   getRoleById,
-  getRoleByName,
   createRole,
   updateRole,
   deleteRole,
@@ -456,7 +433,6 @@ export const permissionRepository = {
   bulkSetPermissionGrants,
   listRoleTemplates,
   getRoleTemplateById,
-  createRoleTemplate,
   createRoleFromTemplate,
   provisionTemplatesForOrg,
   getOrProvisionRolesForOrg,

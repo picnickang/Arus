@@ -21,7 +21,7 @@ const DEFAULT_WINDOW = 1;
 const DEFAULT_DIGITS = 6;
 const DEFAULT_PERIOD = 30;
 
-export interface TotpEnrollment {
+interface TotpEnrollment {
   /** Base32-encoded secret to store (encrypted at rest by the caller). */
   secretBase32: string;
   /** otpauth:// URI for QR generation in the enrolment UI. */

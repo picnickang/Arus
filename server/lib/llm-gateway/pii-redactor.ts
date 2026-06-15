@@ -23,7 +23,7 @@ const PHONE_RE = /(?:\+?\d{1,3}[\s\-.()]*)?(?:\(?\d{2,4}\)?[\s\-.()]*){2,4}\d{2,
 const LONG_DIGITS_RE = /\b\d{12,}\b/g;
 const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b/g;
 
-export interface RedactionResult {
+interface RedactionResult {
   redacted: string;
   hits: {
     emails: number;
@@ -67,7 +67,7 @@ export function redactPII(input: string): RedactionResult {
   return { redacted: out, hits: { emails, phones, longDigits, ssns } };
 }
 
-export interface RedactedMessage {
+interface RedactedMessage {
   role: string;
   content: string | unknown;
 }

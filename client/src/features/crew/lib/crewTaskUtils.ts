@@ -208,7 +208,7 @@ export function priorityLabel(priority: CrewTaskPriority): string {
 }
 
 /** Visual tone for a status chip — maps to Tailwind colour families. */
-export type ChipTone = "slate" | "blue" | "amber" | "green";
+type ChipTone = "slate" | "blue" | "amber" | "green";
 
 const STATUS_TONES: Record<CrewTaskStatus, ChipTone> = {
   open: "slate",

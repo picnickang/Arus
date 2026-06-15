@@ -35,7 +35,7 @@
  *      allowlist in `server/composition/gdpr-tenant-delete.ts`.
  */
 
-export interface TenantTableSpec {
+interface TenantTableSpec {
   /** Physical Postgres table name. */
   table: string;
   /** Override column name when the table uses something other than `org_id`. */

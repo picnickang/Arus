@@ -379,17 +379,16 @@ stock decimals). The items below were **verified as real but deferred** because
 they need a product/compliance decision, a schema migration, or deeper
 state-machine context — do NOT silently half-fix:
 
-- [ ] **GDPR DSAR erasure + collection completion — DESIGN PROPOSAL written.**
-      The clear bugs were fixed (collection now queries the correct `crew`
-      table; the route fails 400 on a null identifier instead of "succeeding"
-      with an empty export). The remaining work — completing the access export
-      (`workOrders`/`restRecords`/`auditEvents` + id-type dispatch) and a REAL
-      erasure (`executeDataErasure` still marks `completed` while deleting
-      nothing; erase-vs-anonymize per table, retention exemptions for
-      hash-chained audit / STCW records) — is specced in
-      `docs/design/gdpr-dsar-completion.md` and needs a compliance owner's
-      sign-off before implementation. Auto-deleting retained maritime records is
-      dangerous, so it is intentionally NOT auto-implemented.
+- [ ] **GDPR DSAR — erasure DRAFTED; collection completion still open.**
+      Clear bugs fixed (collection queries the correct `crew` table; route 400s
+      on a null identifier). **Erasure is now implemented as a draft**
+      (`executeDataErasure`): anonymizes `users`+`crew` PII in a transaction,
+      retains the hash-chained audit trail + STCW/work-order records (documented
+      exemptions), returns a report, supports `dryRun`. **Before enabling:** a
+      compliance owner must sign off the per-table policy map in
+      `docs/design/gdpr-dsar-completion.md` and a `dryRun` should be run on
+      staging. **Still open:** completing the access export
+      (`workOrders`/`restRecords`/`auditEvents` + id-type dispatch).
 - [x] **Vetting inspection initial status — VERIFIED FALSE POSITIVE.** The
       raw-SQL `vetting_inspections` table (server/migrations/008-osv-specific.sql)
       defines `status TEXT NOT NULL DEFAULT 'scheduled'`, so an inserted row is

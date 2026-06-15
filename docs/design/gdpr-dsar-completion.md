@@ -1,6 +1,27 @@
 # Design proposal — completing GDPR DSAR (access + erasure)
 
-Status: **proposal — needs a compliance owner sign-off before implementation.**
+Status: **erasure DRAFTED against this design (see `executeDataErasure` in
+`server/db/gdpr/db-gdpr.ts`); the per-table policy below still needs a
+compliance owner's sign-off, and a `dryRun` should be run on staging before the
+endpoint is relied on.** Access-export completion (§1) remains open.
+
+## Erasure — what the draft does (vs. this design)
+`executeDataErasure(dsarId, orgId, erasedBy, reason, { dryRun })` now:
+- resolves the subject from the DSAR (`requesterId`/`requesterEmail`),
+- **anonymizes** identifying PII on `users` (name/email/username/phone) and
+  `crew` (name/email/phone/address/photo/emergency-contact/crew-code/notes) in
+  a single transaction,
+- **retains** `immutable_audit_trail` (hash-chained — modifying breaks chain
+  verification), `crew_rest_sheet` (STCW retention), and `work_orders`
+  (operational retention) — they reference the now-anonymized ids,
+- returns a per-table **report**, and (non-dry-run) sets the DSAR
+  `status = 'completed'` with the report in `processing_notes`.
+- `POST /dsar/:id/execute-erasure` accepts `dryRun: true` (preview, no confirm
+  needed) and still requires `confirmErasure: true` for a real run.
+
+**Sign-off checklist before enabling:** confirm the table policy map below
+(which additional tables hold subject PII? any that must be hard-deleted rather
+than anonymized?), and run `dryRun` against staging to confirm match counts.
 
 The DSAR (data-subject access request) handling in `server/db/gdpr/db-gdpr.ts`
 is partial scaffolding. The **clear bugs** were fixed directly (wrong `crew`

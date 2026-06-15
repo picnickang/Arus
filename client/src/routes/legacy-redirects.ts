@@ -7,9 +7,9 @@
  */
 import { routeMigrations } from "@/config/navigationConfig";
 
-export type RedirectExpiry = "keep";
+type RedirectExpiry = "keep";
 
-export interface LegacyRedirect {
+interface LegacyRedirect {
   from: string;
   to: string;
   expires: RedirectExpiry;
