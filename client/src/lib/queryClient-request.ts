@@ -113,10 +113,6 @@ export interface ApiRequestOptions {
 
 export const DEFAULT_GET_TIMEOUT_MS = 30_000;
 
-// Uploads legitimately run longer than a GET, but should still not hang forever
-// on a dropped link. Callers can override via `options.timeoutMs`.
-export const DEFAULT_UPLOAD_TIMEOUT_MS = 120_000;
-
 /**
  * Composes a caller/TanStack signal with a default timeout. Falls back
  * gracefully where AbortSignal.timeout/any are unavailable (older webviews).
@@ -161,6 +157,52 @@ function isNetworkFailure(error: unknown): boolean {
     String(error).toLowerCase().includes("failed to fetch") ||
     String(error).toLowerCase().includes("network")
   );
+}
+
+/**
+ * Raised by `guardedFetch` when the backend circuit breaker is open, so no
+ * request is attempted. Kept distinct from a network failure so callers can
+ * react accordingly — `apiRequest` diverts queueable mutations to the offline
+ * outbox; read/upload paths fail fast. The message is unchanged from the prior
+ * inline throw so existing error surfaces keep showing the same text.
+ */
+class CircuitOpenError extends Error {
+  constructor() {
+    super("Backend unavailable (circuit open)");
+    this.name = "CircuitOpenError";
+  }
+}
+
+/**
+ * The single fetch chokepoint shared by every client request path (apiRequest,
+ * apiFormDataRequest, getQueryFn). Centralising the circuit-breaker contract
+ * here makes all three trip and feed one breaker uniformly:
+ *   - open breaker             -> fail fast with CircuitOpenError (no fetch),
+ *   - any reached response     -> recordSuccess (even a 4xx/5xx proves it's up),
+ *   - connection-level failure -> recordFailure (HTTP status errors must not count).
+ *
+ * Previously only apiRequest was guarded, so GET queries and uploads neither
+ * failed fast when the breaker was open nor fed it on connection failure — a
+ * read-heavy session could stay slow and never trip the breaker at all.
+ */
+async function guardedFetch(url: string, init: RequestInit): Promise<Response> {
+  if (!backendCircuit.canRequest()) {
+    throw new CircuitOpenError();
+  }
+  let res: Response;
+  try {
+    res = await fetch(resolveUrl(url), init);
+  } catch (error) {
+    // Only connection-level failures trip the breaker; a reachable server that
+    // returns 4xx/5xx is a valid response handled by the caller.
+    if (isNetworkFailure(error)) {
+      backendCircuit.recordFailure();
+    }
+    throw error;
+  }
+  // Reaching a response — even an error status — proves the backend is up.
+  backendCircuit.recordSuccess();
+  return res;
 }
 
 function asPayloadRecord(data: unknown): Record<string, unknown> | undefined {
@@ -258,16 +300,6 @@ export async function apiRequest<T = unknown>(
     return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
   }
 
-  // Fail fast when the breaker is open: the backend is presumed unreachable, so
-  // there's no point burning the full timeout. Queueable mutations divert to the
-  // offline outbox immediately rather than surfacing an error to the operator.
-  if (!backendCircuit.canRequest()) {
-    if (shouldQueueOffline) {
-      return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
-    }
-    throw new Error("Backend unavailable (circuit open)");
-  }
-
   // GETs time out by default; mutations only when the caller opts in -
   // aborting a long-running write client-side doesn't stop it server-side.
   const effectiveSignal = composeSignal(
@@ -277,7 +309,9 @@ export async function apiRequest<T = unknown>(
 
   let res: Response;
   try {
-    res = await fetch(resolveUrl(url), {
+    // guardedFetch fails fast when the breaker is open and records the
+    // success/connection-failure outcome against it.
+    res = await guardedFetch(url, {
       method,
       headers: {
         ...createHeaders(includeContentType),
@@ -289,19 +323,14 @@ export async function apiRequest<T = unknown>(
       ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
     });
   } catch (error) {
-    // Only connection-level failures trip the breaker; a reachable server that
-    // returns 4xx/5xx is handled below and must not count against it.
-    if (isNetworkFailure(error)) {
-      backendCircuit.recordFailure();
-    }
-    if (shouldQueueOffline && isNetworkFailure(error)) {
+    // Breaker open or the link dropped: queueable mutations divert to the
+    // offline outbox rather than surfacing an error to the operator; everything
+    // else propagates. CircuitOpenError carries the prior "circuit open" text.
+    if (shouldQueueOffline && (error instanceof CircuitOpenError || isNetworkFailure(error))) {
       return asQueued<T>(await queueOfflineApiRequest(method, url, data, clientMutationId));
     }
     throw error;
   }
-
-  // Reaching a response — even an error status — proves the backend is up.
-  backendCircuit.recordSuccess();
 
   inspectQuotaWarning(res);
   await throwIfResNotOk(res);
@@ -321,11 +350,14 @@ export async function apiFormDataRequest<T = unknown>(
   body: FormData,
   options?: ApiRequestOptions
 ): Promise<T> {
-  const effectiveSignal = composeSignal(
-    options?.signal,
-    options?.timeoutMs ?? DEFAULT_UPLOAD_TIMEOUT_MS
-  );
-  const res = await fetch(resolveUrl(url), {
+  // Uploads are non-idempotent writes with no offline-outbox replay path, so —
+  // like the mutations in apiRequest — they only time out when the caller opts
+  // in via options.timeoutMs. A default bound would abort a legitimately slow
+  // upload (a large photo/document over a satellite uplink) with no way to
+  // resume. Routing through guardedFetch also lets uploads fail fast when the
+  // breaker is open and feed it on a connection failure.
+  const effectiveSignal = composeSignal(options?.signal, options?.timeoutMs);
+  const res = await guardedFetch(url, {
     method,
     headers: { ...createHeaders(false), ...(options?.headers ?? {}) },
     body,
@@ -381,8 +413,10 @@ export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFu
 
     // Forwarding TanStack's signal lets unmounted/superseded queries cancel
     // their in-flight fetches instead of completing into a dead cache entry.
+    // guardedFetch routes reads through the same breaker as apiRequest, so a
+    // read-heavy session both fails fast and trips the breaker on its own.
     const effectiveSignal = composeSignal(signal, DEFAULT_GET_TIMEOUT_MS);
-    const res = await fetch(resolveUrl(url), {
+    const res = await guardedFetch(url, {
       headers: createHeaders(false),
       credentials: "include",
       ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
