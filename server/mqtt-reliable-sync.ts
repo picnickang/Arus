@@ -16,13 +16,5 @@
  * - mqtt-reliable-sync/index.ts (~35 lines): Module aggregator
  */
 
-export { MqttReliableSyncService, mqttReliableSync } from "./mqtt-reliable-sync/index.js";
-export type {
-  MqttMessage,
-  ReliableSyncConfig,
-  MqttMetrics,
-  ServiceMetrics,
-  HealthStatus,
-  PublishOptions,
-  DataChangeOperation,
-} from "./mqtt-reliable-sync/index.js";
+export { mqttReliableSync } from "./mqtt-reliable-sync/index.js";
+export type { DataChangeOperation } from "./mqtt-reliable-sync/index.js";

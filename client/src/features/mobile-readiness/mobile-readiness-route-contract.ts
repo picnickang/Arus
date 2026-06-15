@@ -96,7 +96,7 @@ export function getMobileReadinessExpectedScreen(path: string): MobileReadinessS
 
 // --- Phase 1: route classifier -------------------------------------------------
 
-export type MobileRouteStatus = "mobileReplacement" | "universalAdminShell" | "missing";
+type MobileRouteStatus = "mobileReplacement" | "universalAdminShell" | "missing";
 
 export interface MobileRouteClassification {
   /** Where this path lands on mobile. */

@@ -74,7 +74,7 @@ export const WIDGET_HIGH_IMPACT_QUESTIONS: Record<WidgetKey, string> = {
  * ------------------------------------------------------------------ */
 
 export const WIDGET_DOMAINS = ["fleet", "crewing", "maintenance", "logistics", "safety"] as const;
-export type WidgetDomain = (typeof WIDGET_DOMAINS)[number];
+type WidgetDomain = (typeof WIDGET_DOMAINS)[number];
 
 export const WIDGET_DOMAIN_LABELS: Record<WidgetDomain, string> = {
   fleet: "Fleet",
