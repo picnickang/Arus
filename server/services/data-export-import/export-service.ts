@@ -7,6 +7,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
+import { finished } from "node:stream/promises";
 import { randomUUID } from "node:crypto";
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Services:DataExportImport:ExportService");
@@ -185,6 +186,10 @@ async function exportEntity(
 ): Promise<EntityExportResult> {
   const filePath = path.join(exportPath, `${entityName}.jsonl`);
   const writeStream = createWriteStream(filePath);
+  // Track stream completion up-front so a write failure (e.g. disk full)
+  // rejects here instead of crashing the process on an unhandled 'error'
+  // event or hanging forever waiting only for 'finish'.
+  const streamClosed = finished(writeStream);
   let count = 0;
   const totalAnonymizationResult: AnonymizationResult = {
     originalFieldCount: 0,
@@ -230,7 +235,7 @@ async function exportEntity(
     }
 
     writeStream.end();
-    await new Promise((resolve) => writeStream.on("finish", resolve));
+    await streamClosed;
 
     const anonymizationInfo =
       anonymizationService && options.anonymize !== "none"
@@ -245,7 +250,10 @@ async function exportEntity(
     };
   } catch (error) {
     logger.warn(`[DataExport] Failed to export ${entityName}:`, { details: error });
-    writeStream.end();
+    writeStream.destroy();
+    // Don't let the tracked completion promise surface as an unhandled
+    // rejection now that we're abandoning this export.
+    void streamClosed.catch(() => undefined);
     return { count: 0, file: `${entityName}.jsonl` };
   }
 }

@@ -42,6 +42,12 @@ export async function cloneWorkOrder(
         laborHours: null,
         laborCost: null,
         vesselDowntimeStartedAt: null,
+        // A clone is a fresh, unassigned work order — don't inherit the
+        // original's crew assignment or its accept/decline response.
+        assignedCrewId: null,
+        assignmentStatus: null,
+        assignmentRespondedAt: null,
+        assignmentResponseReason: null,
         version: 1,
         createdAt: now,
         updatedAt: now,

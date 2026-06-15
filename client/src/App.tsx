@@ -17,6 +17,7 @@ import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
 import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
+import { OpsStatusRailContainer } from "@/components/ops/OpsStatusRailContainer";
 import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/mobile-readiness-route-contract";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
@@ -362,6 +363,17 @@ function Router() {
           self-heal still runs there via UniversalOpsShell's mirror effect. */}
       {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
       {!isLoginRoute && !usesUniversalOpsShell && !usesMobileReadinessReplacement && <CopilotFab />}
+
+      {/* Persistent ops status rail for the mobile-readiness surface. The admin
+          ops shell mounts its own rail; here it docks just above the mobile
+          bottom nav (h-16 + safe-area) and surfaces only when there is a risk,
+          a queued outbox, or an offline state, so critical items never scroll
+          off-screen on a phone. */}
+      {!isLoginRoute && usesMobileReadinessReplacement && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-border shadow-[0_-8px_24px_-18px_rgba(2,12,27,0.55)] md:hidden">
+          <OpsStatusRailContainer hideWhenIdle />
+        </div>
+      )}
     </div>
   );
 }

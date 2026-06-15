@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { db, isLocalMode } from "../db";
 import { requestIdempotency } from "@shared/schema-runtime";
 import { logger } from "../utils/logger";
@@ -118,12 +118,105 @@ export function buildIdempotencyInsertValues(
 }
 
 export async function storeResponse(entry: IdempotencyStoreEntry): Promise<void> {
-  const values = buildIdempotencyInsertValues(entry, isLocalMode);
+  const now = new Date();
+  const values = buildIdempotencyInsertValues(entry, isLocalMode, now);
+
+  // Upsert (not insert-or-nothing): a successful completion must overwrite the
+  // caller's own pending claim row (see claimKey) to convert it into the stored
+  // response. With insert-or-nothing the claim would shadow the response and
+  // cross-replica retries would 425 forever until the claim expired. The set
+  // fields are recomputed from the typed entry (not read back off the untyped
+  // values record) so no casts are needed.
+  const responseBody = JSON.stringify({
+    h: entry.requestHash,
+    b: entry.body,
+  } satisfies StoredWrapper);
 
   await db
     .insert(table)
     .values(values as typeof table.$inferInsert)
-    .onConflictDoNothing({ target: table.key });
+    .onConflictDoUpdate({
+      target: table.key,
+      set: {
+        responseStatus: entry.statusCode,
+        responseBody,
+        expiresAt: new Date(now.getTime() + entry.ttlMs),
+      },
+    });
+}
+
+/**
+ * Pending-claim TTL. Bounds how long a claim survives a hard process crash
+ * (graceful failures release the claim immediately via releaseClaim, and
+ * success converts it via storeResponse). It MUST exceed the longest realistic
+ * handler duration: if a claim expired while its handler was still running, the
+ * reaper could drop the row and a concurrent retry on another replica would
+ * re-run the mutation. 15 min sits comfortably above any HTTP handler (which a
+ * proxy/LB timeout would sever — firing `close` → releaseClaim — long before).
+ */
+export const CLAIM_TTL_MS = 15 * 60 * 1000;
+
+export interface IdempotencyClaimEntry {
+  fullKey: string;
+  orgId: string;
+  idempotencyKey: string;
+  requestHash: string;
+}
+
+/**
+ * Values for a pending durable claim: a row with a NULL response, so
+ * getStoredResponse treats it as "not complete yet" while it reserves the key.
+ * Mirrors buildIdempotencyInsertValues' driver-conditional shape (sqlite has
+ * NOT NULL org_id / idempotency_key / request_hash columns the pg table lacks).
+ */
+export function buildIdempotencyClaimValues(
+  entry: IdempotencyClaimEntry,
+  isLocal: boolean,
+  now: Date = new Date()
+): Record<string, unknown> {
+  const values: Record<string, unknown> = {
+    key: entry.fullKey,
+    responseStatus: null,
+    responseBody: null,
+    expiresAt: new Date(now.getTime() + CLAIM_TTL_MS),
+    createdAt: now,
+  };
+  if (isLocal) {
+    values["orgId"] = entry.orgId;
+    values["idempotencyKey"] = entry.idempotencyKey;
+    values["requestHash"] = entry.requestHash;
+  }
+  return values;
+}
+
+/**
+ * Durable cross-replica reservation. Inserts a pending row keyed by fullKey;
+ * the first caller (across all cloud replicas sharing one Postgres) lands the
+ * row and returns true, later callers conflict and return false. Returning the
+ * inserted key distinguishes a win (row returned) from a loss (empty) under
+ * insert-or-nothing. Pairs with storeResponse (completion) and releaseClaim
+ * (failure).
+ */
+export async function claimKey(entry: IdempotencyClaimEntry): Promise<boolean> {
+  const values = buildIdempotencyClaimValues(entry, isLocalMode);
+
+  const inserted = await db
+    .insert(table)
+    .values(values as typeof table.$inferInsert)
+    .onConflictDoNothing({ target: table.key })
+    .returning({ key: table.key });
+
+  return inserted.length > 0;
+}
+
+/**
+ * Release a claim we won but did not complete (handler error, non-2xx, or
+ * client abort), so a retry — here or on another replica — can re-claim at once
+ * instead of waiting for the claim to expire. Scoped to still-pending rows
+ * (NULL response) so a late `close` event can never delete a stored response.
+ */
+export async function releaseClaim(fullKey: string): Promise<void> {
+  await db.delete(table).where(and(eq(table.key, fullKey), isNull(table.responseStatus)));
 }
 
 export async function deleteExpiredResponses(): Promise<void> {

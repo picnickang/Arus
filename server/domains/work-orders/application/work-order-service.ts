@@ -21,7 +21,8 @@ export type RespondToAssignmentResult =
   | { status: "not_crew" }
   | { status: "not_found" }
   | { status: "forbidden" }
-  | { status: "no_assignment" };
+  | { status: "no_assignment" }
+  | { status: "invalid_state"; reason: string };
 
 type WorkOrderPriority = "low" | "medium" | "high" | "critical";
 const VALID_PRIORITIES = new Set<WorkOrderPriority>(["low", "medium", "high", "critical"]);
@@ -237,6 +238,25 @@ export class WorkOrderApplicationService {
     }
     if (workOrder.assignedCrewId !== crewMember.id) {
       return { status: "forbidden" };
+    }
+    // Can't respond to a finished work order — accepting would illegally
+    // reopen a completed/cancelled order back into progress.
+    if (
+      workOrder.status === "completed" ||
+      workOrder.status === "cancelled" ||
+      workOrder.status === "closed"
+    ) {
+      return { status: "invalid_state", reason: `work order is ${workOrder.status}` };
+    }
+    // Only the initial "assigned" state accepts a response. Once accepted or
+    // declined, the crew member can't flip the decision (and silently revert
+    // an in-progress order to open); a supervisor must reassign first. A null
+    // assignmentStatus on a legacy-assigned order is treated as respondable.
+    if (workOrder.assignmentStatus === "accepted" || workOrder.assignmentStatus === "declined") {
+      return {
+        status: "invalid_state",
+        reason: `assignment already ${workOrder.assignmentStatus}`,
+      };
     }
 
     const now = new Date();

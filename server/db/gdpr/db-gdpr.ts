@@ -2,7 +2,7 @@
  * GDPR - Database Storage
  */
 
-import { eq, and, sql, type SQL } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
@@ -144,6 +144,14 @@ export class DatabaseGdprStorage {
     if (filters.requesterEmail) {
       conditions.push(eq(dataSubjectRequests.requesterEmail, filters.requesterEmail));
     }
+    // fromDate/toDate were accepted but never applied — the date filter was a
+    // silent no-op, returning every DSAR regardless of the requested window.
+    if (filters.fromDate) {
+      conditions.push(gte(dataSubjectRequests.createdAt, filters.fromDate));
+    }
+    if (filters.toDate) {
+      conditions.push(lte(dataSubjectRequests.createdAt, filters.toDate));
+    }
     return db
       .select()
       .from(dataSubjectRequests)
@@ -242,12 +250,12 @@ export class DatabaseGdprStorage {
       }
       if (identifierType === "crewId") {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE id = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE id = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       } else {
         const crew = await db.execute(
-          sql`SELECT id, name, email, rank, department FROM crew_members WHERE email = ${identifier} AND org_id = ${orgId}`
+          sql`SELECT id, name, email, rank, department FROM crew WHERE email = ${identifier} AND org_id = ${orgId}`
         );
         result["crewMembers"] = crew.rows ?? [];
       }

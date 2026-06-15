@@ -148,13 +148,20 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
     }
 
     let released = false;
-    const release = () => {
+    const release = (destroy = false) => {
       if (released) {
         return;
       }
       released = true;
       try {
-        client.release();
+        // `destroy` removes the physical connection from the pool instead of
+        // returning it. Used on the abort path: the route handler may still be
+        // mid-query on this pinned client, and returning it would hand a
+        // still-in-use connection (carrying this request's `SET LOCAL` org
+        // context) to the next request that checks it out — a cross-tenant
+        // hole. Destroying it means the aborted handler's late queries fail
+        // harmlessly instead.
+        client.release(destroy);
       } catch (err) {
         logger.warn(
           `[DB_CONTEXT] client.release() failed: ${err instanceof Error ? err.message : String(err)}`
@@ -198,11 +205,16 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
         return;
       }
       finalized = true;
+      // An aborted request (connection closed before the response was fully
+      // written) may still have the handler running on this client, so the
+      // connection must be destroyed rather than pooled (see `release`). A 5xx
+      // with a fully-written response means the handler has finished, so a
+      // normal release is safe there.
+      const aborted = !res.writableEnded;
       try {
         // 5xx and aborted-mid-flight requests roll back so partial
         // writes are not committed. 4xx are user errors with already-
         // shaped responses — keep their writes (most are no-ops anyway).
-        const aborted = !res.writableEnded;
         if (aborted || res.statusCode >= 500) {
           await client.query("ROLLBACK");
         } else {
@@ -213,7 +225,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
           `[DB_CONTEXT] tx finalize failed: ${err instanceof Error ? err.message : String(err)}`
         );
       } finally {
-        release();
+        release(aborted);
       }
     };
 

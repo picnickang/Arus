@@ -60,9 +60,9 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         performed_by_name, performed_by_role, ip_address, device_id, vessel_id,
         event_timestamp, server_timestamp, prev_hash, hash, hash_version,
         compliance_standard, retention_required, retention_expires_at, metadata,
-        action, actor, actor_role, data_before, data_after, data_hash, previous_hash,
+        action, data_hash, previous_hash,
         sequence_number, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         id,
         input.orgId,
@@ -90,10 +90,6 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         input.retentionExpiresAt?.toISOString() ?? null,
         metadataJson,
         input.eventType,
-        input.performedBy,
-        input.performedByRole ?? null,
-        previousStateJson,
-        newStateJson,
         hash,
         prevHash,
         sequenceNumber,

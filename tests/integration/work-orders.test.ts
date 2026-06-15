@@ -128,7 +128,7 @@ describe("Work Orders API", () => {
   describe("GET /api/work-orders/:id", () => {
     it("should return a specific work order", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 
@@ -151,7 +151,7 @@ describe("Work Orders API", () => {
   describe("PATCH /api/work-orders/:id", () => {
     it("should update work order status", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 
@@ -166,7 +166,7 @@ describe("Work Orders API", () => {
 
     it("should update work order priority", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 
@@ -183,7 +183,7 @@ describe("Work Orders API", () => {
   describe("Work Order Lifecycle", () => {
     it("should complete a work order with completion data", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 
@@ -207,7 +207,7 @@ describe("Work Orders API", () => {
   describe("Work Order History", () => {
     it("should track work order changes in history", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 
@@ -223,7 +223,7 @@ describe("Work Orders API", () => {
   describe("DELETE /api/work-orders/:id", () => {
     it("should delete a work order", async () => {
       if (!createdWorkOrderId) {
-        console.log("Skipping - no work order created");
+        console.info("Skipping - no work order created");
         return;
       }
 

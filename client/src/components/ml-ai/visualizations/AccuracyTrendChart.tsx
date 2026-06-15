@@ -97,7 +97,7 @@ export function AccuracyTrendChart({
           <Skeleton className="h-6 w-48" />
         </CardHeader>
         <CardContent>
-          <Skeleton className={`h-[${height}px] w-full`} />
+          <Skeleton className="w-full" style={{ height: `${height}px` }} />
         </CardContent>
       </Card>
     );

@@ -17,7 +17,6 @@
  * Condition Monitoring Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DbConditionMonitoringStorage } from "./db-condition-monitoring.js";
 
 import { createLogger } from "../../lib/structured-logger";

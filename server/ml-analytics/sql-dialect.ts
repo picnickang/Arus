@@ -24,7 +24,5 @@ export function hourBucketExpr(tsColumn: AnyColumn): SQL {
 
 /** Average a numeric column, coercing to float8 on Postgres. */
 export function hourlyAvg(valueColumn: AnyColumn): SQL<number> {
-  return isLocalMode
-    ? sql<number>`avg(${valueColumn})`
-    : sql<number>`avg(${valueColumn})::float8`;
+  return isLocalMode ? sql<number>`avg(${valueColumn})` : sql<number>`avg(${valueColumn})::float8`;
 }

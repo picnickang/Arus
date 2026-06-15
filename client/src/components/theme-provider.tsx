@@ -65,6 +65,15 @@ export function ThemeProvider({
       root.classList.add(effectiveTheme);
     }
     root.setAttribute("data-theme", effectiveTheme);
+    // Map our 4 themes onto OpenBridge brilliance palettes (M2 Phase B) so OB
+    // web components render in the matching brilliance via :root[data-obc-theme].
+    const OB_BRILLIANCE = {
+      light: "day",
+      dark: "dusk",
+      bridge: "night",
+      daylight: "bright",
+    } as const;
+    root.setAttribute("data-obc-theme", OB_BRILLIANCE[effectiveTheme]);
     setResolvedTheme(effectiveTheme);
   }, [theme]);
 

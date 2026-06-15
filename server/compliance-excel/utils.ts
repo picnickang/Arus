@@ -2,7 +2,7 @@
  * Compliance Excel Utils - Shared utility functions
  */
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import type { WorkOrder } from "@shared/schema";
 import type { EquipmentHealth } from "../db/equipment/types.js";
 import { MARITIME_STANDARDS } from "../compliance.js";
@@ -13,17 +13,18 @@ export { formatDate, countByStatus };
 type CellValue = string | number | boolean | Date | null | undefined;
 type SheetRows = CellValue[][];
 
-export function createWorkbook(): XLSX.WorkBook {
-  return XLSX.utils.book_new();
+export function createWorkbook(): ExcelJS.Workbook {
+  return new ExcelJS.Workbook();
 }
 
-export function addSheet(workbook: XLSX.WorkBook, data: SheetRows, name: string): void {
-  const sheet = XLSX.utils.aoa_to_sheet(data);
-  XLSX.utils.book_append_sheet(workbook, sheet, name);
+export function addSheet(workbook: ExcelJS.Workbook, data: SheetRows, name: string): void {
+  const sheet = workbook.addWorksheet(name);
+  sheet.addRows(data);
 }
 
-export function writeWorkbook(workbook: XLSX.WorkBook): Buffer {
-  return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+export async function writeWorkbook(workbook: ExcelJS.Workbook): Promise<Buffer> {
+  // exceljs writes asynchronously; both callers already run in async builders.
+  return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
 export function getComplianceStatus(status: string | undefined): string {

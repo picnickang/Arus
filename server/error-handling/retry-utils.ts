@@ -50,19 +50,24 @@ export function withTimeout<T>(
   timeoutMs: number,
   operationName: string
 ): Promise<T> {
-  return Promise.race([
-    operation(),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(
-          new AppError(
-            `Operation ${operationName} timed out after ${timeoutMs}ms`,
-            408,
-            "TIMEOUT_ERROR",
-            { timeoutMs, operationName }
-          )
-        );
-      }, timeoutMs);
-    }),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new AppError(
+          `Operation ${operationName} timed out after ${timeoutMs}ms`,
+          408,
+          "TIMEOUT_ERROR",
+          { timeoutMs, operationName }
+        )
+      );
+    }, timeoutMs);
+  });
+  // Clear the timer once the race settles so a fast-completing operation does
+  // not leave a pending timeout firing (and keeping the event loop alive).
+  return Promise.race([operation(), timeout]).finally(() => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  });
 }

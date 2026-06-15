@@ -17,7 +17,6 @@
  * Users Repository - Modular Aggregator
  */
 
-export * from "./types.js";
 export { DatabaseUserStorage } from "./db-users.js";
 
 import { createLogger } from "../../lib/structured-logger";

@@ -72,10 +72,14 @@ export async function rollbackPatchBackup(
 
   const manifestPath = path.join(backupPath, "manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+  const files: string[] = Array.isArray(manifest.files) ? manifest.files : [];
 
-  for (const file of manifest.files) {
-    // Manifest entries are untrusted; contain each within its root so a
-    // crafted manifest cannot read/write outside the backup or app dirs.
+  for (const file of files) {
+    // Manifest entries are untrusted (read from disk): iterate the
+    // array-validated `files` view above so a tampered non-array manifest
+    // cannot crash the loop, and contain both source and destination within
+    // their roots via validatePath so a crafted manifest cannot read/write
+    // outside the backup or app dirs.
     const sourcePath = validatePath(backupPath, file);
     const destPath = validatePath(appDir, file);
 

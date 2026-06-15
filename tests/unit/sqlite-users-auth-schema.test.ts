@@ -201,6 +201,10 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain(
       "ALTER TABLE immutable_audit_trail ADD COLUMN data_hash TEXT NOT NULL DEFAULT ''"
     );
+    // Legacy duplicate columns (actor/actor_role/data_before/data_after) are kept
+    // and reconciled into their canonical counterparts by a non-destructive backfill
+    // rather than dropped, so PG and SQLite converge without a SQLite table rebuild.
+    expect(executed.some((s) => s.includes("DROP COLUMN"))).toBe(false);
   });
 
   it("exposes local error log columns used after portal login", () => {
@@ -208,8 +212,11 @@ describe("SQLite users auth schema", () => {
     expect(errorLogsSqlite.timestamp).toBeDefined();
     expect(errorLogsSqlite.category).toBeDefined();
     expect(errorLogsSqlite.errorType).toBeDefined();
-    expect(errorLogsSqlite.errorMessage).toBeDefined();
     expect(errorLogsSqlite.errorCode).toBeDefined();
+    // The canonical SQLite error_logs table carries only `message`, not the legacy
+    // `error_message` duplicate. Existing tables keep their `error_message` column
+    // but reconcile it into `message` via the compatibility migration (no drop).
+    expect("errorMessage" in errorLogsSqlite).toBe(false);
     expect(errorLogsSqlite.message).toBeDefined();
     expect(errorLogsSqlite.userId).toBeDefined();
     expect(errorLogsSqlite.requestId).toBeDefined();
@@ -255,5 +262,41 @@ describe("SQLite users auth schema", () => {
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN user_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN request_id TEXT");
     expect(executed).toContain("ALTER TABLE error_logs ADD COLUMN endpoint TEXT");
+  });
+
+  it("folds legacy error_message into message on existing tables", async () => {
+    const executed: string[] = [];
+    // Two-phase table_info: the first read (column probe) still has the legacy
+    // `error_message` without `message`; the refreshed read (after the add-loop)
+    // has both, so the reconciliation can backfill bidirectionally (kept, not dropped).
+    let probed = false;
+    const baseRows = [
+      { name: "id" },
+      { name: "org_id" },
+      { name: "error_type" },
+      { name: "error_message" },
+      { name: "severity" },
+      { name: "created_at" },
+    ];
+    const client = {
+      execute: jest.fn(async (statement: string) => {
+        executed.push(statement);
+        if (statement.startsWith("PRAGMA table_info(error_logs)")) {
+          if (!probed) {
+            probed = true;
+            return { rows: baseRows };
+          }
+          return { rows: [...baseRows, { name: "message" }] };
+        }
+        return { rows: [], rowsAffected: 0 };
+      }),
+    };
+
+    await runErrorLogsCompatibilityMigration(client as never);
+
+    expect(executed).toContain(
+      "UPDATE error_logs SET message = error_message WHERE (message IS NULL OR message = '') AND error_message IS NOT NULL"
+    );
+    expect(executed.some((s) => s.includes("DROP COLUMN error_message"))).toBe(false);
   });
 });

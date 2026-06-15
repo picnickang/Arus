@@ -118,10 +118,17 @@ export class BudgetGuard {
   }
 
   /**
-   * Throw if the projected token spend would exceed the hard limit.
+   * Throw if the projected token spend would exceed the configured limit.
    * Called BEFORE the LLM request is issued. `projectedTokens` is the
    * estimated total cost of the about-to-be-issued call (prompt tokens
    * upper bound + max completion tokens).
+   *
+   * Best-effort, NOT a hard cap: usage is an in-memory per-process counter
+   * only incremented in `record()` after the call returns, so N concurrent
+   * calls can all pass preflight against the same pre-spend total and then
+   * overshoot. The intent is to stop a runaway loop, not bill exactly. A true
+   * hard cap would need a shared atomic reservation (e.g. a DB counter
+   * incremented at preflight and reconciled at record).
    */
   preflight(orgId: string, projectedTokens: number): void {
     const limits = this.limitsFor(orgId);

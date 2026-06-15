@@ -2,24 +2,40 @@
 # ============================================================================
 # LR-1A — Migration reversibility CI check.
 #
-# Boots an ephemeral Postgres schema, runs the full up → down → up cycle,
-# and diffs the schema snapshots either side of the down to prove that
-# every migration's .down.sql actually restores prior state.
+# Proves the numbered migrations/NNNN_*.sql replay AND reverse cleanly on top
+# of the real schema, by running repeated up→down→up cycles in a throwaway
+# database and diffing the schema across two full cycles.
+#
+# WHY A SCRATCH DATABASE (not a scratch schema) + A SEEDED BASELINE:
+#   The numbered migrations are additive deltas on top of the `drizzle-kit
+#   push` baseline — they ALTER tables push already created and never recreate
+#   that base themselves. So a from-empty replay dies at 0001 ("relation
+#   equipment does not exist"). We mirror production: seed the push baseline
+#   first, then replay the deltas. `drizzle-kit push` targets a database (it
+#   does not reliably honour a non-public search_path), so we use a dedicated
+#   scratch DATABASE rather than a scratch schema. A small shim
+#   (reversibility-baseline-shim.sql) recreates the four tables that mid-chain
+#   deltas reference but that 0044/0050 later dropped from the live schema.
+#
+# WHY TWO CYCLES (compare down→up vs down→up, not up vs down→up):
+#   The seeded baseline already contains the columns the idempotent
+#   `ADD COLUMN IF NOT EXISTS` deltas add, in schema (push) order. A down→up
+#   round-trip drops and re-adds those columns, which moves them to the end of
+#   the table — a benign reordering that a positional pg_dump diff would flag.
+#   Taking BOTH snapshots after a down→up cycle puts them in the same order, so
+#   the diff stays exact while still catching a down that errors, fails to
+#   revert, or produces a non-deterministic schema.
 #
 # Steps:
-#   1. Pick a working DB. If REVERSIBILITY_DATABASE_URL is set, use it.
-#      Otherwise fall back to DATABASE_URL and CREATE/DROP a uniquely
-#      named scratch schema so we never touch the developer's data.
-#   2. Apply all up migrations.   (state A)
-#   3. Snapshot schema.           (snapshot A)
-#   4. Revert ALL up migrations.  (state empty)
-#   5. Re-apply all up migrations.(state B — must == state A)
-#   6. Snapshot schema.           (snapshot B)
-#   7. Diff A vs B. Non-zero diff fails the build.
+#   1. Pick a working server (REVERSIBILITY_DATABASE_URL or DATABASE_URL).
+#   2. Create a throwaway database on it.
+#   3. Seed: `drizzle-kit push` + the baseline shim.
+#   4. up; (down; up) → snapshot A.
+#   5. (down; up) → snapshot B.
+#   6. Diff A vs B. Non-zero diff fails the build.
 #
-# Skips cleanly (exit 0) when neither REVERSIBILITY_DATABASE_URL nor
-# DATABASE_URL is set, so the script can ship in CI ahead of the
-# Postgres service that hosts it.
+# Skips cleanly (exit 0) when no DATABASE_URL is set or psql/pg_dump are
+# missing, so the script can ship ahead of the Postgres service that hosts it.
 # ============================================================================
 set -euo pipefail
 
@@ -28,7 +44,6 @@ if [[ -z "${DB_URL}" ]]; then
   echo "[reversibility] no DATABASE_URL — skipping"
   exit 0
 fi
-
 if ! command -v psql >/dev/null 2>&1; then
   echo "[reversibility] psql not found — skipping (install postgresql-client to enable)"
   exit 0
@@ -38,44 +53,76 @@ if ! command -v pg_dump >/dev/null 2>&1; then
   exit 0
 fi
 
-SCRATCH_SCHEMA="arus_revcheck_$$"
+# Derive a scratch-database URL from the admin URL, preserving userinfo/host/
+# port and any query string and swapping only the database name.
+SCRATCH_DB="arus_revcheck_$$"
+if [[ "${DB_URL}" =~ ^(.*://[^/]+)/([^?]*)(\?.*)?$ ]]; then
+  URL_BASE="${BASH_REMATCH[1]}"
+  URL_QUERY="${BASH_REMATCH[3]:-}"
+  SCRATCH_URL="${URL_BASE}/${SCRATCH_DB}${URL_QUERY}"
+else
+  echo "[reversibility] could not parse a database name out of DATABASE_URL — skipping"
+  exit 0
+fi
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SHIM="${ROOT}/scripts/reversibility-baseline-shim.sql"
 TMP=$(mktemp -d)
-trap 'rm -rf "${TMP}"; PGOPTIONS="" psql "${DB_URL}" -c "DROP SCHEMA IF EXISTS ${SCRATCH_SCHEMA} CASCADE" >/dev/null 2>&1 || true' EXIT
+NUM_MIGRATIONS=$(ls "${ROOT}"/migrations/[0-9]*.sql | grep -v '\.down\.sql$' | wc -l | tr -d ' ')
 
-echo "[reversibility] creating scratch schema ${SCRATCH_SCHEMA}"
-psql "${DB_URL}" -v ON_ERROR_STOP=1 -c "CREATE SCHEMA ${SCRATCH_SCHEMA}" >/dev/null
+cleanup() {
+  rm -rf "${TMP}"
+  # Terminate any lingering sessions so the drop succeeds (PG13+ WITH FORCE).
+  psql "${DB_URL}" -c "DROP DATABASE IF EXISTS ${SCRATCH_DB} WITH (FORCE)" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
-# All subsequent operations route through search_path so they land in
-# the scratch schema rather than public. The migration SQL files use
-# unqualified table names, so this redirection is what isolates us.
-export PGOPTIONS="--search_path=${SCRATCH_SCHEMA},public"
+echo "[reversibility] creating scratch database ${SCRATCH_DB}"
+psql "${DB_URL}" -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${SCRATCH_DB}" >/dev/null
+# pgvector is part of the schema; the CI Postgres image ships it.
+psql "${SCRATCH_URL}" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector" >/dev/null
 
-echo "[reversibility] up #1"
-DATABASE_URL="${DB_URL}" node scripts/run-sql-migrations.mjs up
+echo "[reversibility] seeding db:push baseline"
+DATABASE_URL="${SCRATCH_URL}" npm run --silent db:push >/dev/null
 
-echo "[reversibility] snapshot A"
-pg_dump --schema-only --schema="${SCRATCH_SCHEMA}" "${DB_URL}" \
-  | grep -v -E '^(--|SET |SELECT pg_catalog\.|$)' > "${TMP}/snapshot_a.sql"
+echo "[reversibility] seeding dead-table shim"
+psql "${SCRATCH_URL}" -v ON_ERROR_STOP=1 -f "${SHIM}" >/dev/null
 
-# Revert everything. The arus_migrations tracker tells us how many up
-# migrations are currently applied; we ask the runner to revert that
-# many. We discover the count via the tracker rather than counting files
-# because a half-applied prior run would otherwise mislead us.
-APPLIED=$(psql "${DB_URL}" -tAc "SELECT count(*) FROM ${SCRATCH_SCHEMA}.arus_migrations")
-echo "[reversibility] reverting ${APPLIED} migrations"
-DATABASE_URL="${DB_URL}" node scripts/run-sql-migrations.mjs down --count "${APPLIED}"
+snapshot() {
+  pg_dump --schema-only --schema=public "${SCRATCH_URL}" \
+    | grep -v -E '^(--|SET |SELECT pg_catalog\.|\\restrict|\\unrestrict|$)'
+}
 
-echo "[reversibility] up #2"
-DATABASE_URL="${DB_URL}" node scripts/run-sql-migrations.mjs up
+run_up() { DATABASE_URL="${SCRATCH_URL}" node "${ROOT}/scripts/run-sql-migrations.mjs" up >/dev/null; }
+run_down() {
+  local applied
+  applied=$(psql "${SCRATCH_URL}" -tAc "SELECT count(*) FROM arus_migrations")
+  DATABASE_URL="${SCRATCH_URL}" node "${ROOT}/scripts/run-sql-migrations.mjs" down --count "${applied}" >/dev/null
+}
 
-echo "[reversibility] snapshot B"
-pg_dump --schema-only --schema="${SCRATCH_SCHEMA}" "${DB_URL}" \
-  | grep -v -E '^(--|SET |SELECT pg_catalog\.|$)' > "${TMP}/snapshot_b.sql"
+echo "[reversibility] up (apply all deltas on the seeded baseline)"
+run_up
+
+echo "[reversibility] cycle 1 (down → up) → snapshot A"
+run_down
+# Liveness: a full down must actually revert every tracked migration.
+REMAINING=$(psql "${SCRATCH_URL}" -tAc "SELECT count(*) FROM arus_migrations")
+if [[ "${REMAINING}" != "0" ]]; then
+  echo "[reversibility] FAIL: ${REMAINING} migration(s) still tracked after a full down — a down did not revert." >&2
+  exit 1
+fi
+run_up
+snapshot > "${TMP}/snapshot_a.sql"
+
+echo "[reversibility] cycle 2 (down → up) → snapshot B"
+run_down
+run_up
+snapshot > "${TMP}/snapshot_b.sql"
 
 echo "[reversibility] diffing snapshots"
 if ! diff -u "${TMP}/snapshot_a.sql" "${TMP}/snapshot_b.sql"; then
-  echo "[reversibility] FAIL: schema after up→down→up differs from initial up. Inspect diff above." >&2
+  echo "[reversibility] FAIL: schema differs across down→up cycles. Inspect diff above." >&2
   exit 1
 fi
 
-echo "[reversibility] OK — every migration in $(ls migrations/[0-9]*.sql | grep -v down | wc -l) is reversible"
+echo "[reversibility] OK — ${NUM_MIGRATIONS} migrations replay and reverse cleanly"

@@ -23,18 +23,25 @@ export const parseShipmateDate = (v: string): Date | null => {
   if (dmy && dmy[1] && dmy[2] && dmy[3]) {
     const month = MONTH_MAP[dmy[2].toLowerCase()];
     if (month) {
-      return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);
+      const d = new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);
+      return isNaN(d.getTime()) ? null : d;
     }
   }
 
   const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (slash && slash[1] && slash[2] && slash[3]) {
-    return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);
+    // SHIPMATE dates are DD/MM/YYYY. Validate the assembled date so an
+    // out-of-range value (e.g. an American MM/DD/YYYY whose "month" is > 12)
+    // returns null instead of an Invalid Date object that later crashes
+    // .toISOString() with a RangeError.
+    const d = new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);
+    return isNaN(d.getTime()) ? null : d;
   }
 
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) {
-    return new Date(trimmed);
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
   }
 
   const d = new Date(trimmed);

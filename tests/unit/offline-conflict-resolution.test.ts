@@ -50,6 +50,7 @@ interface CapturedWhere {
 const capturedWhere: CapturedWhere[] = [];
 const capturedInsertValues: Array<Record<string, unknown>> = [];
 const capturedUpdateSet: Array<Record<string, unknown>> = [];
+const capturedWorkOrderUpdateSet: Array<Record<string, unknown>> = [];
 
 interface Ctx {
   op: "update" | "select" | "insert";
@@ -81,6 +82,9 @@ function chainFor(ctx: Ctx): any {
     set: (arg: Record<string, unknown>) => {
       if (ctx.table === syncConflicts) {
         capturedUpdateSet.push(arg);
+      }
+      if (ctx.table === workOrders) {
+        capturedWorkOrderUpdateSet.push(arg);
       }
       return chain;
     },
@@ -164,6 +168,7 @@ beforeEach(() => {
   capturedWhere.length = 0;
   capturedInsertValues.length = 0;
   capturedUpdateSet.length = 0;
+  capturedWorkOrderUpdateSet.length = 0;
 });
 
 describe("conflict allowlist", () => {
@@ -365,6 +370,139 @@ describe("manuallyResolveConflict scoping", () => {
     const ok = await service.manuallyResolveConflict("c1", { status: "closed" }, "mallory", ORG_B);
 
     expect(ok).toBe(false);
+  });
+});
+
+describe("manuallyResolveConflict write-back (B1)", () => {
+  it("writes a non-server winner back to the work order with a bumped version", async () => {
+    scenario.updateConflict = [
+      {
+        id: "c1",
+        tableName: "work_orders",
+        recordId: "wo1",
+        fieldName: null,
+        serverValue: JSON.stringify({ description: "server note" }),
+      },
+    ];
+    scenario.currentWorkOrder = [{ version: 7 }];
+
+    const ok = await service.manuallyResolveConflict(
+      "c1",
+      { description: "local note" },
+      "alice",
+      ORG_A
+    );
+
+    expect(ok).toBe(true);
+    expect(capturedWorkOrderUpdateSet).toHaveLength(1);
+    const set = capturedWorkOrderUpdateSet[0]!;
+    expect(set["description"]).toBe("local note");
+    expect(set["version"]).toBe(8);
+    expect(set["lastModifiedBy"]).toBe("alice");
+
+    const woUpdate = capturedWhere.find((w) => w.op === "update" && w.table === workOrders);
+    expect(woUpdate).toBeDefined();
+    expect(sqlContainsValue(woUpdate?.cond, ORG_A)).toBe(true);
+    expect(sqlContainsValue(woUpdate?.cond, "wo1")).toBe(true);
+  });
+
+  it("skips the domain write when the server value wins (no revert of newer state)", async () => {
+    scenario.updateConflict = [
+      {
+        id: "c1",
+        tableName: "work_orders",
+        recordId: "wo1",
+        fieldName: null,
+        serverValue: JSON.stringify({ description: "server note" }),
+      },
+    ];
+    scenario.currentWorkOrder = [{ version: 7 }];
+
+    const ok = await service.manuallyResolveConflict(
+      "c1",
+      { description: "server note" },
+      "alice",
+      ORG_A
+    );
+
+    expect(ok).toBe(true);
+    expect(capturedWorkOrderUpdateSet).toHaveLength(0);
+  });
+
+  it("resolves but does not write back for a non-work_orders table", async () => {
+    scenario.updateConflict = [
+      { id: "c1", tableName: "equipment", recordId: "eq1", fieldName: null, serverValue: null },
+    ];
+
+    const ok = await service.manuallyResolveConflict("c1", { foo: "bar" }, "alice", ORG_A);
+
+    expect(ok).toBe(true);
+    expect(capturedWorkOrderUpdateSet).toHaveLength(0);
+  });
+
+  it("resolves without a domain write when the record vanished", async () => {
+    scenario.updateConflict = [
+      {
+        id: "c1",
+        tableName: "work_orders",
+        recordId: "gone",
+        fieldName: null,
+        serverValue: JSON.stringify({ description: "server note" }),
+      },
+    ];
+    scenario.currentWorkOrder = [];
+
+    const ok = await service.manuallyResolveConflict(
+      "c1",
+      { description: "local note" },
+      "alice",
+      ORG_A
+    );
+
+    expect(ok).toBe(true);
+    expect(capturedWorkOrderUpdateSet).toHaveLength(0);
+  });
+});
+
+describe("coerceResolvedWorkOrderFields", () => {
+  it("lifts a field-level scalar winner into a single-column update", () => {
+    expect(service.coerceResolvedWorkOrderFields("local note", "description")).toEqual({
+      description: "local note",
+    });
+  });
+
+  it("keeps known columns and strips server-managed / unknown keys for whole-record winners", () => {
+    const fields = service.coerceResolvedWorkOrderFields(
+      { description: "x", orgId: "tampered", version: 99 },
+      null
+    );
+    expect(fields).toEqual({ description: "x" });
+  });
+
+  it("returns null for a scalar with no field name and for arrays", () => {
+    expect(service.coerceResolvedWorkOrderFields("x", null)).toBeNull();
+    expect(service.coerceResolvedWorkOrderFields([1, 2], null)).toBeNull();
+  });
+});
+
+describe("lwwWinnerByServerReceipt (B7)", () => {
+  it("picks local when the shore recorded the vessel edit after its own last write", () => {
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-10"), new Date("2026-01-05"))).toBe(
+      "local"
+    );
+  });
+
+  it("picks server when its last write is newer than the recorded vessel edit", () => {
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-01"), new Date("2026-01-05"))).toBe(
+      "server"
+    );
+  });
+
+  it("only considers server-stamped times — the vessel wall-clock cannot flip it", () => {
+    // A null/missing server-receipt loses to any real server write, and a real
+    // server-receipt beats a missing server write; no vessel timestamp is read.
+    expect(service.lwwWinnerByServerReceipt(null, new Date("2026-01-05"))).toBe("server");
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-05"), null)).toBe("local");
   });
 });
 
