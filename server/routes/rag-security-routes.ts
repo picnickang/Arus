@@ -114,9 +114,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   // Match requireRole's contract (see middleware/role-auth.ts): super_admin is
   // the top role and must satisfy every admin gate. This check carries roles on
   // session.roles[] rather than req.user.role, so it mirrors the rule locally.
-  const isAdmin = userRoles.some(
-    (role) => role.name === "admin" || role.name === "super_admin"
-  );
+  const isAdmin = userRoles.some((role) => role.name === "admin" || role.name === "super_admin");
 
   if (!isAdmin) {
     logger.warn("RagSecurityRoutes", "Unauthorized access attempt to security config", {

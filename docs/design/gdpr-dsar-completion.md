@@ -6,7 +6,9 @@ compliance owner's sign-off, and a `dryRun` should be run on staging before the
 endpoint is relied on.** Access-export completion (§1) remains open.
 
 ## Erasure — what the draft does (vs. this design)
+
 `executeDataErasure(dsarId, orgId, erasedBy, reason, { dryRun })` now:
+
 - resolves the subject from the DSAR (`requesterId`/`requesterEmail`),
 - **anonymizes** identifying PII on `users` (name/email/username/phone) and
   `crew` (name/email/phone/address/photo/emergency-contact/crew-code/notes) in

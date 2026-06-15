@@ -140,7 +140,10 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
         env:
-          NODE_OPTIONS: --max-old-space-size=6144
+          # The unit lane peaks right at the previous 6144 MB ceiling and OOMs
+          # flakily (exit 134) at the boundary; the runner has ~16 GB, so give
+          # it headroom.
+          NODE_OPTIONS: --max-old-space-size=8192
 
   integration-tests:
     name: Integration Tests
