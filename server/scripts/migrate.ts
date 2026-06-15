@@ -69,10 +69,7 @@ const SERVER_TRACKER_DDL = `
 // replaying the chain from a baseline that no longer contains those tables, so
 // the mid-chain migrations that touch them (0018/0022/0040/0041/0045) would
 // fail with "relation does not exist" before the chain reaches the drop.
-const DEAD_TABLE_DROP_MIGRATIONS = [
-  "0044_drop_dead_tables.sql",
-  "0050_drop_dead_tables_wave2.sql",
-];
+const DEAD_TABLE_DROP_MIGRATIONS = ["0044_drop_dead_tables.sql", "0050_drop_dead_tables_wave2.sql"];
 
 // Dead-table shim. `drizzle-kit push` no longer creates these four tables
 // (0044/0050 dropped them from the live schema), but mid-chain migrations still

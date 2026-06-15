@@ -371,10 +371,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
             // Server-receipt ordering (audit B7): compare the shore's own
             // timestamps, never the vessel wall-clock, so a skewed/forged
             // vessel clock cannot flip the winner.
-            const winner = lwwWinnerByServerReceipt(
-              conflict.createdAt,
-              conflict.serverTimestamp
-            );
+            const winner = lwwWinnerByServerReceipt(conflict.createdAt, conflict.serverTimestamp);
             return winner === "local" ? localValue : serverValue;
           },
           or: () => Boolean(localValue) || Boolean(serverValue),

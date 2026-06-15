@@ -49,7 +49,12 @@ function* walk(dir) {
   for (const e of entries) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
-      if (e.name === "node_modules" || e.name.startsWith(".") || e.name === "dist" || e.name === "build") {
+      if (
+        e.name === "node_modules" ||
+        e.name.startsWith(".") ||
+        e.name === "dist" ||
+        e.name === "build"
+      ) {
         continue;
       }
       yield* walk(full);

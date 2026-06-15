@@ -70,7 +70,9 @@ export class FMCCRestClient {
   }
 
   async getInstantFlow(vesselId: string): Promise<FMCCInstantFlow> {
-    const data = await this.request<FMCCRawInstantFlow>(`/api/v1/vessels/${encodeURIComponent(vesselId)}/flow/instant`);
+    const data = await this.request<FMCCRawInstantFlow>(
+      `/api/v1/vessels/${encodeURIComponent(vesselId)}/flow/instant`
+    );
     return this.mapInstantFlowResponse(vesselId, data);
   }
 
@@ -86,7 +88,9 @@ export class FMCCRestClient {
   }
 
   async getMeterStatus(vesselId: string): Promise<FMCCMeterStatus> {
-    const data = await this.request<FMCCRawMeterStatus>(`/api/v1/vessels/${encodeURIComponent(vesselId)}/status`);
+    const data = await this.request<FMCCRawMeterStatus>(
+      `/api/v1/vessels/${encodeURIComponent(vesselId)}/status`
+    );
     return this.mapMeterStatusResponse(vesselId, data);
   }
 

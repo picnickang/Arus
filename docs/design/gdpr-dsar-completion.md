@@ -17,16 +17,16 @@ categories but only populates `users` + `crewMembers`. It must also populate
 types. Proposed subject→data mapping (confirm the linking keys with the data
 owner):
 
-| Category      | Table                    | Link to subject |
-|---------------|--------------------------|-----------------|
-| users         | `users`                  | `id` (userId) / `email` |
-| crewMembers   | `crew`                   | `id` (crewId) / `email` |
-| workOrders    | `work_orders`            | `assigned_crew_id` = crewId; (decide: also `completed_by`/`created_by` = userId?) |
-| restRecords   | crew rest table (`crew_rest_*`) | `crew_id` = crewId |
-| auditEvents   | `immutable_audit_trail`  | actor/`user_id` = userId |
+| Category    | Table                           | Link to subject                                                                   |
+| ----------- | ------------------------------- | --------------------------------------------------------------------------------- |
+| users       | `users`                         | `id` (userId) / `email`                                                           |
+| crewMembers | `crew`                          | `id` (crewId) / `email`                                                           |
+| workOrders  | `work_orders`                   | `assigned_crew_id` = crewId; (decide: also `completed_by`/`created_by` = userId?) |
+| restRecords | crew rest table (`crew_rest_*`) | `crew_id` = crewId                                                                |
+| auditEvents | `immutable_audit_trail`         | actor/`user_id` = userId                                                          |
 
 Also fix the id-type dispatch: today the crew lookup runs `... WHERE email = ?`
-for *any* non-`crewId` type (so a `userId` is queried against the crew email
+for _any_ non-`crewId` type (so a `userId` is queried against the crew email
 column). Dispatch should be: `crewId` → crew by id; `email` → users+crew by
 email; `userId` → users by id, then resolve the linked crew id. Replace the
 broad `try/catch {}` that swallows all errors with per-source error capture so a
@@ -44,6 +44,7 @@ endpoint must NOT report `completed`. Use a truthful state (e.g.
 
 **(b) Erase vs. anonymize, per table:** maritime data has **legal retention**
 requirements that conflict with deletion:
+
 - `immutable_audit_trail` is append-only + hash-chained — it **cannot** be
   deleted without breaking the chain. → **anonymize** the actor identity
   (replace name/email with a tombstone), keep the record.
@@ -59,6 +60,7 @@ executed in a single transaction, producing an erasure **report**
 `completed_with_retention_exemptions` (+ the report stored on the request).
 
 ## Why this isn't auto-implemented
+
 Choosing delete-vs-anonymize per table, and which tables are retention-exempt,
 is a legal/compliance call — getting it wrong either leaks PII (under-erasure)
 or destroys legally-required records (over-erasure). Sign off the table policy

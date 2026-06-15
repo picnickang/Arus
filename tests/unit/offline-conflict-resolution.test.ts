@@ -487,15 +487,15 @@ describe("coerceResolvedWorkOrderFields", () => {
 
 describe("lwwWinnerByServerReceipt (B7)", () => {
   it("picks local when the shore recorded the vessel edit after its own last write", () => {
-    expect(
-      service.lwwWinnerByServerReceipt(new Date("2026-01-10"), new Date("2026-01-05"))
-    ).toBe("local");
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-10"), new Date("2026-01-05"))).toBe(
+      "local"
+    );
   });
 
   it("picks server when its last write is newer than the recorded vessel edit", () => {
-    expect(
-      service.lwwWinnerByServerReceipt(new Date("2026-01-01"), new Date("2026-01-05"))
-    ).toBe("server");
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-01"), new Date("2026-01-05"))).toBe(
+      "server"
+    );
   });
 
   it("only considers server-stamped times — the vessel wall-clock cannot flip it", () => {

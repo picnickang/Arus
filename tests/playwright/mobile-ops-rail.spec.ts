@@ -86,7 +86,11 @@ async function installFixtures(page: Page, theme: "light" | "bridge"): Promise<v
       });
     }
     if (p === "/api/attention/items") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(ATTENTION) });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(ATTENTION),
+      });
     }
     return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
@@ -127,7 +131,9 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     expect(box).not.toBeNull();
     const bottomEdge = (box?.y ?? 0) + (box?.height ?? 0);
     expect(box?.y ?? 0, "rail is bottom-docked").toBeGreaterThan(MOBILE.height / 2);
-    expect(bottomEdge, "rail sits above the bottom nav").toBeLessThanOrEqual(MOBILE.height - NAV_PX + 2);
+    expect(bottomEdge, "rail sits above the bottom nav").toBeLessThanOrEqual(
+      MOBILE.height - NAV_PX + 2
+    );
     // Action target stays gloved-friendly (>=44px).
     const btn = await rail.getByRole("button").first().boundingBox();
     expect(btn?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -141,7 +147,10 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     const bg = await rail.evaluate((el) => getComputedStyle(el).backgroundColor);
     const [r, g, b] = (bg.match(/\d+/g) ?? ["255", "255", "255"]).map(Number);
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    expect(luminance, `rail bg ${bg} should be dark (night-vision) in the bridge theme`).toBeLessThan(60);
+    expect(
+      luminance,
+      `rail bg ${bg} should be dark (night-vision) in the bridge theme`
+    ).toBeLessThan(60);
     await expect(page.locator("html")).toHaveAttribute("data-obc-theme", "night");
     await page.screenshot({ path: "test-results/mobile-rail-bridge.png" });
   });
@@ -155,7 +164,9 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     await context.setOffline(false);
   });
 
-  test("exposes a reachable night-vision control in the mobile header (no 360px overflow)", async ({ page }) => {
+  test("exposes a reachable night-vision control in the mobile header (no 360px overflow)", async ({
+    page,
+  }) => {
     await installFixtures(page, "bridge");
     await page.setViewportSize({ width: 360, height: 800 });
     await loginToMobileRoute(page, "/work-orders");
@@ -168,7 +179,10 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth
     );
-    expect(overflow, "no horizontal overflow at 360px with the header theme control").toBeLessThanOrEqual(1);
+    expect(
+      overflow,
+      "no horizontal overflow at 360px with the header theme control"
+    ).toBeLessThanOrEqual(1);
     // Night-vision (Bridge) is one tap away.
     await toggle.click();
     await expect(page.getByTestId("theme-bridge")).toBeVisible();

@@ -73,7 +73,10 @@ export default function OpsStatusRail({
           <button
             type="button"
             onClick={() => onAction?.("open-risk", topRisk)}
-            className={cn(chipBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+            className={cn(
+              chipBtn,
+              "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            )}
           >
             Review
           </button>
@@ -81,7 +84,12 @@ export default function OpsStatusRail({
       )}
 
       {outboxCount > 0 && (
-        <div className={cn(chip, "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300")}>
+        <div
+          className={cn(
+            chip,
+            "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          )}
+        >
           <UploadCloud className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
             {outboxCount} queued{outboxHasConflict ? " · conflict" : ""}

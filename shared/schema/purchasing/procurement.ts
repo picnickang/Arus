@@ -2,17 +2,7 @@
  * Reservation, purchase order, and purchase request schema tables.
  */
 
-import {
-  sql,
-  pgTable,
-  text,
-  varchar,
-  numeric,
-  timestamp,
-  jsonb,
-  unique,
-  index,
-} from "../base";
+import { sql, pgTable, text, varchar, numeric, timestamp, jsonb, unique, index } from "../base";
 import { organizations } from "../core";
 import { vessels } from "../vessels";
 import { parts, suppliers } from "../inventory";

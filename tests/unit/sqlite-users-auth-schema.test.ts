@@ -217,9 +217,7 @@ describe("SQLite users auth schema", () => {
     expect(errorLogsSqlite.errorCode).toBeDefined();
     // `error_message` was a legacy duplicate of `message` and has been reconciled
     // away (folded into the canonical `message`) so PG and SQLite converge.
-    expect(
-      (errorLogsSqlite as Record<string, unknown>).errorMessage
-    ).toBeUndefined();
+    expect((errorLogsSqlite as Record<string, unknown>).errorMessage).toBeUndefined();
     expect(errorLogsSqlite.message).toBeDefined();
     expect(errorLogsSqlite.userId).toBeDefined();
     expect(errorLogsSqlite.requestId).toBeDefined();

@@ -49,7 +49,7 @@ the 4 brilliances, the mobile-visual suite, bridge-conditions).
 
 - **Deps land with first usage, not here.** Committing the OB packages while unused would fail the
   `check:dead-code` (knip) guard, so this gate commits only the ADR; `@oicl/openbridge-webcomponents`
-  + `-react` are added in the first Phase-A PR alongside the first real component/CSS import.
+  - `-react` are added in the first Phase-A PR alongside the first real component/CSS import.
 - **Build/render validation** of an OB component in our Vite toolchain is deferred to that first PR
   (build + screenshot). The `@lit/react` path is standard and Vite-supported, so risk is low.
 - **Subpath-import friction:** no barrel — each component is a specific deep import; budget for that.

@@ -99,7 +99,10 @@ export function validatePath(basePath: string, targetPath: string): string {
   // Containment check must be separator-aware: a bare `startsWith(base)` lets a
   // sibling directory through (e.g. base "/app/patches" would accept
   // "/app/patches-evil/x"). Require an exact match or a path *inside* base.
-  if (normalizedTarget !== normalizedBase && !normalizedTarget.startsWith(normalizedBase + path.sep)) {
+  if (
+    normalizedTarget !== normalizedBase &&
+    !normalizedTarget.startsWith(normalizedBase + path.sep)
+  ) {
     throw new Error(
       `Security: Path traversal detected. Target '${targetPath}' escapes base '${basePath}'`
     );

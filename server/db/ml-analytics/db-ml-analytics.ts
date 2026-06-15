@@ -154,11 +154,7 @@ export class DatabaseMlAnalyticsStorage {
    * `currentId` and restore `previousId` to deployed — so there is never a
    * window where neither is the deployed model.
    */
-  async rollbackMlModel(
-    currentId: string,
-    previousId: string,
-    orgId: string
-  ): Promise<MlModel> {
+  async rollbackMlModel(currentId: string, previousId: string, orgId: string): Promise<MlModel> {
     return db.transaction(async (tx) => {
       await tx
         .update(mlModels)

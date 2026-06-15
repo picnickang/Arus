@@ -531,7 +531,9 @@
   background-color: var(--background);
   color: var(--foreground);
 }
-.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"]) .bg-white {
+.dark
+  :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+  .bg-white {
   background-color: var(--card);
 }
 .dark [data-testid="mobile-readiness-shell"] .bg-brand-mist {
@@ -540,15 +542,18 @@
 .dark [data-testid="mobile-readiness-shell"] :is(.bg-slate-50, .bg-slate-100, .bg-slate-200) {
   background-color: var(--muted);
 }
-.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+.dark
+  :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
   :is(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
   color: var(--foreground);
 }
-.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+.dark
+  :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
   :is(.text-slate-600, .text-slate-500, .text-slate-400) {
   color: var(--muted-foreground);
 }
-.dark :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
+.dark
+  :is([data-testid="mobile-readiness-shell"], [data-testid="mobile-readiness-bottom-nav"])
   :is(.border-slate-100, .border-slate-200, .border-slate-300) {
   border-color: var(--border);
 }
@@ -559,19 +564,34 @@
  * pale badge fills and lift the dark accent text to a brighter shade of the same
  * hue so dark/bridge keep the at-a-glance status colour while clearing WCAG AA.
  * Light/daylight (no `.dark`) are unaffected. */
-.dark [data-testid="mobile-readiness-shell"]
-  :is(.bg-red-50, .bg-rose-50, .bg-orange-50, .bg-amber-50, .bg-yellow-50, .bg-emerald-50,
-    .bg-green-50, .bg-blue-50, .bg-sky-50, .bg-indigo-50) {
+.dark
+  [data-testid="mobile-readiness-shell"]
+  :is(
+    .bg-red-50,
+    .bg-rose-50,
+    .bg-orange-50,
+    .bg-amber-50,
+    .bg-yellow-50,
+    .bg-emerald-50,
+    .bg-green-50,
+    .bg-blue-50,
+    .bg-sky-50,
+    .bg-indigo-50
+  ) {
   background-color: var(--muted);
 }
-.dark [data-testid="mobile-readiness-shell"]
+.dark
+  [data-testid="mobile-readiness-shell"]
   :is(.text-blue-700, .text-blue-800, .text-brand, .text-sky-700, .text-indigo-700) {
   color: #60a5fa;
 }
-.dark [data-testid="mobile-readiness-shell"] :is(.text-emerald-700, .text-emerald-800, .text-green-700) {
+.dark
+  [data-testid="mobile-readiness-shell"]
+  :is(.text-emerald-700, .text-emerald-800, .text-green-700) {
   color: #34d399;
 }
-.dark [data-testid="mobile-readiness-shell"]
+.dark
+  [data-testid="mobile-readiness-shell"]
   :is(.text-amber-700, .text-amber-800, .text-yellow-700, .text-orange-700) {
   color: #fbbf24;
 }

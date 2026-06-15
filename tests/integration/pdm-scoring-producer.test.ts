@@ -83,7 +83,9 @@ afterAll(async () => {
       }
     }
   } catch (err) {
-    console.warn(`[pdm-score] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(
+      `[pdm-score] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`
+    );
   } finally {
     await pool.end().catch(() => undefined);
   }

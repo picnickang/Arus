@@ -289,11 +289,14 @@ describe("idempotencyMiddleware (WS1)", () => {
     // First durable read (L2) misses; the sibling completes during our claim,
     // so the post-claim re-check finds the stored response.
     claimKey.mockResolvedValue(false);
-    getStoredResponse.mockReset().mockResolvedValueOnce(undefined).mockResolvedValue({
-      statusCode: 201,
-      body: { created: true, fromSibling: true },
-      requestHash: `${fullKey}|${JSON.stringify({ part: "impeller" })}`,
-    });
+    getStoredResponse
+      .mockReset()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValue({
+        statusCode: 201,
+        body: { created: true, fromSibling: true },
+        requestHash: `${fullKey}|${JSON.stringify({ part: "impeller" })}`,
+      });
 
     const { app, handler } = buildApp();
     const res = await request(app)

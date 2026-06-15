@@ -54,7 +54,10 @@ export interface PdmScoringJobSummary {
   failures: Array<{ orgId: string; error: string }>;
 }
 
-async function scoreOrg(orgId: string, lookbackDays: number): Promise<{ scored: number; skipped: number }> {
+async function scoreOrg(
+  orgId: string,
+  lookbackDays: number
+): Promise<{ scored: number; skipped: number }> {
   const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   let scored = 0;
   let skipped = 0;

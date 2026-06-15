@@ -108,7 +108,16 @@ beforeAll(async () => {
   for (let k = 1; k <= 3; k++) {
     await client.execute({
       sql: INSERT_SQL,
-      args: [randomUUID(), ORG_ID, NOW_S - k * 600, EQUIP_ID, SENSOR, SPIKE_VALUE, UNIT, "critical"],
+      args: [
+        randomUUID(),
+        ORG_ID,
+        NOW_S - k * 600,
+        EQUIP_ID,
+        SENSOR,
+        SPIKE_VALUE,
+        UNIT,
+        "critical",
+      ],
     });
   }
 

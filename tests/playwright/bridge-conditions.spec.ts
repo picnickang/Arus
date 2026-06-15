@@ -81,7 +81,11 @@ async function installFixtures(page: Page, theme: "light" | "bridge"): Promise<v
       });
     }
     if (p === "/api/attention/items") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(ATTENTION) });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(ATTENTION),
+      });
     }
     return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
@@ -114,7 +118,10 @@ test.describe("Bridge conditions @mobile @visual", () => {
     const bg = await rail.evaluate((el) => getComputedStyle(el).backgroundColor);
     const [r, g, b] = (bg.match(/\d+/g) ?? ["255", "255", "255"]).map(Number);
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    expect(luminance, `rail background ${bg} should be dark (night-vision) in the bridge theme`).toBeLessThan(60);
+    expect(
+      luminance,
+      `rail background ${bg} should be dark (night-vision) in the bridge theme`
+    ).toBeLessThan(60);
     // The risk chip renders the OpenBridge IEC alert symbol (M2 Phase A icon adoption).
     await expect(rail.locator("obi-alert-category-a")).toBeVisible();
     // Brilliance: the bridge theme maps to the OpenBridge "night" palette (M2 Phase B).

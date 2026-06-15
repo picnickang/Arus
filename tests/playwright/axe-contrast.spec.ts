@@ -64,18 +64,35 @@ async function installFixtures(page: Page, theme: string): Promise<void> {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ sessionToken: "t", expiresIn: 3600, mustChangePassword: false, user: { id: "u", name: "Admin", role: "super_admin" } }),
+        body: JSON.stringify({
+          sessionToken: "t",
+          expiresIn: 3600,
+          mustChangePassword: false,
+          user: { id: "u", name: "Admin", role: "super_admin" },
+        }),
       });
     }
     if (p === "/api/permissions/me") {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ userId: "u", orgId: "org", roles: [{ id: "r", name: "super_admin", displayName: "Super Admin" }], permissions: {}, hubAdmin: true, hubAccess: null, isDevMode: false }),
+        body: JSON.stringify({
+          userId: "u",
+          orgId: "org",
+          roles: [{ id: "r", name: "super_admin", displayName: "Super Admin" }],
+          permissions: {},
+          hubAdmin: true,
+          hubAccess: null,
+          isDevMode: false,
+        }),
       });
     }
     if (p === "/api/attention/items") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(ATTENTION) });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(ATTENTION),
+      });
     }
     return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
@@ -97,7 +114,9 @@ async function gotoOpsChrome(page: Page): Promise<void> {
     window.history.pushState({}, "", "/analytics");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
-  await expect(page.getByRole("region", { name: /persistent operational status rail/i })).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByRole("region", { name: /persistent operational status rail/i })
+  ).toBeVisible({ timeout: 15000 });
 }
 
 async function gotoMobileFleet(page: Page): Promise<void> {
@@ -128,7 +147,12 @@ async function contrastAcrossThemes(
   return { perTheme, total };
 }
 
-function assertWithinBaseline(baselinePath: string, surface: string, perTheme: Record<string, number>, total: number): void {
+function assertWithinBaseline(
+  baselinePath: string,
+  surface: string,
+  perTheme: Record<string, number>,
+  total: number
+): void {
   if (process.env.AXE_CONTRAST_UPDATE === "1") {
     fs.writeFileSync(
       baselinePath,
@@ -152,13 +176,17 @@ function assertWithinBaseline(baselinePath: string, surface: string, perTheme: R
   ).toBeLessThanOrEqual(baseline.maxContrastViolations);
 }
 
-test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
+test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({
+  browser,
+}) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoOpsChrome);
   console.log(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(OPS_BASELINE_PATH, "/analytics", perTheme, total);
 });
 
-test("mobile-readiness screens meet WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({ browser }) => {
+test("mobile-readiness screens meet WCAG color-contrast across the 4 themes (ratchet) @visual @mobile", async ({
+  browser,
+}) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoMobileFleet);
   console.log(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(MOBILE_BASELINE_PATH, "/fleet", perTheme, total);

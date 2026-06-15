@@ -252,10 +252,7 @@ export class WorkOrderApplicationService {
     // declined, the crew member can't flip the decision (and silently revert
     // an in-progress order to open); a supervisor must reassign first. A null
     // assignmentStatus on a legacy-assigned order is treated as respondable.
-    if (
-      workOrder.assignmentStatus === "accepted" ||
-      workOrder.assignmentStatus === "declined"
-    ) {
+    if (workOrder.assignmentStatus === "accepted" || workOrder.assignmentStatus === "declined") {
       return {
         status: "invalid_state",
         reason: `assignment already ${workOrder.assignmentStatus}`,

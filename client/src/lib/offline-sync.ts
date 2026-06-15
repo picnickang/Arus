@@ -101,9 +101,7 @@ function deepMergePayload(
   for (const [key, value] of Object.entries(patch)) {
     const existing = out[key];
     out[key] =
-      isPlainObject(existing) && isPlainObject(value)
-        ? deepMergePayload(existing, value)
-        : value;
+      isPlainObject(existing) && isPlainObject(value) ? deepMergePayload(existing, value) : value;
   }
   return out;
 }

@@ -124,7 +124,11 @@ function redactContent(content: unknown): { content: unknown; hits: number } {
  * provider can still dispatch and correlate the call. Returns the same
  * reference when nothing changed.
  */
-function redactToolCalls(toolCalls: unknown): { toolCalls: unknown; hits: number; changed: boolean } {
+function redactToolCalls(toolCalls: unknown): {
+  toolCalls: unknown;
+  hits: number;
+  changed: boolean;
+} {
   if (!Array.isArray(toolCalls)) {
     return { toolCalls, hits: 0, changed: false };
   }

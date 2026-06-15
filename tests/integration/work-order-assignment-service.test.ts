@@ -332,7 +332,13 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     });
     nextCrewResult = [{ id: "crew-1", name: "Alice" }];
 
-    const res = await service.respondToAssignment("wo1", "user-alice", ORG, "decline", "changed mind");
+    const res = await service.respondToAssignment(
+      "wo1",
+      "user-alice",
+      ORG,
+      "decline",
+      "changed mind"
+    );
 
     expect(res.status).toBe("invalid_state");
     // The work order must NOT have been reverted to open.

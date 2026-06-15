@@ -85,7 +85,7 @@ before a second tenant is onboarded.
       `PRIVATE_OBJECT_DIR`). Unlike `xlsx`, the `thrift` advisory sits on a
       **write-only path over trusted internal data** (rollups the system itself
       produced), not on parsing untrusted input — so practical exploitability
-      here is low/nil. There is **no maintained drop-in Parquet *writer*** in
+      here is low/nil. There is **no maintained drop-in Parquet _writer_** in
       JS, and Parquet is the deliberate format for downstream analytics
       consumers (dropping or reformatting to CSV/JSON would break the warehouse
       contract). The transitive advisory is therefore accepted and annotated at
@@ -158,7 +158,7 @@ EXTENSION vector` let `db:push` complete (clears the old
       because the numbered SQL files are additive deltas on top of the
       `drizzle-kit push` baseline, not a from-empty schema. Reconciled by
       **seeding the baseline in the harness** (the chosen option): it now spins
-      up a throwaway *database*, seeds it with `drizzle-kit push` +
+      up a throwaway _database_, seeds it with `drizzle-kit push` +
       `scripts/reversibility-baseline-shim.sql` (recreates the four tables
       `0044`/`0050` later dropped but mid-chain deltas still reference —
       `inventory_parts`, `telemetry_aggregates`, `telemetry_rollups`,
@@ -170,7 +170,7 @@ EXTENSION vector` let `db:push` complete (clears the old
       Running the check for real surfaced and fixed two genuine rollback bugs:
       `0038` down did not free the schema-global `equipment_telemetry_pkey`
       constraint name before recreating the plain table, and `0030` down did
-      `DROP INDEX` on `uq_crew_roles_org_name` which is a UNIQUE *constraint* in
+      `DROP INDEX` on `uq_crew_roles_org_name` which is a UNIQUE _constraint_ in
       a push baseline (now relies on the cascading `DROP TABLE`). The CI step
       (`.github/workflows/ci.yml`) is no longer `continue-on-error`.
 - [ ] **ML sidecar — make it a required check (Settings only).** The
@@ -223,7 +223,7 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
 - [x] **Conflict resolution now writes back to the domain record (B1).** A
       resolved conflict previously only flipped the `sync_conflicts` row; because
       the original guarded update matched no rows, the work order still held the
-      *server* value, so any non-server winner (lww-local / max / min / append)
+      _server_ value, so any non-server winner (lww-local / max / min / append)
       was silently dropped. `manuallyResolveConflict`
       (`server/conflict-resolution-service.ts`) now applies the winning value to
       `work_orders` with a version bump inside the same transaction; "server
@@ -407,7 +407,7 @@ state-machine context — do NOT silently half-fix:
       `certification-routes.ts` uses `Math.ceil`, so an already-expired-today
       cert reads `0`. Changing to floor shifts every alert threshold by a day;
       left unchanged pending a deliberate floor-vs-ceil decision. (The more
-      impactful cert *summary* boundary was fixed — see cert expiry above.)
+      impactful cert _summary_ boundary was fixed — see cert expiry above.)
 - [x] **Purchasing `rejectedQuantity` type mismatch — DONE (0051).** Changed to
       `numeric(12,3)` to match `quantity`/`received_quantity`; migration 0051
       (+ down) verified reversible on PG16; db:migrate applies it. Decimal

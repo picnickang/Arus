@@ -75,8 +75,6 @@ describe("xlsxExtractor — hardening", () => {
   it("throws the existing error for an empty workbook", async () => {
     const extractor = await loadExtractor();
     const buf = await makeXlsx([[]]);
-    await expect(extractor.extract(buf)).rejects.toThrow(
-      /no extractable text|extraction failed/i
-    );
+    await expect(extractor.extract(buf)).rejects.toThrow(/no extractable text|extraction failed/i);
   });
 });

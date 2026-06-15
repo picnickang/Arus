@@ -9,9 +9,27 @@ export function EngineFlowGauges({ consumption }: { consumption: HourlyConsumpti
     }
     const latest = consumption[consumption.length - 1];
     return [
-      { key: "mainEngine", label: "Main Engine", icon: Cog, flow: latest?.main_engine_flow, max: 2000 },
-      { key: "portEngine", label: "Port Engine", icon: ArrowLeft, flow: latest?.port_engine_flow, max: 1500 },
-      { key: "stbdEngine", label: "Stbd Engine", icon: ArrowRight, flow: latest?.stbd_engine_flow, max: 1500 },
+      {
+        key: "mainEngine",
+        label: "Main Engine",
+        icon: Cog,
+        flow: latest?.main_engine_flow,
+        max: 2000,
+      },
+      {
+        key: "portEngine",
+        label: "Port Engine",
+        icon: ArrowLeft,
+        flow: latest?.port_engine_flow,
+        max: 1500,
+      },
+      {
+        key: "stbdEngine",
+        label: "Stbd Engine",
+        icon: ArrowRight,
+        flow: latest?.stbd_engine_flow,
+        max: 1500,
+      },
       { key: "generator", label: "Generator", icon: Plug, flow: latest?.generator_flow, max: 500 },
       { key: "boiler", label: "Boiler", icon: Flame, flow: latest?.boiler_flow, max: 300 },
       { key: "total", label: "Total", icon: Sigma, flow: latest?.avg_flow_kg_per_h, max: 5000 },

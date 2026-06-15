@@ -75,7 +75,10 @@ beforeAll(async () => {
 afterAll(async () => {
   for (const table of ["anomaly_detections", "failure_predictions", "pdm_score_logs"]) {
     try {
-      await client?.execute({ sql: `DELETE FROM ${table} WHERE equipment_id = ?`, args: [EQUIP_ID] });
+      await client?.execute({
+        sql: `DELETE FROM ${table} WHERE equipment_id = ?`,
+        args: [EQUIP_ID],
+      });
     } catch {
       // best-effort cleanup
     }

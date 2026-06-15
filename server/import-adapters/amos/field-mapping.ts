@@ -312,9 +312,7 @@ export function applyMapping(
       // was present but unparseable. For a required field that must fail the
       // row rather than silently importing a null where a value is required.
       const unparseable =
-        value === null ||
-        value === undefined ||
-        (value instanceof Date && isNaN(value.getTime()));
+        value === null || value === undefined || (value instanceof Date && isNaN(value.getTime()));
       if (field.required && unparseable) {
         errors.push(`Required field ${field.amosField}="${rawValue}" could not be parsed`);
         continue;
