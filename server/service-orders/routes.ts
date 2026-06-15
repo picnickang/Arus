@@ -63,6 +63,7 @@ import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { canModifyRecord, SO_PERMISSION_GUARD } from "../lib/status-permission-guard";
 import { z } from "zod";
+import { queryString, headerString, sanitize } from "./route-helpers";
 
 const router = Router();
 
@@ -75,14 +76,6 @@ const serviceOrderStatusSchema = z.enum([
   "completed",
   "cancelled",
 ]);
-
-function queryString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function headerString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
 
 function serviceOrderStatus(value: unknown): ServiceOrderStatus {
   return serviceOrderStatusSchema.parse(value);
@@ -109,23 +102,6 @@ async function triggerProcurementAggregation(
     logger.error("[ServiceOrder] Failed to aggregate procurement costs:", undefined, err);
   }
 }
-
-/**
- * Improvement #20: maps empty strings to null (not undefined).
- * Previously empty strings became undefined, which Drizzle ORM treats as
- * "do not update this column", so clearing a text field had no effect.
- * null explicitly sets the column to NULL in the database.
- */
-const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (k === "__proto__" || k === "constructor" || k === "prototype") {
-      continue;
-    }
-    result[k] = v === "" ? null : v;
-  }
-  return result;
-};
 
 // ── GET / ──────────────────────────────────────────────────────────────────────
 router.get("/", async (req: Request, res: Response) => {
