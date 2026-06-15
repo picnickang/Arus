@@ -93,6 +93,21 @@ export class DatabaseEquipmentStorage {
       vesselName: row.vessels?.name || row.equipment.vesselName || null,
     }));
   }
+  /**
+   * Equipment ids for an org, without the vessels join getEquipmentRegistry
+   * performs. The PdM scoring producer only needs ids, and the registry's
+   * leftJoin selects vessel columns absent from the vessel SQLite schema (e.g.
+   * schematic_layout), which throws onboard. This lighter query is the
+   * dual-mode-safe enumeration for fleet-wide scoring in both deployments.
+   */
+  async getEquipmentIdsForOrg(orgId: string): Promise<string[]> {
+    this.validateOrgId(orgId, "getEquipmentIdsForOrg");
+    const rows = await db
+      .select({ id: equipment.id })
+      .from(equipment)
+      .where(eq(equipment.orgId, orgId));
+    return rows.map((r) => r.id);
+  }
 
   async createEquipment(equipmentData: InsertEquipment): Promise<Equipment> {
     let vesselName = equipmentData.vesselName;

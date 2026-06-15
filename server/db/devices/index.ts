@@ -98,11 +98,35 @@ export class DatabaseDevicesStorage {
       .orderBy(sql`ts DESC`);
   }
   async createPdmScore(data: InsertPdmScore): Promise<PdmScoreLog> {
-    const r = await db.insert(pdmScoreLogsTable).values(data).returning();
+    // Default id + ts: neither has a column default in the SQLite (vessel)
+    // schema, so an onboard write would otherwise persist a NULL id and NULL
+    // ts. A NULL ts silently breaks the B2 freshness window in
+    // getEquipmentHealth and the vessel scoring watermark (both filter/sort on
+    // ts). Mirrors the telemetry + in-memory createPdmScore siblings; in cloud
+    // the explicit values simply pre-empt the Postgres defaults.
+    const r = await db
+      .insert(pdmScoreLogsTable)
+      .values({ id: crypto.randomUUID(), ts: new Date(), ...data })
+      .returning();
     if (!r[0]) {
       throw new Error("Failed to create PDM score");
     }
     return r[0];
+  }
+  /**
+   * Newest pdm_score_logs timestamp across the fleet (single-tenant onboard),
+   * or null when nothing has been scored yet. The vessel PdM scoring scheduler
+   * uses this as a reboot-tolerant "last run" watermark so a daily pass is not
+   * re-run on every restart.
+   */
+  async getLatestPdmScoreTimestamp(): Promise<Date | null> {
+    const r = await db
+      .select({ ts: pdmScoreLogsTable.ts })
+      .from(pdmScoreLogsTable)
+      .orderBy(sql`ts DESC`)
+      .limit(1);
+    const ts = r[0]?.ts;
+    return ts instanceof Date ? ts : null;
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
     const r = await db

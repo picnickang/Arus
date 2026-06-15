@@ -58,12 +58,12 @@ async function scoreOrg(
   orgId: string,
   lookbackDays: number
 ): Promise<{ scored: number; skipped: number }> {
-  const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
+  const equipmentIds = await dbEquipmentStorage.getEquipmentIdsForOrg(orgId);
   let scored = 0;
   let skipped = 0;
 
-  for (const eq of equipment) {
-    const readings = await getMultiSensorData(eq.id, lookbackDays);
+  for (const equipmentId of equipmentIds) {
+    const readings = await getMultiSensorData(equipmentId, lookbackDays);
     // statisticalFailurePrediction needs enough per-sensor history to be
     // meaningful (calculateDegradationMetrics requires >= 5 readings/sensor).
     if (readings.length < 5) {
@@ -79,7 +79,7 @@ async function scoreOrg(
 
     await dbDevicesStorage.createPdmScore({
       orgId,
-      equipmentId: eq.id,
+      equipmentId,
       healthIdx,
       pFail30d: prediction.failureProbability,
       predictedDueDate,
