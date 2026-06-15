@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ObcBrillianceMenu } from "@oicl/openbridge-webcomponents-react/components/brilliance-menu/brilliance-menu.js";
 import type { ObcPaletteChangeEvent } from "@oicl/openbridge-webcomponents-react/components/brilliance-menu/brilliance-menu.js";
 import { ObiDisplayBrillianceIec } from "@oicl/openbridge-webcomponents-react/icons/icon-display-brilliance-iec.js";
-import { ObcPalette } from "@oicl/openbridge-webcomponents/dist/components/brilliance-menu/brilliance-menu.js";
+import { ObcPalette, ObcBrillianceMenuVariant } from "@oicl/openbridge-webcomponents/dist/components/brilliance-menu/brilliance-menu.js";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "@/components/theme-provider";
@@ -50,6 +50,7 @@ export function BrillianceControl() {
         data-testid="brilliance-menu-popover"
       >
         <ObcBrillianceMenu
+          variant={ObcBrillianceMenuVariant.compact}
           showPalette
           showBrightness={false}
           palette={THEME_TO_PALETTE[resolvedTheme]}
