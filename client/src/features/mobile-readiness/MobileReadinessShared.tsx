@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ChevronDown, ChevronRight, Menu, type LucideIcon } from "lucide-react";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { BrillianceControl } from "@/components/brilliance-control";
 import {
   Sheet,
   SheetClose,
@@ -258,7 +258,7 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ThemeToggle />
+          <BrillianceControl />
           {vesselName || roleLabel ? (
             <div className="text-right">
               {vesselName ? (
@@ -299,7 +299,7 @@ export function NavyHeader({
           {subtitle ? <div className="truncate text-xs text-blue-100">{subtitle}</div> : null}
         </div>
         <div className="flex h-11 min-w-11 items-center justify-end gap-2">
-          <ThemeToggle />
+          <BrillianceControl />
           {right}
         </div>
       </div>

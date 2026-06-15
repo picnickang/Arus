@@ -155,24 +155,32 @@ test.describe("Mobile ops rail @mobile @visual", () => {
     await context.setOffline(false);
   });
 
-  test("exposes a reachable night-vision control in the mobile header (no 360px overflow)", async ({ page }) => {
-    await installFixtures(page, "bridge");
+  test("exposes a reachable OpenBridge brilliance control in the mobile header (no 360px overflow)", async ({ page }) => {
+    await installFixtures(page, "light");
     await page.setViewportSize({ width: 360, height: 800 });
     await loginToMobileRoute(page, "/work-orders");
-    const toggle = page.getByTestId("theme-toggle").first();
-    await expect(toggle).toBeVisible();
+    const trigger = page.getByTestId("brilliance-control");
+    await expect(trigger).toBeVisible();
     // Gloved-friendly target.
-    const tbox = await toggle.boundingBox();
+    const tbox = await trigger.boundingBox();
     expect(tbox?.height ?? 0).toBeGreaterThanOrEqual(44);
     // The header control must not push the narrow layout into horizontal scroll.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth
     );
-    expect(overflow, "no horizontal overflow at 360px with the header theme control").toBeLessThanOrEqual(1);
-    // Night-vision (Bridge) is one tap away.
-    await toggle.click();
-    await expect(page.getByTestId("theme-bridge")).toBeVisible();
+    expect(overflow, "no horizontal overflow at 360px with the header brilliance control").toBeLessThanOrEqual(1);
+    // Opens the OpenBridge brilliance menu...
+    await trigger.click();
+    const menu = page.locator("obc-brilliance-menu");
+    await expect(menu).toBeVisible();
     await page.screenshot({ path: "test-results/mobile-header-theme.png" });
+    // ...and choosing the night palette switches to the bridge (night-vision) theme.
+    await menu.evaluate((el) =>
+      el.dispatchEvent(
+        new CustomEvent("palette-changed", { detail: { value: "night" }, bubbles: true, composed: true })
+      )
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-obc-theme", "night");
   });
 
   test("the header menu button opens a working navigation drawer", async ({ page }) => {
