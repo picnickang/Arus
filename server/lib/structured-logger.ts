@@ -196,8 +196,8 @@ export function outputLog(entry: LogEntry): void {
     meta["error"] = error;
   }
 
-  // Encode CR/LF in the caller-supplied message so it can't forge log lines (CWE-117).
-  const safeMessage = String(message).replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  // Strip CR/LF in the caller-supplied message so it can't forge log lines (CWE-117).
+  const safeMessage = String(message).replace(/\n/g, "").replace(/\r/g, "");
   if (Object.keys(meta).length > 0) {
     logFn(`${prefix} ${safeMessage}`, meta);
   } else {

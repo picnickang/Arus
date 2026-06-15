@@ -46,9 +46,9 @@ class Logger {
     return LOG_LEVELS[level] >= LOG_LEVELS[this.config.level];
   }
 
-  /** Encode CR/LF so user-influenced text can't forge extra log lines (CWE-117). */
+  /** Strip CR/LF so user-influenced text can't forge extra log lines (CWE-117). */
   private sanitizeLogText(value: unknown): string {
-    return String(value).replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+    return String(value).replace(/\n/g, "").replace(/\r/g, "");
   }
 
   private formatMessage(level: LogLevel, module: string, message: string): string {
