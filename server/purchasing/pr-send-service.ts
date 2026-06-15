@@ -110,10 +110,14 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         itemsWithCosts.push({ item, unitCost: supplierLink?.unitCost ?? 0 });
       }
 
-      const totalAmount = itemsWithCosts.reduce(
-        (sum, { item, unitCost }) => sum + (item.quantity || 0) * unitCost,
-        0
-      );
+      // Accumulate in integer cents so float drift can't creep into the PO
+      // total across many line items (sum of qty*unitCost in floats can be off
+      // by fractions of a cent).
+      const totalAmount =
+        itemsWithCosts.reduce(
+          (cents, { item, unitCost }) => cents + Math.round((item.quantity || 0) * unitCost * 100),
+          0
+        ) / 100;
 
       const [po] = await tx
         .insert(purchaseOrders)

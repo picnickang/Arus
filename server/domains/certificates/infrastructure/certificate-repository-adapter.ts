@@ -152,7 +152,14 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
         new Date(c.expiryDate) <= ninetyDays
     );
     const surveysDue = certs.filter(
-      (c) => c.nextSurveyDue && new Date(c.nextSurveyDue) <= ninetyDays && c.status === "valid"
+      (c) =>
+        c.nextSurveyDue &&
+        new Date(c.nextSurveyDue) <= ninetyDays &&
+        c.status === "valid" &&
+        // Only "due" once the survey window has opened. A null window start
+        // means no opening constraint; otherwise a survey reads as due before
+        // it can actually be carried out.
+        (!c.surveyWindowStart || new Date(c.surveyWindowStart) <= now)
     );
 
     let openConditions = 0;

@@ -427,6 +427,30 @@ export class DatabaseGdprStorage {
         };
       }
 
+      // work_order_tasks / work_order_completions retain the operational record
+      // (completed_by id) but denormalize the actor's NAME — scrub that copy.
+      const userIds = (u.rows ?? [])
+        .map((r) => (r as { id?: string }).id)
+        .filter((v): v is string => typeof v === "string");
+      if (userIds.length > 0) {
+        const ids = sql.join(
+          userIds.map((id) => sql`${id}`),
+          sql`, `
+        );
+        for (const table of ["work_order_tasks", "work_order_completions"] as const) {
+          const r = await tx.execute(
+            sql`UPDATE ${sql.identifier(table)} SET completed_by_name = ${NAME_TOMB}
+                WHERE org_id = ${orgId} AND completed_by IN (${ids})
+                RETURNING id`
+          );
+          report[table] = {
+            action: "anonymize_pii_retain_record",
+            rows: rowCount(r),
+            reason: "operational record retained; denormalized completed_by_name scrubbed",
+          };
+        }
+      }
+
       await tx.execute(
         sql`UPDATE data_subject_requests
             SET status = 'completed', processing_notes = ${

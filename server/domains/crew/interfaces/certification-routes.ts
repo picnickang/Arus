@@ -106,7 +106,10 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
             ...cert,
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
-            daysUntilExpiry: Math.ceil(
+            // floor() = whole days remaining: an already-expired cert reads
+            // negative (distinct from 0 = "expires today"), where ceil() made
+            // a just-expired cert indistinguishable from one expiring today.
+            daysUntilExpiry: Math.floor(
               (new Date(cert["expiresAt"] as string | Date).getTime() - Date.now()) /
                 (1000 * 60 * 60 * 24)
             ),

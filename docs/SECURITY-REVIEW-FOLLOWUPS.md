@@ -399,23 +399,23 @@ state-machine context — do NOT silently half-fix:
       together, so the total is correct; there is no separate overdue figure
       that reports wrong numbers. Surfacing a distinct (derived) overdue count is
       a feature enhancement, not a correctness fix.
-- [ ] **Survey "due" ignores `surveyWindowStart`.**
-      `certificate-repository-adapter.ts` flags `nextSurveyDue <= 90d` without
-      checking the window has opened — surveys read as due before they're
-      openable. Confirm intended window semantics, then gate on the window.
-- [ ] **`crew` certification `daysUntilExpiry` boundary (judgment — left as-is).**
-      `certification-routes.ts` uses `Math.ceil`, so an already-expired-today
-      cert reads `0`. Changing to floor shifts every alert threshold by a day;
-      left unchanged pending a deliberate floor-vs-ceil decision. (The more
-      impactful cert *summary* boundary was fixed — see cert expiry above.)
+- [x] **Survey "due" ignores `surveyWindowStart` — DONE.**
+      `certificate-repository-adapter.ts` `surveysDue` now also requires the
+      window to have opened (`surveyWindowStart` null OR `<= now`), so surveys no
+      longer read as due before they're openable.
+- [x] **`crew` certification `daysUntilExpiry` boundary — DONE (floor).**
+      `certification-routes.ts` now uses `Math.floor` (whole days remaining), so
+      an already-expired cert reads negative — distinct from `0` = "expires
+      today". This display field's only threshold consumers compute their own
+      value separately, so no alert-threshold ripple.
 - [x] **Purchasing `rejectedQuantity` type mismatch — DONE (0051).** Changed to
       `numeric(12,3)` to match `quantity`/`received_quantity`; migration 0051
       (+ down) verified reversible on PG16; db:migrate applies it. Decimal
       rejections no longer truncate.
-- [ ] **Purchasing PO-total float accumulation.** `pr-send-service.ts` sums
-      `qty * unitCost` in JS floats; over many line items this can drift by
-      cents. Decide on integer-cents / rounding / DB-side SUM per the precision
-      requirements.
+- [x] **Purchasing PO-total float accumulation — DONE.** `pr-send-service.ts`
+      now accumulates the PO total in integer cents
+      (`Math.round(qty*unitCost*100)`, summed, then `/100`), so float drift can't
+      creep into the total across many line items.
 
 ## C. Cosmetic
 

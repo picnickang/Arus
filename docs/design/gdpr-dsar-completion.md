@@ -60,14 +60,16 @@ transaction, with a `dryRun` preview and a per-table report.
   referenced by retained records + the hash-chained audit trail.
 - `crew_rest_sheet` → **retain record, anonymize the denormalized `crew_name`**
   (STCW retention keeps the rest hours; the name copy is scrubbed).
-- `work_orders` → **retain** (operational retention; references anonymized crew).
+- `work_order_tasks` / `work_order_completions` → **retain record, anonymize the
+  denormalized `completed_by_name`** for rows where `completed_by` is the subject.
+- `work_orders` → **retain** (operational retention; main table has no name PII).
 - `immutable_audit_trail` → **retain, untouched** — append-only + hash-chained,
   so modifying it breaks chain verification.
 
 **Open sign-off questions / residual PII:**
-- `immutable_audit_trail.performed_by_name` and `work_orders.completed_by_name`
-  are denormalized name copies on retained records. Audit cannot be modified
-  (chain); work-order actor names *could* be anonymized — decide whether to.
+- `immutable_audit_trail.performed_by_name` is a denormalized name copy on a
+  retained record that **cannot** be modified (hash chain). Decide the
+  treatment (accept as a documented exemption, or rebuild the chain).
 - Any **free-PII tables** with no retention basis that should be **hard-deleted**
   rather than anonymized (none are today; add to the transaction if identified).
 - DSAR status is set to `completed` with the report in `processing_notes`;
