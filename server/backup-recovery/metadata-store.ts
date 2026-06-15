@@ -14,7 +14,8 @@ export async function storeBackupMetadata(metadata: BackupMetadata): Promise<voi
   backupMetadataStore.set(metadata.id, metadata);
 
   const metadataFile = join(BACKUP_CONFIG.backupDir, `${metadata.id}.metadata.json`);
-  await fs.writeFile(metadataFile, JSON.stringify(metadata, null, 2));
+  // Restrict to owner-only; the backup dir may live under a shared temp root.
+  await fs.writeFile(metadataFile, JSON.stringify(metadata, null, 2), { mode: 0o600 });
 }
 
 export async function listBackups(): Promise<BackupMetadata[]> {

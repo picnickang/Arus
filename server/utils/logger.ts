@@ -67,7 +67,7 @@ class Logger {
     }
     const [mod, msg] =
       message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
-    console.log(this.formatMessage("debug", mod, msg), data ?? "");
+    console.log("%s", this.formatMessage("debug", mod, msg), data ?? "");
   }
 
   info(moduleOrMessage: string, message?: string, data?: unknown) {
@@ -76,7 +76,7 @@ class Logger {
     }
     const [mod, msg] =
       message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
-    console.log(this.formatMessage("info", mod, msg), data ?? "");
+    console.log("%s", this.formatMessage("info", mod, msg), data ?? "");
   }
 
   /**
@@ -96,7 +96,7 @@ class Logger {
       return;
     }
 
-    console.warn(this.formatMessage("warn", mod, msg), data ?? "");
+    console.warn("%s", this.formatMessage("warn", mod, msg), data ?? "");
   }
 
   /**

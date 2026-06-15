@@ -214,8 +214,10 @@ export class FileValidator {
     const warnings: string[] = [];
     const content = buffer.toString("utf-8", 0, Math.min(50000, buffer.length));
 
-    // Check for script tags in documents
-    if (/<script[^>]*>/i.test(content)) {
+    // Check for script tags in documents. The attribute span is bounded
+    // ({0,2000}) so a hostile upload of many unterminated "<script" prefixes
+    // cannot trigger super-linear backtracking (CWE-1333 / polynomial ReDoS).
+    if (/<script[^>]{0,2000}>/i.test(content)) {
       warnings.push("Contains embedded <script> tags");
     }
 

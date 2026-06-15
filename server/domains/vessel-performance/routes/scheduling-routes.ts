@@ -124,6 +124,11 @@ export function registerSchedulingRoutes(
           for (const crewMember of crew) {
             const crewId = crewMember.id,
               historyRows = await getHistoryRows(crewId);
+            // crewId is used as an object key below; never let a prototype
+            // key be written into the compliance map (remote property injection).
+            if (crewId === "__proto__" || crewId === "constructor" || crewId === "prototype") {
+              continue;
+            }
             const crewAssignments = scheduled
               .filter((a) => a.crewId === crewId)
               .map((a) => ({

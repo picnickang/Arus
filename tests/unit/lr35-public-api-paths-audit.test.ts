@@ -31,6 +31,9 @@ describe("LR-3.5 V3 — public-api allowlist positive controls", () => {
     "/api/metrics",
     "/api/observability/web-vitals",
     "/api/observability/web-vitals/lcp",
+    // SendGrid event-webhook receiver — unauthenticated by design (SendGrid
+    // posts server-to-server) but FAIL-CLOSED on ECDSA signature verification.
+    "/api/webhooks/sendgrid/events",
   ])("is public: %s", (path) => {
     expect(isPublicApiPath(path)).toBe(true);
   });
@@ -112,6 +115,12 @@ describe("LR-3.5 V3 — public-api allowlist negative pins", () => {
     // /metrics is exact-match: a sub-path must not inherit public status.
     "/api/metrics/internal",
     "/api/healthz/secret",
+    // SendGrid webhook is exact-match: neither a sub-path nor a sibling
+    // webhook receiver may inherit its public (auth-bypassed) status.
+    "/api/webhooks/sendgrid/events/extra",
+    "/api/webhooks/sendgrid",
+    "/api/webhooks/stripe/events",
+    "/api/webhooks",
   ])("is NOT public: %s", (path) => {
     expect(isPublicApiPath(path)).toBe(false);
   });

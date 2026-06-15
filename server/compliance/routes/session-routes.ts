@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { sessionManagementService } from "../session-management.service";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
@@ -6,6 +7,9 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:Routes:SessionRoutes");
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 router.get("/sessions", requireComplianceAccess, async (req: Request, res: Response) => {
   try {

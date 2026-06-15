@@ -73,7 +73,9 @@ async function readEnvContent(envPath: string): Promise<string> {
 }
 
 function quoteEnvValue(value: string): string {
-  return `"${value.replace(/"/g, '\\"')}"`;
+  // Escape backslashes first, then double-quotes, so a value containing
+  // `\` or `"` cannot break out of the quoted env literal.
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function normalizeAdminSettingValue(value: unknown): string | undefined {

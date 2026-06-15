@@ -119,6 +119,9 @@ async function triggerProcurementAggregation(
 const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
+    if (k === "__proto__" || k === "constructor" || k === "prototype") {
+      continue;
+    }
     result[k] = v === "" ? null : v;
   }
   return result;

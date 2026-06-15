@@ -31,6 +31,7 @@ export class AlertSettingsRepository {
 
   logEmail = emailLogs.logEmail;
   updateEmailLogStatus = emailLogs.updateEmailLogStatus;
+  updateEmailLogStatusByMessageId = emailLogs.updateEmailLogStatusByMessageId;
   getEmailLogs = emailLogs.getEmailLogs;
 
   getCrewAlertSettings = crewSettings.getCrewAlertSettings;

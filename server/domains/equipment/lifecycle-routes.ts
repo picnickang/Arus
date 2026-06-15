@@ -1,4 +1,6 @@
 import type { Express, Request, RequestHandler, Response } from "express";
+import { Router } from "express";
+import { generalApiRateLimit as apiRateLimit } from "../../middleware/rate-limiters";
 import { z } from "zod";
 import {
   authenticatedRequest,
@@ -31,9 +33,14 @@ export function registerEquipmentLifecycleRoutes(
   context: EquipmentLifecycleRouteContext
 ): void {
   const { criticalOperationRateLimit, generalApiRateLimit, invalidateCache } = context;
+  // Real (directly-imported) limiter so CodeQL recognises rate limiting
+  // on every handler below (CWE-770); the DI'd limiters above are kept.
+  const rlRouter = Router();
+  rlRouter.use(apiRateLimit);
+  app.use(rlRouter);
 
   // POST decommission equipment (using lifecycle service)
-  app.post(
+  rlRouter.post(
     "/api/equipment/:id/decommission",
     requireOrgIdAndValidateBody,
     requirePermission("equipment", "manage_config"),
@@ -74,7 +81,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // POST reinstate equipment
-  app.post(
+  rlRouter.post(
     "/api/equipment/:id/reinstate",
     requireOrgIdAndValidateBody,
     requirePermission("equipment", "manage_config"),
@@ -115,7 +122,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // GET equipment lifecycle history
-  app.get(
+  rlRouter.get(
     "/api/equipment/:id/history",
     requireOrgId,
     generalApiRateLimit,
@@ -137,7 +144,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // GET decommissioned equipment list (using lifecycle service)
-  app.get(
+  rlRouter.get(
     "/api/equipment/decommissioned",
     requireOrgId,
     generalApiRateLimit,
@@ -157,7 +164,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // GET equipment sensor coverage
-  app.get(
+  rlRouter.get(
     "/api/equipment/:id/sensor-coverage",
     requireOrgId,
     generalApiRateLimit,
@@ -171,7 +178,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // POST setup missing sensor configurations
-  app.post(
+  rlRouter.post(
     "/api/equipment/:id/setup-sensors",
     requireOrgId,
     criticalOperationRateLimit,
@@ -188,7 +195,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // GET compatible parts for equipment
-  app.get(
+  rlRouter.get(
     "/api/equipment/:equipmentId/compatible-parts",
     requireOrgId,
     generalApiRateLimit,
@@ -202,7 +209,7 @@ export function registerEquipmentLifecycleRoutes(
   );
 
   // GET suggested parts for equipment
-  app.get(
+  rlRouter.get(
     "/api/equipment/:equipmentId/suggested-parts",
     requireOrgId,
     generalApiRateLimit,

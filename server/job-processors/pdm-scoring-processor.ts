@@ -25,7 +25,7 @@ import { createLogger } from "../lib/structured-logger";
 import { db } from "../db.js";
 import { organizations } from "@shared/schema.js";
 import { withTenantContext } from "../middleware/db-context.js";
-import { dbEquipmentStorage, dbDevicesStorage } from "../db/index.js";
+import { dbEquipmentStorage, dbDevicesStorage } from "../repositories.js";
 import {
   calculateDegradationMetrics,
   getMultiSensorData,

@@ -1,10 +1,14 @@
 import { Router, type Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import { TrainingPipelineService } from "./training-pipeline.service";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { requirePermission } from "../../../lib/permissions/middleware";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const service = new TrainingPipelineService();
 
 const createDatasetSchema = z.object({

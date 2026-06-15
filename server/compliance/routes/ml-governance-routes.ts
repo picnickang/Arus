@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { authenticatedRequest } from "../../middleware/auth";
 import { z } from "zod";
 import { auditService } from "../immutable-audit.service";
@@ -16,6 +17,9 @@ import {
 import { insertEngineerOverrideSchema } from "@shared/schema";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 const engineerOverrideSchema = insertEngineerOverrideSchema.extend({
   justification: z.string().min(10, "Justification must be at least 10 characters"),

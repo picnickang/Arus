@@ -12,6 +12,9 @@ export const inventorySupplierRouter = Router();
 const writeLimit = RateLimiters.write();
 const generalLimit = RateLimiters.general();
 
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+inventorySupplierRouter.use(generalLimit);
+
 const linkSupplierSchema = z.object({
   supplierId: z.string().min(1),
   supplierPartNumber: z.string().optional(),

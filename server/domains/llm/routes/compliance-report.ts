@@ -35,8 +35,14 @@ export function registerComplianceReportRoutes(
           YTD: () => new Date(new Date().getFullYear(), 0, 1),
           MTD: () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         };
+        // Guard the dynamic lookup against prototype keys (e.g. "constructor")
+        // so a tampered `period` can only dispatch to an own, known calculator.
+        const periodCalculator =
+          typeof period === "string" && Object.hasOwn(periodCalculators, period)
+            ? periodCalculators[period]
+            : undefined;
         const startDate = (
-          periodCalculators[period] ?? (() => new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
+          periodCalculator ?? (() => new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
         )();
 
         const equipmentFilter = equipmentId !== "all" ? equipmentId : undefined;

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import { authenticatedRequest } from "../../../middleware/auth";
 import { resolveInferenceRunner } from "./model-backed-runner";
@@ -6,6 +7,9 @@ import { PredictionEngineService } from "./prediction-engine.service";
 import { createLogger } from "../../../lib/structured-logger";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 const runner = resolveInferenceRunner();
 const predictionEngine = new PredictionEngineService(runner);
 const logger = createLogger("PdmInferenceRoutes");
