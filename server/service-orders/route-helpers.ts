@@ -21,12 +21,15 @@ export function headerString(value: unknown): string | undefined {
  * null explicitly sets the column to NULL in the database.
  */
 export const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (k === "__proto__" || k === "constructor" || k === "prototype") {
-      continue;
-    }
-    result[k] = v === "" ? null : v;
-  }
-  return result;
+  // Build the result via Object.fromEntries rather than a dynamic
+  // `result[k] = …` write: the latter is a property-injection sink when the
+  // key derives from a request body (CodeQL js/remote-property-injection).
+  // fromEntries also defines own properties, so a "__proto__" key cannot
+  // walk the prototype chain — we still drop it (and constructor/prototype)
+  // to preserve the prior filtering behaviour exactly.
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([k]) => k !== "__proto__" && k !== "constructor" && k !== "prototype")
+      .map(([k, v]) => [k, v === "" ? null : v])
+  );
 };
