@@ -9,7 +9,7 @@ const logger = createLogger("Beast:InventoryRiskRoutes");
 const router = Router();
 
 const inventoryRiskDeps: InventoryRiskDeps = {
-  getPartsInventory: (orgId, includeInactive) =>
+  getPartsInventory: (orgId, _includeInactive) =>
     dbInventoryStorage.getPartsInventory(undefined, orgId),
   getEquipment: (orgId, equipmentId) => dbEquipmentStorage.getEquipment(orgId, equipmentId),
   getWorkOrderPartsByEquipment: (orgId, equipmentId) =>

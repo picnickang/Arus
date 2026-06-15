@@ -52,7 +52,7 @@ export class InventoryRepository {
   async updateInventoryItem(
     id: string,
     data: WidenPartial<InsertPartsInventory>,
-    orgId?: string
+    _orgId?: string
   ): Promise<PartsInventory> {
     return dbInventoryStorage.updatePartsInventory(id, data);
   }

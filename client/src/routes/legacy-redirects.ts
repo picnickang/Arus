@@ -36,7 +36,7 @@ export const legacyRedirects: LegacyRedirect[] = [
 
 const STORAGE_KEY = "arus:redirect_usage";
 
-export function trackRedirectUsage(from: string, to: string): void {
+export function trackRedirectUsage(from: string, _to: string): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const usage: Record<string, { count: number; lastUsed: string }> = raw ? JSON.parse(raw) : {};

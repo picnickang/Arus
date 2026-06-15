@@ -356,7 +356,10 @@ export default [
     files: ['shared/schema/**/*.ts', 'shared/sqlite-schema/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
+        // `table` is the conventional Drizzle index/constraint callback arg
+        // (`(table) => ({...})`); ignore it as an arg too, mirroring the
+        // varsIgnorePattern below — an unused one is framework shape, not debt.
+        argsIgnorePattern: '^_|^table$',
         varsIgnorePattern: '^_|^table$|^sql$|^index$|^unique$|^real$|^text$|^integer$|^boolean$|^timestamp$|^pgTable$|^varchar$|^json$|^jsonb$',
         caughtErrorsIgnorePattern: '^_'
       }]

@@ -206,7 +206,7 @@ export class DbMaintenanceSchedules {
   async getMaintenanceCosts(
     equipmentId?: string,
     orgId?: string,
-    filters?: { startDate?: Date; endDate?: Date }
+    _filters?: { startDate?: Date; endDate?: Date }
   ): Promise<MaintenanceCost[]> {
     const conditions: SQL[] = [];
     if (orgId) {

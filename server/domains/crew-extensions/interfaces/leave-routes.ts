@@ -10,7 +10,7 @@ import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 
-export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
+export function registerLeaveRoutes(app: Express, _config: CrewExtensionsRoutesConfig) {
   app.get(
     "/api/crew/leave",
     withErrorHandling("fetch crew leave", async (req: Request, res: Response) => {
