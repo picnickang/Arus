@@ -16,9 +16,9 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
 
   afterAll(async () => {
     if (entryId) {
-      await pool.query("DELETE FROM logbook_deck_daily WHERE id=$1", [entryId]).catch(() => {});
+      await pool.query("DELETE FROM deck_log_daily WHERE id=$1", [entryId]).catch(() => {});
     }
-    await cleanupByRunId(RUN_ID, ["logbook_deck_daily"]);
+    await cleanupByRunId(RUN_ID, ["deck_log_daily"]);
   });
 
   it("creates a deck log daily entry", async () => {

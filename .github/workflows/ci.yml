@@ -146,7 +146,10 @@ jobs:
           npm run test:unit -- --shard=2/3
           npm run test:unit -- --shard=3/3
         env:
-          NODE_OPTIONS: --max-old-space-size=6144
+          # The unit lane peaks right at the previous 6144 MB ceiling and OOMs
+          # flakily (exit 134) at the boundary; the runner has ~16 GB, so give
+          # it headroom.
+          NODE_OPTIONS: --max-old-space-size=8192
 
   integration-tests:
     name: Integration Tests
@@ -210,6 +213,98 @@ jobs:
         run: npm run test:integration:postgres
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+
+  integration-postgres-forms:
+    name: Integration Tests (Postgres forms/journeys contract lane)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Least-privilege: this lane only does checkout + npm + curl + tests.
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        # pgvector image (Postgres 16 + the `vector` extension) so the
+        # kb_chunks embedding column (vector(384)) can be created.
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector"
+
+      # db:push only — the forms/journeys contract suites exercise the canonical
+      # Drizzle schema and do not depend on the numbered SQL deltas (which are
+      # not from-empty replayable; see CLAUDE.md Gotchas). RLS is not needed:
+      # these tests run under the single-tenant default-org header context.
+      - name: Push canonical schema
+        run: npm run db:push
+
+      - name: Seed contract fixtures
+        run: node scripts/seed-integration-fixtures.mjs
+
+      - name: Start API server (Postgres + dev-login)
+        env:
+          # Override the global NODE_ENV=test so the server serves via Vite
+          # middleware (the suites are API-only, so no client is ever compiled)
+          # instead of needing a production client build.
+          NODE_ENV: development
+          ARUS_DEV_LOGIN: "1"
+          PORT: "5000"
+          DISABLE_AGENT_SCHEDULER: "true"
+          DISABLE_DIGITAL_TWIN_STARTUP: "true"
+          DISABLE_EMAIL_WORKER: "true"
+          DISABLE_ML_SERVICE_STARTUP: "true"
+          DISABLE_MODEL_BACKED_INFERENCE: "true"
+          DISABLE_OBSERVABILITY_TIMERS: "true"
+          DISABLE_RATE_LIMITS: "true"
+          DISABLE_SECURITY_TIMERS: "true"
+          DISABLE_TELEMETRY_BATCH_WRITER: "true"
+          ENABLE_BACKGROUND_JOBS: "false"
+          ENABLE_SCHEDULERS: "false"
+          ENABLE_SYNC_SERVICES: "false"
+          ENABLE_UPDATE_SYSTEM: "false"
+          EVENT_SPINE_DISABLED: "1"
+          EVENT_SPINE_WORKER: "0"
+          EVENT_SPINE_ANALYTICS: "0"
+        run: |
+          nohup npx tsx server/index.ts > /tmp/arus-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5000/api/healthz >/dev/null 2>&1; then
+              echo "server up after $((i * 2))s"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::API server failed to start within 120s"; cat /tmp/arus-server.log; exit 1
+
+      - name: Run Postgres forms/journeys contract lane
+        env:
+          ARUS_INTEGRATION_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+          TEST_BASE_URL: http://localhost:5000
+        run: npm run test:forms
+
+      - name: Server log on failure
+        if: failure()
+        run: cat /tmp/arus-server.log || true
 
   python-sidecar:
     name: Python ML Sidecar

@@ -14,38 +14,6 @@ import { vesselService } from "../../../repositories.js";
 
 export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies): void {
   app.get(
-    "/api/hor/fatigue/:crewId",
-    withErrorHandling("calculate fatigue risk", async (req: Request, res: Response) => {
-      const { crewId = "" } = req.params;
-      const { days = "14" } = req.query;
-      const lookbackDays = Number.parseInt(days as string) || 14;
-
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - lookbackDays);
-
-      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
-      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
-
-      const { days: restDays } = await dbStcwStorage.getCrewRestRange(
-        crewId,
-        startDateStr,
-        endDateStr
-      );
-
-      const crewMember = await dbCrewStorage.getCrewMember(crewId);
-
-      const { calculateFatigueRisk, normalizeRestDays: normalizeForFatigue } = await import(
-        "../../../stcw-compliance"
-      );
-      const normalizedDays = normalizeForFatigue(restDays);
-      const fatigueResult = calculateFatigueRisk(crewId, normalizedDays, crewMember?.name);
-
-      res.json(fatigueResult);
-    })
-  );
-
-  app.get(
     "/api/hor/fatigue/vessel/:vesselId",
     withErrorHandling("calculate vessel fatigue summary", async (req: Request, res: Response) => {
       const { vesselId = "" } = req.params;
@@ -165,6 +133,48 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
         fleetSummary,
         vesselSummaries,
       });
+    })
+  );
+
+  // `/:crewId` is declared after the literal `/fleet` route so the literal path
+  // is not captured as crewId="fleet".
+  app.get(
+    "/api/hor/fatigue/:crewId",
+    withErrorHandling("calculate fatigue risk", async (req: Request, res: Response) => {
+      const { crewId = "" } = req.params;
+      const { days = "14" } = req.query;
+      const lookbackDays = Number.parseInt(days as string) || 14;
+
+      // Org-scope: confirm the crew member belongs to the caller's org before
+      // exposing any rest/fatigue data. Without this, an arbitrary :crewId
+      // could read cross-org crew data (getCrewRestRange has no org filter).
+      const orgId = authenticatedRequest(req).orgId;
+      const crewMember = await dbCrewStorage.getCrewMember(crewId, orgId);
+      if (!crewMember) {
+        res.status(404).json({ error: "Crew member not found" });
+        return;
+      }
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - lookbackDays);
+
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
+
+      const { days: restDays } = await dbStcwStorage.getCrewRestRange(
+        crewId,
+        startDateStr,
+        endDateStr
+      );
+
+      const { calculateFatigueRisk, normalizeRestDays: normalizeForFatigue } = await import(
+        "../../../stcw-compliance"
+      );
+      const normalizedDays = normalizeForFatigue(restDays);
+      const fatigueResult = calculateFatigueRisk(crewId, normalizedDays, crewMember.name);
+
+      res.json(fatigueResult);
     })
   );
 }

@@ -82,6 +82,18 @@ export function requireRole(...allowedRoles: AuthCrewRole[]) {
 
     const userRole = user.role?.toLowerCase() as AuthCrewRole;
 
+    // `super_admin` is the top of the role hierarchy (see SUPER_ADMIN_ROLE_KEYS
+    // in shared/role-dashboard.ts and getPortalForRole, which maps it to the
+    // admin portal) and the permission system already grants it everything.
+    // Several role allowlists were written by enumerating specific admin roles
+    // and omitted it, locking the highest role out of e.g. the attention inbox
+    // and safety-bulletin writes. Honor it here so role gates stay consistent
+    // with the permission model. This cannot escalate privilege — super_admin
+    // is already the most-privileged role.
+    if (userRole === "super_admin") {
+      return next();
+    }
+
     if (!userRole || !allowedRoles.includes(userRole)) {
       logger.warn("[RBAC] Access denied", {
         userId: user.id,

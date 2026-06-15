@@ -89,9 +89,12 @@ export default function AIStudioPage() {
     queryKey: ["/api/ml/models"],
   });
 
-  // Fetch accuracy trend data
-  const { data: accuracyData = [] } = useQuery({
-    queryKey: ["/api/ml/accuracy-trend", accuracyTimeRange],
+  // Fetch accuracy trend data (typed to the chart's data contract so no cast
+  // is needed at the call site).
+  const { data: accuracyData = [] } = useQuery<
+    React.ComponentProps<typeof AccuracyTrendChart>["data"]
+  >({
+    queryKey: ["/api/ml/accuracy-trend", { range: accuracyTimeRange }],
   });
 
   // Fetch equipment types for training form
@@ -236,71 +239,69 @@ export default function AIStudioPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
-            {...({
-              title: "Active Models",
-              value: deployedModels,
-              icon: Brain,
-              trend: deployedModels > 0 ? { direction: "up", value: 12 } : undefined,
-              "data-testid": "kpi-active-models",
-            } as object as React.ComponentProps<typeof KpiCard>)}
+            label="Active Models"
+            value={deployedModels}
+            icon={Brain}
+            {...(deployedModels > 0
+              ? { trend: { direction: "up" as const, value: 12, label: "vs last month" } }
+              : {})}
+            data-testid="kpi-active-models"
           />
           <KpiCard
-            {...({
-              title: "Avg. Accuracy",
-              value: `${avgAccuracy.toFixed(1)}%`,
-              icon: TrendingUp,
-              trend: avgAccuracy >= 80 ? { direction: "up", value: 5 } : undefined,
-              "data-testid": "kpi-avg-accuracy",
-            } as object as React.ComponentProps<typeof KpiCard>)}
+            label="Avg. Accuracy"
+            value={`${avgAccuracy.toFixed(1)}%`}
+            icon={TrendingUp}
+            {...(avgAccuracy >= 80
+              ? { trend: { direction: "up" as const, value: 5, label: "vs last month" } }
+              : {})}
+            data-testid="kpi-avg-accuracy"
           />
           <KpiCard
-            {...({
-              title: "In Training",
-              value: trainingModels,
-              icon: Activity,
-              "data-testid": "kpi-in-training",
-            } as object as React.ComponentProps<typeof KpiCard>)}
+            label="In Training"
+            value={trainingModels}
+            icon={Activity}
+            data-testid="kpi-in-training"
           />
           <KpiCard
-            {...({
-              title: "Need Attention",
-              value: modelsNeedingAttention,
-              icon: AlertTriangle,
-              variant: modelsNeedingAttention > 0 ? "warning" : "default",
-              "data-testid": "kpi-need-attention",
-            } as object as React.ComponentProps<typeof KpiCard>)}
+            label="Need Attention"
+            value={modelsNeedingAttention}
+            icon={AlertTriangle}
+            variant={modelsNeedingAttention > 0 ? "warning" : "default"}
+            data-testid="kpi-need-attention"
           />
         </div>
 
         {/* Insights */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InsightCard
-            {...({
-              title: "Model Performance",
-              message:
-                avgAccuracy >= 85
-                  ? "Excellent model performance across the fleet"
-                  : avgAccuracy >= 70
-                    ? "Good performance, but some models need attention"
-                    : "Several models require retraining",
-              type: avgAccuracy >= 85 ? "success" : avgAccuracy >= 70 ? "info" : "warning",
-            } as object as React.ComponentProps<typeof InsightCard>)}
+            title="Model Performance"
+            description={
+              avgAccuracy >= 85
+                ? "Excellent model performance across the fleet"
+                : avgAccuracy >= 70
+                  ? "Good performance, but some models need attention"
+                  : "Several models require retraining"
+            }
+            status={avgAccuracy >= 85 ? "normal" : avgAccuracy >= 70 ? "pending" : "warning"}
+            icon={TrendingUp}
+            data-testid="insight-model-performance"
           />
           <InsightCard
-            {...({
-              title: "System Status",
-              message:
-                trainingModels > 0
-                  ? `${trainingModels} model(s) currently training`
-                  : "No active training jobs",
-              type: "info",
-            } as object as React.ComponentProps<typeof InsightCard>)}
+            title="System Status"
+            description={
+              trainingModels > 0
+                ? `${trainingModels} model(s) currently training`
+                : "No active training jobs"
+            }
+            status={trainingModels > 0 ? "training" : "normal"}
+            icon={Activity}
+            data-testid="insight-system-status"
           />
         </div>
 
         {/* Accuracy Trend */}
         <AccuracyTrendChart
-          data={accuracyData as object as React.ComponentProps<typeof AccuracyTrendChart>["data"]}
+          data={accuracyData}
           timeRange={accuracyTimeRange}
           onTimeRangeChange={setAccuracyTimeRange}
           data-testid="accuracy-trend-chart"

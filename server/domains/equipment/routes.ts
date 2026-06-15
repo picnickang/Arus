@@ -58,6 +58,21 @@ const equipmentHealthQuerySchema = z.object({
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 
+// Static equipment-type taxonomy served by GET /api/equipment/types. Kept at
+// module scope so the route registration function stays within the size budget.
+const EQUIPMENT_TYPES = [
+  "Engine",
+  "Compressor",
+  "Pump",
+  "Generator",
+  "Hydraulic System",
+  "Gearbox",
+  "Propeller",
+  "Steering Gear",
+  "Boiler",
+  "Heat Exchanger",
+] as const;
+
 const batchRulBodySchema = z.object({
   equipmentIds: z.array(z.string().min(1)).min(1),
 });
@@ -87,6 +102,17 @@ export function registerEquipmentRoutes(
   }
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimiters;
+
+  // Register lifecycle routes (which include the literal
+  // `/api/equipment/decommissioned`) BEFORE the rlRouter below. rlRouter's
+  // `/api/equipment/:id` would otherwise capture "decommissioned" as an id and
+  // 404. This ordering must be preserved.
+  registerEquipmentLifecycleRoutes(app, {
+    criticalOperationRateLimit,
+    generalApiRateLimit,
+    invalidateCache,
+  });
+
   // Real (directly-imported) limiter so CodeQL recognises rate limiting
   // on every handler below (CWE-770); the DI'd limiters above are kept.
   const rlRouter = Router();
@@ -206,6 +232,18 @@ export function registerEquipmentRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const equipment = await equipmentService.getEquipmentWithSensorIssues(orgId);
       return res.json(equipment);
+    })
+  );
+
+  // GET equipment type taxonomy (EQUIPMENT_TYPES, module scope). Declared
+  // before `/api/equipment/:id` so the literal "types" segment is not captured
+  // as id="types" (previously 404'd, e.g. on the AI Studio type selector).
+  rlRouter.get(
+    "/api/equipment/types",
+    requireOrgId,
+    generalApiRateLimit,
+    withErrorHandling("fetch equipment types", async (_req: Request, res: Response) => {
+      return res.json(EQUIPMENT_TYPES);
     })
   );
 
@@ -416,10 +454,4 @@ export function registerEquipmentRoutes(
       }
     })
   );
-
-  registerEquipmentLifecycleRoutes(app, {
-    criticalOperationRateLimit,
-    generalApiRateLimit,
-    invalidateCache,
-  });
 }

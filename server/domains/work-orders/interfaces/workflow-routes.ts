@@ -52,6 +52,11 @@ const predictionFeedbackSchema = z.object({
 
 export const completeWithFeedbackSchema = z
   .object({
+    // `requireOrgIdAndValidateBody` injects an orgId field onto the request
+    // body on every guarded route; allow it so .strict() doesn't 400 the whole
+    // endpoint. The handler reads the real org via getOrgId(req), so this value
+    // is otherwise ignored.
+    orgId: z.string().optional(),
     completionNotes: z.string().max(MAX_NOTES_LEN).optional(),
     actualHours: z.number().finite().min(0).max(MAX_HOURS).optional(),
     actualDowntimeHours: z.number().finite().min(0).max(MAX_HOURS).optional(),
