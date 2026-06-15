@@ -294,6 +294,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
       }
       topBar={
         <>
+          <OpsStatusRailContainer />
           <OpsTopBar
             leading={
               <UniversalMobileDrawer
