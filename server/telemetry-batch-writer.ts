@@ -53,9 +53,14 @@ import type {
   TelemetryBatchReading,
 } from "./telemetry-batch-writer-types";
 
-export type { TelemetryBatchReading } from "./telemetry-batch-writer-types";
+export { latestPerEquipmentSensor } from "./telemetry-batch-writer-latest";
+export type {
+  BatchWriterConfig,
+  BatchWriterStats,
+  TelemetryBatchReading,
+} from "./telemetry-batch-writer-types";
 
-class TelemetryBatchWriter extends EventEmitter {
+export class TelemetryBatchWriter extends EventEmitter {
   private buffers: TelemetryBatchBufferStore;
   private flushTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
