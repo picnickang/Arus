@@ -1,20 +1,20 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-06-12T09:11:51.531Z",
+  "generatedAt": "2026-06-15T07:01:15.890Z",
   "errors": 0,
-  "warnings": 1984,
+  "warnings": 1942,
   "summary": {
     "byTopRules": {
-      "@typescript-eslint/prefer-nullish-coalescing": 643,
-      "no-nested-ternary": 353,
-      "@typescript-eslint/no-unused-vars": 215,
-      "complexity": 149,
-      "@typescript-eslint/explicit-function-return-type": 146,
-      "max-nested-callbacks": 138,
-      "no-restricted-syntax": 61,
-      "max-lines-per-function": 52,
-      "react-hooks/exhaustive-deps": 43,
+      "@typescript-eslint/prefer-nullish-coalescing": 644,
+      "no-nested-ternary": 363,
+      "@typescript-eslint/no-unused-vars": 193,
+      "complexity": 143,
+      "max-nested-callbacks": 141,
+      "@typescript-eslint/explicit-function-return-type": 132,
+      "no-restricted-syntax": 62,
       "require-atomic-updates": 42,
+      "react-hooks/exhaustive-deps": 39,
+      "max-lines-per-function": 38,
       "no-empty": 28,
       "max-depth": 28,
       "no-console": 28,
@@ -22,16 +22,16 @@
       "sonarjs/no-collapsible-if": 9
     },
     "byTopFiles": {
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/system-admin/index.ts": 34,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/crew/hooks/useUnifiedCrewData.ts": 24,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/inventory/index.ts": 22,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/workorders/index.ts": 20,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 19,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/crew/index.ts": 19,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/tests/unit/lr35-bottom-nav-override-leak.test.ts": 19,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/pages/admin/equipment-dependencies.tsx": 16,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/pages/maintenance-schedules.tsx": 15
+      "/home/user/Arus/server/db/system-admin/index.ts": 36,
+      "/home/user/Arus/server/db/inventory/index.ts": 22,
+      "/home/user/Arus/client/src/features/crew/hooks/useUnifiedCrewData.ts": 20,
+      "/home/user/Arus/server/db/workorders/index.ts": 20,
+      "/home/user/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 19,
+      "/home/user/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19,
+      "/home/user/Arus/server/db/crew/index.ts": 19,
+      "/home/user/Arus/tests/unit/lr35-bottom-nav-override-leak.test.ts": 19,
+      "/home/user/Arus/client/src/components/MultiPartSelector.tsx": 14,
+      "/home/user/Arus/client/src/features/analytics/hooks/useFinanceModeData.ts": 14
     }
   }
 }

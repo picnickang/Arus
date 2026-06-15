@@ -70,7 +70,10 @@ async function executeRaw(query: SQL): Promise<RawQueryResult> {
 }
 
 export class DbComplianceStorage {
-  async getComplianceFindings(orgId: string, filters?: ComplianceFindingFilters) {
+  async getComplianceFindings(
+    orgId: string,
+    filters?: ComplianceFindingFilters
+  ): Promise<RawSqlRow[]> {
     // LR-3.5 / AUD-1 (Task #208): exclude archived rows unless the
     // caller explicitly opts in via `includeArchived=true`. We filter
     // on `archived_at IS NULL` because `status` is also used for the
@@ -87,7 +90,7 @@ export class DbComplianceStorage {
     id: string,
     orgId: string,
     options?: { includeArchived?: boolean }
-  ) {
+  ): Promise<RawSqlRow | undefined> {
     const archivedFilter = options?.includeArchived ? sql`` : sql`AND archived_at IS NULL`;
     const result = await executeRaw(
       sql`SELECT * FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId} ${archivedFilter}`
@@ -95,35 +98,47 @@ export class DbComplianceStorage {
     return result.rows[0];
   }
 
-  async createComplianceFinding(data: CreateComplianceFinding) {
+  async createComplianceFinding(data: CreateComplianceFinding): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || "open"}, ${data.ruleCode}, ${data.title}, ${data.description}, ${nowSql}) RETURNING *`
     );
     return result.rows[0];
   }
 
-  async acknowledgeComplianceFinding(id: string, _details: unknown, orgId: string) {
+  async acknowledgeComplianceFinding(
+    id: string,
+    _details: unknown,
+    orgId: string
+  ): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`UPDATE compliance_findings SET status = 'acknowledged' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
     );
     return result.rows[0];
   }
 
-  async resolveComplianceFinding(id: string, _details: unknown, orgId: string) {
+  async resolveComplianceFinding(
+    id: string,
+    _details: unknown,
+    orgId: string
+  ): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`UPDATE compliance_findings SET status = 'resolved', resolved_at = ${nowSql} WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
     );
     return result.rows[0];
   }
 
-  async suppressComplianceFinding(id: string, _details: unknown, orgId: string) {
+  async suppressComplianceFinding(
+    id: string,
+    _details: unknown,
+    orgId: string
+  ): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`UPDATE compliance_findings SET status = 'suppressed' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
     );
     return result.rows[0];
   }
 
-  async deleteComplianceFinding(id: string, orgId: string, archivedBy?: string) {
+  async deleteComplianceFinding(id: string, orgId: string, archivedBy?: string): Promise<void> {
     // LR-3.5 / AUD-1 (Task #208): never hard-delete a compliance
     // finding — auditors must be able to reason about every record
     // that ever existed. Soft-archive sets:
@@ -144,35 +159,39 @@ export class DbComplianceStorage {
     `);
   }
 
-  async getComplianceRules(orgId: string, filters?: ComplianceRuleFilters) {
+  async getComplianceRules(orgId: string, filters?: ComplianceRuleFilters): Promise<RawSqlRow[]> {
     const result = await executeRaw(
       sql`SELECT * FROM compliance_rules WHERE org_id = ${orgId} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.category ? sql`AND category = ${filters.category}` : sql``} ${filters?.enabled !== undefined ? sql`AND enabled = ${filters.enabled}` : sql``} ORDER BY rule_name ASC`
     );
     return result.rows;
   }
 
-  async getComplianceRuleById(id: string, orgId: string) {
+  async getComplianceRuleById(id: string, orgId: string): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`SELECT * FROM compliance_rules WHERE id = ${id} AND org_id = ${orgId}`
     );
     return result.rows[0];
   }
 
-  async createComplianceRule(data: CreateComplianceRule) {
+  async createComplianceRule(data: CreateComplianceRule): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`INSERT INTO compliance_rules (org_id, source_type, category, rule_name, rule_code, description, severity, enabled) VALUES (${data.orgId}, ${data.sourceType}, ${data.category}, ${data.ruleName}, ${data.ruleCode}, ${data.description}, ${data.severity}, ${data.enabled ?? true}) RETURNING *`
     );
     return result.rows[0];
   }
 
-  async updateComplianceRule(id: string, updates: UpdateComplianceRule, orgId: string) {
+  async updateComplianceRule(
+    id: string,
+    updates: UpdateComplianceRule,
+    orgId: string
+  ): Promise<RawSqlRow | undefined> {
     const result = await executeRaw(
       sql`UPDATE compliance_rules SET rule_name = COALESCE(${updates.ruleName}, rule_name), description = COALESCE(${updates.description}, description), severity = COALESCE(${updates.severity}, severity), enabled = COALESCE(${updates.enabled}, enabled) WHERE id = ${id} AND org_id = ${orgId} RETURNING *`
     );
     return result.rows[0];
   }
 
-  async deleteComplianceRule(id: string, orgId: string) {
+  async deleteComplianceRule(id: string, orgId: string): Promise<void> {
     await executeRaw(sql`DELETE FROM compliance_rules WHERE id = ${id} AND org_id = ${orgId}`);
   }
 }

@@ -38,7 +38,7 @@ export class CrewApplicationService {
     return this.deps.crewMemberRepository.findCrewById(id, orgId);
   }
 
-  async createCrew(data: InsertCrew, userId?: string): Promise<SelectCrew> {
+  async createCrew(data: InsertCrew, _userId?: string): Promise<SelectCrew> {
     const sanitizedData = {
       ...data,
       vesselId: data.vesselId || null,
@@ -110,7 +110,7 @@ export class CrewApplicationService {
     return [];
   }
 
-  async createCertification(data: Record<string, unknown>, userId?: string) {
+  async createCertification(data: Record<string, unknown>, _userId?: string) {
     return this.deps.crewExtensionsStorage.createCrewCertification(data);
   }
 
@@ -156,7 +156,7 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.getCrewDocuments(crewId, orgId || "");
   }
 
-  async createCrewDocument(data: Record<string, unknown>, userId?: string) {
+  async createCrewDocument(data: Record<string, unknown>, _userId?: string) {
     return this.deps.crewExtensionsStorage.createCrewDocument(data);
   }
 
@@ -396,7 +396,7 @@ export class CrewApplicationService {
     return db.select().from(skills).where(eq(skills.orgId, orgId));
   }
 
-  async createSkill(data: typeof skills.$inferInsert, userId?: string) {
+  async createSkill(data: typeof skills.$inferInsert, _userId?: string) {
     const [newSkill] = await db.insert(skills).values(data).returning();
     return newSkill;
   }
@@ -410,20 +410,20 @@ export class CrewApplicationService {
     return this.deps.crewStorage.getCrewSkills(crewId);
   }
 
-  async assignSkillToCrew(crewId: string, skillId: string, level: string, userId?: string) {
+  async assignSkillToCrew(crewId: string, skillId: string, level: string, _userId?: string) {
     return this.deps.crewStorage.assignSkillToCrew(crewId, skillId, level);
   }
 
-  async removeSkillFromCrew(crewId: string, skillId: string, userId?: string) {
+  async removeSkillFromCrew(crewId: string, skillId: string, _userId?: string) {
     return this.deps.crewStorage.removeSkillFromCrew(crewId, skillId);
   }
 
   // Leave - delegated via port
-  async listLeave(orgId?: string, crewId?: string, status?: string) {
+  async listLeave(orgId?: string, crewId?: string, _status?: string) {
     return this.deps.crewStorage.getCrewLeave(crewId, orgId);
   }
 
-  async createLeave(data: Record<string, unknown>, userId?: string) {
+  async createLeave(data: Record<string, unknown>, _userId?: string) {
     return this.deps.crewStorage.createCrewLeave(data);
   }
 
@@ -447,7 +447,7 @@ export class CrewApplicationService {
     });
   }
 
-  async createAssignment(data: Record<string, unknown>, userId?: string) {
+  async createAssignment(data: Record<string, unknown>, _userId?: string) {
     return this.deps.crewStorage.createCrewAssignment(data);
   }
 
@@ -455,7 +455,7 @@ export class CrewApplicationService {
     id: string,
     data: Record<string, unknown>,
     orgId: string,
-    userId?: string
+    _userId?: string
   ) {
     return this.deps.crewStorage.updateCrewAssignment(id, data, orgId);
   }
