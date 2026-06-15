@@ -276,7 +276,6 @@
     "@vitejs/plugin-react": "^4.7.0",
     "@yao-pkg/pkg": "^6.14.2",
     "autoprefixer": "^10.4.20",
-    "axe-core": "^4.12.1",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.0",
     "eslint-plugin-react": "^7.37.5",
