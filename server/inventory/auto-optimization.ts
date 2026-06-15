@@ -8,12 +8,6 @@ import type { Part } from "@shared/schema";
 import { optimizeInventoryLevels } from "../inventory";
 import { cryptoRandom } from "@shared/crypto-random";
 
-interface UsageHistoryRecord {
-  partNo: string;
-  month: string;
-  quantityUsed: number;
-}
-
 /**
  * Load historical part usage from work orders and stock adjustments
  *
@@ -28,11 +22,10 @@ interface UsageHistoryRecord {
 export async function loadPartUsageHistory(
   orgId: string,
   partNumbers: string[],
-  daysHistory: number = 365,
+  _daysHistory: number = 365,
   storage: InventoryStorage
 ): Promise<Record<string, number[]>> {
   const result: Record<string, number[]> = {};
-  const now = new Date();
 
   for (const partNo of partNumbers) {
     const monthlyData: number[] = [];

@@ -72,7 +72,7 @@ export async function generateScenarios(
  */
 export async function calculateROI(
   context: ReportContext,
-  scenarios?: EnhancedAnalysisOutput["scenarios"]
+  _scenarios?: EnhancedAnalysisOutput["scenarios"]
 ): Promise<EnhancedAnalysisOutput["roi"]> {
   const workOrders = context.data.workOrders ?? [];
   const avgCost =

@@ -31,7 +31,7 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
     const [
       predictions,
       criticalPredictions,
-      allEquipment,
+      _allEquipment,
       recentWorkOrders,
       recentSavings,
       activeCostModel,
@@ -169,7 +169,6 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
   }
 
   async getTelemetryCoverage(orgId: string): Promise<TelemetryCoverage> {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
     const [allHeartbeats, allEquipmentCount] = await Promise.all([

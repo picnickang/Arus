@@ -49,7 +49,6 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     withErrorHandling("fetch dashboard metrics", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
       const cacheKey = `dashboard:${orgId}`;
-      const now = Date.now();
 
       const cached = dashboardCache.get(cacheKey);
       if (cached) {
@@ -86,7 +85,6 @@ export function registerIntegrationsRoutes(app: Express, config: IntegrationsRou
     withErrorHandling("fetch dashboard summary", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
       const cacheKey = `summary:${orgId}`;
-      const now = Date.now();
 
       const cached = summaryCache.get(cacheKey);
       if (cached) {

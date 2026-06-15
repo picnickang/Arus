@@ -77,7 +77,7 @@ export function computeSchedulingWindow(input: WindowInput): {
   latestFinish: Date;
   isBlockedByLeadTime: boolean;
 } {
-  const { rulP10Days, rulP50Days, rulP90Days, prepDays, bufferDays, today } = input;
+  const { rulP10Days, rulP50Days, prepDays, bufferDays, today } = input;
 
   const earliestStart = new Date(today);
   earliestStart.setDate(earliestStart.getDate() + prepDays);

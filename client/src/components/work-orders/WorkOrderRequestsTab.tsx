@@ -23,7 +23,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ServiceOrderCardData } from "@/features/work-orders/components/ServiceOrderCard";
-import type { PartsRequestCardData } from "@/features/work-orders/components/PartsRequestCard";
 
 interface WorkOrderRequestsTabProps {
   workOrderId: string;
@@ -39,7 +38,6 @@ export function WorkOrderRequestsTab({
   const [soDialogOpen, setSoDialogOpen] = useState(false);
   const [prDialogOpen, setPrDialogOpen] = useState(false);
   const [editingSO, setEditingSO] = useState<ServiceOrderCardData | null>(null);
-  const [editingPR, setEditingPR] = useState<PartsRequestCardData | null>(null);
 
   const { canApprove, canEdit } = useUserPermissions();
   const canApprovePR = canApprove("purchase_requests");
@@ -68,8 +66,6 @@ export function WorkOrderRequestsTab({
     isUpdatingPRStatus,
     updateServiceOrder,
     isUpdatingServiceOrder,
-    updatePurchaseRequest,
-    isUpdatingPurchaseRequest,
     bulkDeleteServiceOrders,
     isBulkDeletingServiceOrders,
     bulkDeletePurchaseRequests,
