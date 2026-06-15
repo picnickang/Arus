@@ -36,11 +36,15 @@ export function registerSchedulerComplianceRoutes(
           return res.json(result);
         } catch (error) {
           logger.error("Failed to check assignment compliance:", undefined, error);
-          return res.json({
-            canAssign: true,
+          // Fail CLOSED: a rest-hour compliance gate that cannot evaluate must
+          // block the assignment, never fabricate an "allowed / 24h rested"
+          // result. 503 so naive clients (status-only) also surface the failure.
+          return res.status(503).json({
+            canAssign: false,
             violations: [],
-            projectedRestHours: 24,
-            projectedWeeklyWork: 0,
+            projectedRestHours: null,
+            projectedWeeklyWork: null,
+            reason: "Rest-hour compliance could not be evaluated; assignment blocked for safety.",
             error: error instanceof Error ? error.message : String(error),
           });
         }
@@ -87,15 +91,18 @@ export function registerSchedulerComplianceRoutes(
           });
         } catch (error) {
           logger.error("Failed to project bulk compliance:", undefined, error);
-          return res.json({
-            isCompliant: true,
+          // Fail CLOSED: if bulk projection crashes, report non-compliant
+          // rather than a fabricated all-clear.
+          return res.status(503).json({
+            isCompliant: false,
             violations: [],
             summary: {
               totalCrew: 0,
               compliantCrew: 0,
               warningCount: 0,
-              errorCount: 0,
+              errorCount: 1,
             },
+            reason: "Bulk compliance projection failed; treated as non-compliant.",
             error: error instanceof Error ? error.message : String(error),
           });
         }
