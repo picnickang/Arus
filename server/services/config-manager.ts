@@ -345,6 +345,17 @@ export class ConfigManager {
     }
   ): Promise<ReloadResult> {
     try {
+      // Reject CR/LF/NUL: an env value spanning lines could smuggle extra
+      // KEY=VALUE pairs into the .env file (env-variable injection).
+      if (/[\r\n\0]/.test(value)) {
+        return {
+          success: false,
+          changed: [],
+          criticalChanges: [],
+          requiresRestart: false,
+          error: "Configuration value must not contain newline or null characters",
+        };
+      }
       // Read current .env file directly — no existsSync gate, which would
       // create a TOCTOU race with the write below. Treat ENOENT as empty.
       let envContent = "";
