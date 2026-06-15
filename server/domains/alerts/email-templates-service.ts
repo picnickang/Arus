@@ -217,7 +217,9 @@ export class EmailTemplatesService {
     let result = template;
     for (const [key, value] of Object.entries(data)) {
       const placeholder = `{{${key}}}`;
-      result = result.replace(new RegExp(placeholder.replace(/[{}]/g, "\\$&"), "g"), value || "");
+      // Literal match + function replacement: avoids regex-escaping pitfalls
+      // and stops `$`/backslash sequences in the value being reinterpreted.
+      result = result.replaceAll(placeholder, () => value || "");
     }
     return result;
   }

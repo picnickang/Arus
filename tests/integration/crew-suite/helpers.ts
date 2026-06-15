@@ -23,6 +23,7 @@ import {
   TEST_ORG_ID,
   type ApiResult,
 } from "../forms/_helpers";
+import { randomBytes } from "node:crypto";
 
 export { api, pool, makeRunId, retry, cleanupByRunId, BASE_URL, TEST_ORG_ID };
 export type { ApiResult };
@@ -94,7 +95,7 @@ export async function createCrewWithAccount(
   opts: { role?: string; loginEnabled?: boolean; vesselId?: string | null } = {}
 ): Promise<{ crew: CrewRecord; account: CrewAccount }> {
   const crew = await createCrew(runId);
-  const username = slug(`u_${runId}_${Math.random().toString(36).slice(2, 6)}`);
+  const username = slug(`u_${runId}_${randomBytes(3).toString("hex")}`);
   const res = await api<{ account: CrewAccount }>(
     "POST",
     `/api/admin/crew/members/${crew.id}/account`,

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import fsPromises from "node:fs/promises";
 import { requireOrgId } from "../middleware/auth";
+import { generalApiRateLimit as apiRateLimit } from "../middleware/rate-limiters";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";
 import { additionalSecurityHeaders, sanitizeRequestData } from "../security";
@@ -70,7 +71,10 @@ export async function registerKnowledgeBaseRoutes(
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimits;
   const router = Router();
 
-  // Apply middleware to all KB routes
+  // Apply middleware to all KB routes. The directly-imported limiter runs
+  // first so CodeQL recognises every handler as rate-limited (CWE-770); the
+  // DI'd generalApiRateLimit stays available for per-route use below.
+  router.use(apiRateLimit);
   router.use(requireOrgId);
   router.use(additionalSecurityHeaders);
   router.use(sanitizeRequestData);

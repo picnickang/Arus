@@ -276,6 +276,7 @@ export function structuredLog(
     const orgSuffix = logEntry.orgId ? ` (org:${logEntry.orgId.substring(0, 8)})` : "";
     const durationSuffix = logEntry.duration ? ` (${logEntry.duration}ms)` : "";
     console.log(
+      "%s",
       `${prefix}${correlationSuffix}${orgSuffix} ${message}${durationSuffix}`,
       logEntry.metadata ? logEntry.metadata : ""
     );

@@ -21,6 +21,7 @@
  */
 
 import { Router, type Response } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import { z } from "zod";
 import {
   equipmentDependencyLayoutPositionsSchema,
@@ -46,6 +47,9 @@ import { projectDependency, retractDependency } from "../graph";
 const logger = createLogger("Routes:EquipmentDependencies");
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 const createBodySchema = insertEquipmentDependencySchema
   .omit({ orgId: true })

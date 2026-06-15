@@ -4,6 +4,7 @@
  */
 
 import type { Express, Response } from "express";
+import { generalApiRateLimit } from "../../../middleware/rate-limiters";
 import { z } from "zod";
 import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 
@@ -24,6 +25,7 @@ import { requireOrgId } from "../../../middleware/auth.js";
 export function registerVPSRoutes(app: Express, _config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/power-stw-analysis",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling(
       "compute power-STW analysis",
@@ -137,6 +139,7 @@ export function registerVPSRoutes(app: Express, _config: VesselPerformanceRoutes
 
   app.get(
     "/api/fleet/benchmarks",
+    generalApiRateLimit,
     requireOrgId,
     withErrorHandling(
       "compute fleet benchmarks",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId } from "../../middleware/auth";
+import { generalApiRateLimit } from "../../middleware/rate-limiters";
 import { logger } from "../../utils/logger";
 import {
   acknowledgeBodySchema,
@@ -23,6 +24,9 @@ import {
 
 const MODULE = "rms";
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 // ===== Fleet Vessel Positions =====
 router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response) => {

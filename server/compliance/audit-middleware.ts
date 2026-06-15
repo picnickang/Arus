@@ -163,6 +163,10 @@ function redactSensitiveData(obj: unknown, sensitiveFields: string[]): unknown {
 
   const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    // Never copy prototype-polluting keys onto the fresh redacted object.
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
+      continue;
+    }
     const lowerKey = key.toLowerCase();
     if (sensitiveFields.some((field) => lowerKey.includes(field.toLowerCase()))) {
       redacted[key] = "[REDACTED]";

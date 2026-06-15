@@ -12,6 +12,7 @@
  */
 
 import { Router, type Request, type Response } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -149,6 +150,9 @@ const upload = multer({
 const pinsSchema = z.object({ pins: z.array(equipmentPinSchema).max(2000) });
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 // ---------- Upload (admin only) ----------
 // Wrap multer so its errors (size, type, etc.) map to explicit 400/413

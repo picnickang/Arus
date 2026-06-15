@@ -4,6 +4,7 @@
  */
 
 import { Router, Response } from "express";
+import { generalApiRateLimit } from "../middleware/rate-limiters";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { AuthenticatedRequest } from "../middleware/auth.js";
@@ -22,6 +23,9 @@ import {
 import { registerModelPromotionRoutes } from "./model-promotion-routes.js";
 
 const router = Router();
+
+// Rate-limit every handler on this router (CWE-770). No-op in tests/dev relax.
+router.use(generalApiRateLimit);
 
 router.get("/ml/models", async (req: AuthenticatedRequest, res: Response) => {
   try {
