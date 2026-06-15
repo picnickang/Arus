@@ -9,7 +9,7 @@ import type { CrewExtensionsRoutesConfig, AuthenticatedRequest } from "./types.j
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 
-export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
+export function registerShiftsRoutes(app: Express, _config: CrewExtensionsRoutesConfig) {
   app.get(
     "/api/shifts",
     withErrorHandling("fetch shift templates", async (req: AuthenticatedRequest, res: Response) => {

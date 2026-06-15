@@ -285,7 +285,7 @@ export class InsightEngine {
   }
 
   private static calculatePDMTrend(
-    context: EquipmentHealthContext
+    _context: EquipmentHealthContext
   ): "rising" | "stable" | "falling" {
     return "rising";
   }
