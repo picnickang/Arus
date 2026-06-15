@@ -1,6 +1,5 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
-import { jsonValueSchema } from "@shared/validation/json";
 import { withErrorHandling } from "../../lib/route-utils";
 
 const analyzeBodySchema = z.object({
@@ -41,11 +40,6 @@ const bearingFreqBodySchema = z.object({
   shaftRpm: z.number().optional(),
 });
 const featuresBodySchema = z.object({ data: z.array(z.number()) });
-const acousticBodySchema = z.object({
-  equipmentId: z.string().optional(),
-  audioData: jsonValueSchema.optional(),
-  sampleRate: z.number().optional(),
-});
 const acousticHistoryQuerySchema = z.object({
   equipmentId: z.string().optional(),
   hours: z.coerce.number().int().optional(),
@@ -358,28 +352,6 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         },
         sampleCount: n,
       });
-    })
-  );
-
-  app.post(
-    "/api/acoustic/analyze",
-    requireOrgId,
-    withErrorHandling("analyze acoustic data", async (req: Request, res: Response) => {
-      const { equipmentId, audioData, sampleRate } = acousticBodySchema.parse(req.body ?? {});
-
-      const analysis = {
-        equipmentId,
-        timestamp: new Date().toISOString(),
-        metrics: {
-          averageLevel: 0,
-          peakLevel: 0,
-          noiseFloor: 0,
-        },
-        anomalyDetected: false,
-        recommendation: "Continue normal monitoring",
-      };
-
-      return res.json(analysis);
     })
   );
 
