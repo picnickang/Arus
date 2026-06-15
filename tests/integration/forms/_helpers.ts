@@ -35,7 +35,6 @@ function createIntegrationPool(): Pool {
   // process before any assertions run (this lane sets forceExit: false). Swallow
   // it — the next acquire transparently opens a fresh client.
   p.on("error", (err) => {
-    // eslint-disable-next-line no-console
     console.warn(`[forms-integration] idle pg client error (non-fatal): ${err.message}`);
   });
   return p;

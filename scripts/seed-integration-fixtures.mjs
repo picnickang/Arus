@@ -22,6 +22,17 @@ if (!url) {
 // (TEST_ORG_ID). The fixture ids below are constant, so a different org would
 // skip the ON CONFLICT inserts and fail the count check — no override exposed.
 const ORG = "default-org-id";
+
+// Fixture primary keys are real UUIDs: several create endpoints (e.g.
+// POST /api/equipment) validate referenced ids with `z.string().uuid()`, so a
+// non-UUID vessel id would 400 the contract suites. getRefIds() reads these
+// back from the DB, so the tests never hard-code them.
+const IDS = {
+  vessel: "11111111-1111-4111-8111-111111111111",
+  equipment: "22222222-2222-4222-8222-222222222222",
+  crew: "33333333-3333-4333-8333-333333333333",
+  supplier: "44444444-4444-4444-8444-444444444444",
+};
 const pool = new pg.Pool({ connectionString: url });
 
 async function main() {
@@ -31,25 +42,25 @@ async function main() {
     [ORG]
   );
   await pool.query(
-    `INSERT INTO vessels (id, org_id, name) VALUES ('seed-vessel-1', $1, 'MV Integration Fixture')
+    `INSERT INTO vessels (id, org_id, name) VALUES ($2, $1, 'MV Integration Fixture')
      ON CONFLICT (id) DO NOTHING`,
-    [ORG]
+    [ORG, IDS.vessel]
   );
   await pool.query(
     `INSERT INTO equipment (id, org_id, name, type, vessel_id, is_active)
-     VALUES ('seed-equip-1', $1, 'Fixture Main Engine', 'engine', 'seed-vessel-1', true)
+     VALUES ($2, $1, 'Fixture Main Engine', 'engine', $3, true)
      ON CONFLICT (id) DO NOTHING`,
-    [ORG]
+    [ORG, IDS.equipment, IDS.vessel]
   );
   await pool.query(
-    `INSERT INTO crew (id, org_id, name) VALUES ('seed-crew-1', $1, 'Fixture Crew Member')
+    `INSERT INTO crew (id, org_id, name) VALUES ($2, $1, 'Fixture Crew Member')
      ON CONFLICT (id) DO NOTHING`,
-    [ORG]
+    [ORG, IDS.crew]
   );
   await pool.query(
-    `INSERT INTO suppliers (id, org_id, name, code) VALUES ('seed-supplier-1', $1, 'Fixture Supplier', 'FIX-1')
+    `INSERT INTO suppliers (id, org_id, name, code) VALUES ($2, $1, 'Fixture Supplier', 'FIX-1')
      ON CONFLICT (id) DO NOTHING`,
-    [ORG]
+    [ORG, IDS.supplier]
   );
 
   const { rows } = await pool.query(

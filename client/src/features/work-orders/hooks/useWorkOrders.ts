@@ -45,7 +45,7 @@ export function useWorkOrders(filters?: {
 
 export function useWorkOrder(id: string | undefined) {
   return useQuery<WorkOrder>({
-    queryKey: workOrderKeys.detail(id || ""),
+    queryKey: workOrderKeys.detail(id ?? ""),
     queryFn: () => apiRequest<WorkOrder>("GET", `/api/work-orders/${id}`),
     enabled: !!id,
   });
@@ -53,7 +53,7 @@ export function useWorkOrder(id: string | undefined) {
 
 export function useWorkOrderParts(workOrderId: string | undefined) {
   return useQuery<WorkOrderPart[]>({
-    queryKey: workOrderKeys.parts(workOrderId || ""),
+    queryKey: workOrderKeys.parts(workOrderId ?? ""),
     queryFn: () => apiRequest<WorkOrderPart[]>("GET", `/api/work-orders/${workOrderId}/parts`),
     enabled: !!workOrderId,
   });
@@ -61,7 +61,7 @@ export function useWorkOrderParts(workOrderId: string | undefined) {
 
 export function useWorkOrderChecklists(workOrderId: string | undefined) {
   return useQuery<WorkOrderChecklist[]>({
-    queryKey: workOrderKeys.checklists(workOrderId || ""),
+    queryKey: workOrderKeys.checklists(workOrderId ?? ""),
     queryFn: () =>
       apiRequest<WorkOrderChecklist[]>("GET", `/api/work-orders/${workOrderId}/checklists`),
     enabled: !!workOrderId,
@@ -70,7 +70,7 @@ export function useWorkOrderChecklists(workOrderId: string | undefined) {
 
 export function useWorkOrderWorklogs(workOrderId: string | undefined) {
   return useQuery<WorkOrderWorklog[]>({
-    queryKey: workOrderKeys.worklogs(workOrderId || ""),
+    queryKey: workOrderKeys.worklogs(workOrderId ?? ""),
     queryFn: () =>
       apiRequest<WorkOrderWorklog[]>("GET", `/api/work-orders/${workOrderId}/worklogs`),
     enabled: !!workOrderId,
