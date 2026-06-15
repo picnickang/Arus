@@ -6,24 +6,16 @@
 import type { InventoryStorage } from "./storage";
 import type { Part } from "@shared/schema";
 import { optimizeInventoryLevels } from "../inventory";
-import { cryptoRandom } from "@shared/crypto-random";
-
-interface UsageHistoryRecord {
-  partNo: string;
-  month: string;
-  quantityUsed: number;
-}
 
 /**
- * Load historical part usage from work orders and stock adjustments
+ * Load real historical part usage from recorded work-order consumption.
  *
- * IMPLEMENTATION NOTE: This is a simplified version that estimates usage from current stock.
- * Production implementation should query actual work order history and stock movements.
- *
- * For now, we generate realistic estimates based on:
- * - Current min/max stock levels (indicates expected usage rate)
- * - Part category (different parts have different usage patterns)
- * - Random variation to simulate real-world usage fluctuations
+ * Usage is aggregated from `work_order_parts` (quantity consumed, dated by
+ * `usedAt` with a `createdAt` fallback) into monthly buckets via
+ * `storage.getPartUsageHistory`. The requested `daysHistory` window is mapped to
+ * whole months (≈30 days each, capped at 24). Parts with no recorded consumption
+ * yield all-zero arrays and are later filtered out by the optimizer, so the
+ * optimization runs only on real data — no simulated/estimated usage is produced.
  */
 export async function loadPartUsageHistory(
   orgId: string,
@@ -31,46 +23,8 @@ export async function loadPartUsageHistory(
   daysHistory: number = 365,
   storage: InventoryStorage
 ): Promise<Record<string, number[]>> {
-  const result: Record<string, number[]> = {};
-  const now = new Date();
-
-  for (const partNo of partNumbers) {
-    const monthlyData: number[] = [];
-
-    // Get part details to estimate usage
-    const part = await storage.getPartByNumber(partNo, orgId);
-    const stockRecords = await storage.getStockByParts([partNo], orgId);
-
-    if (!part) {
-      // Part not found - return zeros
-      result[partNo] = Array(12).fill(0);
-      continue;
-    }
-
-    // Estimate monthly usage based on min stock quantity
-    // Assumption: minStockQty represents ~1 month of safety stock
-    const estimatedMonthlyUsage = (part.minStockQty ?? 0) > 0 ? (part.minStockQty ?? 0) : 0;
-
-    // If no min stock configured, try to estimate from current stock
-    let baseUsage = estimatedMonthlyUsage;
-    if (baseUsage === 0 && stockRecords.length > 0) {
-      const totalStock = stockRecords.reduce((sum, s) => sum + (s.quantityOnHand ?? 0), 0);
-      // Assume current stock represents ~3 months of usage
-      baseUsage = Math.max(1, Math.floor(totalStock / 3));
-    }
-
-    // Generate 12 months of simulated usage with realistic variation
-    for (let i = 11; i >= 0; i--) {
-      // Add ±30% random variation to simulate real usage patterns
-      const variation = 0.7 + cryptoRandom() * 0.6; // Range: 0.7 to 1.3
-      const monthUsage = Math.max(0, Math.floor((baseUsage ?? 0) * variation));
-      monthlyData.push(monthUsage);
-    }
-
-    result[partNo] = monthlyData;
-  }
-
-  return result;
+  const monthsBack = Math.max(1, Math.min(24, Math.round(daysHistory / 30)));
+  return storage.getPartUsageHistory(partNumbers, orgId, monthsBack);
 }
 
 /**
@@ -181,6 +135,7 @@ export async function autoOptimizeInventory(
       dataQuality: {
         monthsOfData: usageHistory[result.partNo]?.filter((q) => q > 0).length || 0,
         totalHistoricalUsage: usageHistory[result.partNo]?.reduce((a, b) => a + b, 0) || 0,
+        source: "work_order_parts",
       },
       autoLoaded: {
         usageHistory: true,

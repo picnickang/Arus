@@ -12,6 +12,7 @@
 
 import type { Part, Stock, PartSubstitution } from "@shared/schema";
 import type { IStorage } from "../storage/interfaces/storage.types";
+import { bucketMonthlyUsage } from "./usage-history.js";
 
 /**
  * Typed interface for inventory storage operations
@@ -57,6 +58,17 @@ export interface InventoryStorage {
     workOrderId: string,
     orgId: string
   ): Promise<Array<{ partNo: string; quantity: number }>>;
+
+  /**
+   * Real monthly usage history per part, derived from `work_order_parts`
+   * consumption. Returns a `monthsBack`-length array of monthly totals
+   * (oldest → newest) per part number; parts with no consumption yield zeros.
+   */
+  getPartUsageHistory(
+    partNos: string[],
+    orgId: string,
+    monthsBack: number
+  ): Promise<Record<string, number[]>>;
 
   /**
    * Get work logs for a work order (for labor cost calculation)
@@ -185,6 +197,24 @@ export class InventoryStorageAdapter implements InventoryStorage {
       partNo: wop.partNo ?? "",
       quantity: wop.quantityUsed ?? 0,
     }));
+  }
+
+  /**
+   * Real monthly usage history per part, aggregated from recorded work-order
+   * consumption (`quantityUsed`, dated by `usedAt` with a `createdAt` fallback).
+   */
+  async getPartUsageHistory(
+    partNos: string[],
+    orgId: string,
+    monthsBack: number
+  ): Promise<Record<string, number[]>> {
+    const result: Record<string, number[]> = {};
+    for (const partNo of partNos) {
+      const part = await this.storage.getPartByPartNo(partNo, orgId);
+      const rows = part ? await this.storage.getWorkOrderPartsByPartId(orgId, part.id) : [];
+      result[partNo] = bucketMonthlyUsage(rows, monthsBack);
+    }
+    return result;
   }
 
   /**

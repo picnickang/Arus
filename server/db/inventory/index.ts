@@ -33,7 +33,7 @@ import type { WidenPartial } from "../../lib/widen-partial";
 import { createLogger } from "../../lib/structured-logger";
 const logger = createLogger("Db:Inventory:Index");
 import { randomUUID } from "node:crypto";
-import { eq, and, or, ilike, sql, desc, type SQL } from "drizzle-orm";
+import { eq, and, or, ilike, inArray, sql, desc, type SQL } from "drizzle-orm";
 import { db } from "../../db-config";
 import {
   workOrderParts,
@@ -64,6 +64,7 @@ import {
   removePartAndRestoreInventory as removeWorkOrderPartAndRestoreInventory,
   reservePartsForWorkOrder as reserveWorkOrderParts,
 } from "./work-order-parts.js";
+import { bucketMonthlyUsage, type UsageRow } from "../../inventory/usage-history.js";
 
 export * from "./types.js";
 export { fireInventoryMovementProjections } from "./inventory-projections.js";
@@ -450,6 +451,62 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .select()
       .from(workOrderParts)
       .where(and(eq(workOrderParts.partId, partId), eq(workOrderParts.orgId, orgId)));
+  }
+
+  /**
+   * Real monthly part-usage history derived from recorded work-order consumption
+   * (`work_order_parts.quantity_used`, dated by `used_at` and falling back to
+   * `created_at`). Returns, per part number, a `monthsBack`-length array of monthly
+   * totals ordered oldest → newest; a part with no recorded consumption yields zeros.
+   * Replaces the previous simulated usage so inventory optimization runs on real data.
+   */
+  async getPartUsageHistory(
+    partNos: string[],
+    orgId: string,
+    monthsBack: number
+  ): Promise<Record<string, number[]>> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant isolation");
+    }
+    const months = Math.max(1, Math.min(monthsBack, 60));
+    const result: Record<string, number[]> = {};
+    for (const partNo of partNos) {
+      result[partNo] = new Array<number>(months).fill(0);
+    }
+    if (partNos.length === 0) {
+      return result;
+    }
+
+    const rows = await db
+      .select({
+        partNo: partsTable.partNo,
+        quantityUsed: workOrderParts.quantityUsed,
+        usedAt: workOrderParts.usedAt,
+        createdAt: workOrderParts.createdAt,
+      })
+      .from(workOrderParts)
+      .innerJoin(partsTable, eq(workOrderParts.partId, partsTable.id))
+      .where(and(eq(workOrderParts.orgId, orgId), inArray(partsTable.partNo, partNos)));
+
+    const byPart = new Map<string, UsageRow[]>();
+    for (const row of rows) {
+      const partNo = row.partNo;
+      if (!partNo) {
+        continue;
+      }
+      const list = byPart.get(partNo);
+      if (list) {
+        list.push(row);
+      } else {
+        byPart.set(partNo, [row]);
+      }
+    }
+    for (const [partNo, partRows] of byPart) {
+      if (partNo in result) {
+        result[partNo] = bucketMonthlyUsage(partRows, months);
+      }
+    }
+    return result;
   }
 
   async removePartFromWorkOrder(workOrderPartId: string, orgId?: string): Promise<void> {
