@@ -342,8 +342,8 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
 
     expect(res.status).toBe("invalid_state");
     // The work order must NOT have been reverted to open.
-    expect(store.get("wo1")?.status).toBe("in_progress");
-    expect(store.get("wo1")?.assignmentStatus).toBe("accepted");
+    expect(store.get("wo1")?.["status"]).toBe("in_progress");
+    expect(store.get("wo1")?.["assignmentStatus"]).toBe("accepted");
   });
 
   it("returns 'invalid_state' when responding to an already-completed work order", async () => {
@@ -360,7 +360,7 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
 
     expect(res.status).toBe("invalid_state");
     // A terminal work order must not be reopened into progress.
-    expect(store.get("wo1")?.status).toBe("completed");
+    expect(store.get("wo1")?.["status"]).toBe("completed");
   });
 
   it("returns 'not_crew' when the user is not a registered crew member", async () => {

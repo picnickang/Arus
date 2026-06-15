@@ -153,19 +153,17 @@ function assertWithinBaseline(
   perTheme: Record<string, number>,
   total: number
 ): void {
-  if (process.env.AXE_CONTRAST_UPDATE === "1") {
-    fs.writeFileSync(
-      baselinePath,
-      JSON.stringify(
-        {
-          _comment: `WCAG color-contrast violation nodes on ${surface} across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.`,
-          maxContrastViolations: total,
-          perTheme,
-        },
-        null,
-        2
-      ) + "\n"
+  if (process.env["AXE_CONTRAST_UPDATE"] === "1") {
+    const serialized = JSON.stringify(
+      {
+        _comment: `WCAG color-contrast violation nodes on ${surface} across the 4 themes. Ratchets down only: AXE_CONTRAST_UPDATE=1 to regenerate after intentional reductions.`,
+        maxContrastViolations: total,
+        perTheme,
+      },
+      null,
+      2
     );
+    fs.writeFileSync(baselinePath, `${serialized}\n`);
     console.log(`[axe-contrast] ${surface} baseline written: ${total}`);
     return;
   }
