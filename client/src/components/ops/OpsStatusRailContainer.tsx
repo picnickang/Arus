@@ -113,5 +113,3 @@ export function OpsStatusRailContainer({
     />
   );
 }
-
-export default OpsStatusRailContainer;
