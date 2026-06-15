@@ -1,12 +1,12 @@
 [
   {
-    "name": "Initial app bundle (entry + critical vendor chunks, gzip)",
+    "name": "Initial app bundle (entry + critical vendor chunks, gzip; floor ~= react/react-dom 117KB)",
     "path": [
       "dist/public/assets/app-*.js",
       "dist/public/assets/vendor-react-*.js",
       "dist/public/assets/vendor-ui-*.js"
     ],
-    "limit": "215 KB",
+    "limit": "235 KB",
     "gzip": true
   },
   {

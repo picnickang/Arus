@@ -1,8 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Bot } from "lucide-react";
-import { AgentChatPanel } from "./AgentChatPanel";
+
+// The chat panel (markdown/streaming UI) is the heavy part of this widget and is
+// not needed until the user opens the Copilot, so it is code-split out of the
+// entry chunk and loaded on first open.
+const AgentChatPanel = lazy(() =>
+  import("./AgentChatPanel").then((m) => ({ default: m.AgentChatPanel }))
+);
 
 interface DraftSummary {
   id: string;
@@ -12,6 +18,14 @@ interface DraftSummary {
 export function CopilotFab() {
   const [open, setOpen] = useState(false);
   const [initialMessage, setInitialMessage] = useState<string | null>(null);
+  // Mount the lazy chat panel on first open, then keep it mounted so chat state
+  // and the close animation are preserved across subsequent open/close.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setEverOpened(true);
+    }
+  }, [open]);
 
   const { data: drafts } = useQuery<DraftSummary[]>({
     queryKey: ["/api/agent/drafts"],
@@ -48,7 +62,11 @@ export function CopilotFab() {
           </span>
         )}
       </Button>
-      <AgentChatPanel open={open} onClose={handleClose} initialMessage={initialMessage} />
+      {everOpened && (
+        <Suspense fallback={null}>
+          <AgentChatPanel open={open} onClose={handleClose} initialMessage={initialMessage} />
+        </Suspense>
+      )}
     </>
   );
 }

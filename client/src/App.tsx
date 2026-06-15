@@ -2,7 +2,6 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { CommandPaletteMount } from "@/components/search/CommandPaletteMount";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -16,7 +15,6 @@ import { ConnectivityBannerWithSync } from "@/components/shared/ConnectivityBann
 import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
-import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
 import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/mobile-readiness-route-contract";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
@@ -44,6 +42,21 @@ const MobileProfilePage = lazy(() =>
 const MobileAttentionInboxPage = lazy(() =>
   import("@/features/mobile-readiness/MobileAttentionInboxPage").then((m) => ({
     default: m.MobileAttentionInboxPage,
+  }))
+);
+
+// Deferred chrome: not needed for the landing-route first paint, so kept out of
+// the entry (app-*) chunk. CommandPaletteMount is user-triggered; UniversalOpsShell
+// only renders on admin hub routes. (CopilotFab stays eager: a leak-pin test asserts
+// its exact inline render expression, which a Suspense wrapper would reflow.)
+const CommandPaletteMount = lazy(() =>
+  import("@/components/search/CommandPaletteMount").then((m) => ({
+    default: m.CommandPaletteMount,
+  }))
+);
+const UniversalOpsShell = lazy(() =>
+  import("@/components/ops/UniversalOpsShell").then((m) => ({
+    default: m.UniversalOpsShell,
   }))
 );
 
@@ -292,7 +305,11 @@ function Router() {
       <ConnectivityBannerWithSync />
 
       {/* Global quick-switcher (Cmd/Ctrl-K / shell search button); admin portal only. */}
-      {isAdminPortal && <CommandPaletteMount />}
+      {isAdminPortal && (
+        <Suspense fallback={null}>
+          <CommandPaletteMount />
+        </Suspense>
+      )}
 
       <main
         id="main-content"
