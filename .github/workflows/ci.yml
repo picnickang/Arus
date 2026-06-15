@@ -195,6 +195,9 @@ jobs:
     name: Integration Tests (Postgres forms/journeys contract lane)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Least-privilege: this lane only does checkout + npm + curl + tests.
+    permissions:
+      contents: read
 
     services:
       postgres:

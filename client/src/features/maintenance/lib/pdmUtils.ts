@@ -39,7 +39,9 @@ export const bearingFormSchema = z.object({
   // coerce: the form binds these to <input type="number">, which yields a
   // string on edit; coercion keeps validation correct without per-field onChange.
   fs: z.coerce.number().min(1, "Sampling frequency must be positive"),
-  rpm: z.coerce.number().min(0).optional(),
+  // optional: a cleared input arrives as "" — preprocess to undefined so it
+  // stays "not provided" (bare z.coerce would turn "" into 0).
+  rpm: z.preprocess((v) => (v === "" ? undefined : v), z.coerce.number().min(0).optional()),
   series: z.string().min(1, "Vibration data is required"),
   autoBaseline: z.boolean(),
 });

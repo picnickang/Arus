@@ -18,7 +18,10 @@ if (!url) {
   process.exit(1);
 }
 
-const ORG = process.env["SEED_ORG_ID"] || "default-org-id";
+// Fixed to the canonical single-tenant org the forms helper reads
+// (TEST_ORG_ID). The fixture ids below are constant, so a different org would
+// skip the ON CONFLICT inserts and fail the count check — no override exposed.
+const ORG = "default-org-id";
 const pool = new pg.Pool({ connectionString: url });
 
 async function main() {
