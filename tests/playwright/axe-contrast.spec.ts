@@ -164,7 +164,7 @@ function assertWithinBaseline(
       2
     );
     fs.writeFileSync(baselinePath, `${serialized}\n`);
-    console.log(`[axe-contrast] ${surface} baseline written: ${total}`);
+    console.info(`[axe-contrast] ${surface} baseline written: ${total}`);
     return;
   }
   const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
@@ -178,7 +178,7 @@ test("ops chrome meets WCAG color-contrast across the 4 themes (ratchet) @visual
   browser,
 }) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoOpsChrome);
-  console.log(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
+  console.info(`axe color-contrast (ops chrome): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(OPS_BASELINE_PATH, "/analytics", perTheme, total);
 });
 
@@ -186,6 +186,6 @@ test("mobile-readiness screens meet WCAG color-contrast across the 4 themes (rat
   browser,
 }) => {
   const { perTheme, total } = await contrastAcrossThemes(browser, gotoMobileFleet);
-  console.log(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
+  console.info(`axe color-contrast (mobile-readiness): ${JSON.stringify(perTheme)} total=${total}`);
   assertWithinBaseline(MOBILE_BASELINE_PATH, "/fleet", perTheme, total);
 });
