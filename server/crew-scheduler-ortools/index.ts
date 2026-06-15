@@ -1,5 +1,5 @@
 /**
- * Crew Scheduler OR-Tools - Main Entry Point
+ * Crew Scheduler - Main Entry Point
  * Re-exports all types and functions
  */
 

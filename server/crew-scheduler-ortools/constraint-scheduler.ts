@@ -1,6 +1,11 @@
 /**
- * Crew Scheduler OR-Tools - Constraint Scheduling
- * CP-SAT style constraint satisfaction implementation
+ * Crew Scheduler - Constraint Scheduling
+ *
+ * Greedy, penalty-based constraint heuristic: for each (day, shift) it filters
+ * eligible crew (leave/skill/rank/certification/night-cap), scores them by a
+ * weighted penalty, and assigns the lowest-penalty crew. This is NOT Google
+ * OR-Tools and NOT a CP-SAT solver — there is no constraint propagation or
+ * search; "ortools" survives only as a legacy engine identifier.
  */
 
 import {

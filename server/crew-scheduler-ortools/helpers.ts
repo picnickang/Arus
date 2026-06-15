@@ -1,5 +1,5 @@
 /**
- * Crew Scheduler OR-Tools - Helper Functions
+ * Crew Scheduler - Helper Functions
  * Time window and validation utilities
  */
 

@@ -1,5 +1,5 @@
 /**
- * Crew Scheduler OR-Tools - Types
+ * Crew Scheduler - Types
  * Shared type definitions for scheduling
  */
 
@@ -28,6 +28,10 @@ export type SelectDrydockWindow = typeof drydockWindow.$inferSelect;
 export type CrewWithSkills = typeof crew.$inferSelect & { skills?: string[] };
 
 export const ENGINE_GREEDY = "greedy";
+// Legacy engine identifier retained for persisted configs and job payloads. The
+// "ortools" engine is an in-house greedy penalty-based constraint heuristic
+// (see constraint-scheduler.ts) — NOT Google OR-Tools / CP-SAT. Renaming the
+// stored value would require a data migration (tracked separately).
 export const ENGINE_OR_TOOLS = "ortools";
 
 export interface SchedulingPreferences {

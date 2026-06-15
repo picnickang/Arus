@@ -1,6 +1,8 @@
 /**
- * Crew Scheduler OR-Tools - Main Scheduler
- * Engine selection and greedy fallback
+ * Crew Scheduler - Main Scheduler
+ * Engine selection: the legacy "ortools" engine routes to an in-house greedy
+ * constraint heuristic (NOT Google OR-Tools); both engines fall back to the
+ * plain greedy planner on failure.
  */
 
 import { createLogger } from "../lib/structured-logger";
@@ -21,7 +23,7 @@ import {
 import { isWindowAllowed } from "./helpers.js";
 import { scheduleWithConstraints } from "./constraint-scheduler.js";
 
-function scheduleWithORTools(
+function scheduleWithConstraintHeuristic(
   days: string[],
   shifts: SelectShiftTemplate[],
   crew: CrewWithSkills[],
@@ -95,7 +97,7 @@ export function planWithEngine(request: ConstraintScheduleRequest): ScheduleResu
     request;
 
   if (engine === ENGINE_OR_TOOLS) {
-    return scheduleWithORTools(
+    return scheduleWithConstraintHeuristic(
       days,
       shifts,
       crew,
