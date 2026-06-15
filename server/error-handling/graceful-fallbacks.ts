@@ -10,7 +10,7 @@ export const gracefulFallbacks = {
     cachedData: T,
     operationName: string
   ): Promise<T> => {
-    return operation().catch((error) => {
+    return operation().catch((_error) => {
       structuredLog("warn", `${operationName} failed, using cached data`, {
         operation: "graceful_degradation",
         metadata: { operationName, fallbackType: "cached" },
@@ -24,7 +24,7 @@ export const gracefulFallbacks = {
     partialData: T,
     operationName: string
   ): Promise<T> => {
-    return operation().catch((error) => {
+    return operation().catch((_error) => {
       structuredLog("warn", `${operationName} failed, using partial data`, {
         operation: "graceful_degradation",
         metadata: { operationName, fallbackType: "partial" },
@@ -38,7 +38,7 @@ export const gracefulFallbacks = {
     defaultValue: T,
     operationName: string
   ): Promise<T> => {
-    return operation().catch((error) => {
+    return operation().catch((_error) => {
       structuredLog("warn", `${operationName} failed, using default value`, {
         operation: "graceful_degradation",
         metadata: { operationName, fallbackType: "default" },

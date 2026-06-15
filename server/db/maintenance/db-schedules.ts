@@ -133,7 +133,7 @@ export class DbMaintenanceSchedules {
   async getMaintenanceRecords(
     equipmentId?: string,
     orgId?: string,
-    filters?: MaintenanceFilters
+    _filters?: MaintenanceFilters
   ): Promise<MaintenanceRecord[]> {
     const conditions: SQL[] = [];
     if (orgId) {

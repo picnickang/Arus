@@ -206,7 +206,7 @@ export class InventoryStorageAdapter implements InventoryStorage {
    * Get open purchase orders for ETA calculation
    * Optional feature - not all storage implementations may support this
    */
-  async getOpenPOs(partNo: string, orgId: string): Promise<Array<{ expectedDate: string }>> {
+  async getOpenPOs(_partNo: string, _orgId: string): Promise<Array<{ expectedDate: string }>> {
     // Stub implementation - can be enhanced when PO system is available
     // For now, return empty array (callers will fall back to lead time calculation)
     return [];

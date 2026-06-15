@@ -166,7 +166,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
     return result.rows.map((row: unknown) => this.mapRowToConfig(row));
   }
 
-  async findDueSchedules(now: Date): Promise<ReportScheduleConfig[]> {
+  async findDueSchedules(_now: Date): Promise<ReportScheduleConfig[]> {
     const result = await db.execute(sql`
       SELECT * FROM report_schedules
       WHERE enabled = true
@@ -211,7 +211,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
     };
   }
 
-  private calculateNextRun(cronExpression: string): Date {
+  private calculateNextRun(_cronExpression: string): Date {
     const next = new Date();
     next.setDate(next.getDate() + 1);
     next.setHours(8, 0, 0, 0);

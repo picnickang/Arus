@@ -268,7 +268,7 @@ export class ReportSchedulerService {
     }
   }
 
-  private calculateNextRun(cronExpression: string, timezone: string): Date {
+  private calculateNextRun(_cronExpression: string, _timezone: string): Date {
     const nextRun = new Date();
     nextRun.setDate(nextRun.getDate() + 1);
     nextRun.setHours(8, 0, 0, 0);
